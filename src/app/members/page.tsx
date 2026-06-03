@@ -29,6 +29,7 @@ export default function MembersPage() {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>({ name: "", position_1st: "", position_2nd: "", is_mercenary: false });
+  const [tab, setTab] = useState<"regular" | "mercenary">("regular");
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -80,143 +81,132 @@ export default function MembersPage() {
     setShowForm(true);
   }
 
+  function openAdd() {
+    setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: false });
+    setEditId(null);
+    setShowForm(true);
+  }
+
   const regularMembers = members.filter(m => !m.is_mercenary);
   const mercenaryMembers = members.filter(m => m.is_mercenary);
+  const displayedMembers = tab === "regular" ? regularMembers : mercenaryMembers;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-green-700 text-white px-6 py-4 flex items-center gap-4">
-        <button onClick={() => router.push("/dashboard")} className="text-white hover:text-green-200">← 뒤로</button>
-        <div className="flex items-center gap-2">
-          <span className="text-xl">👥</span>
-          <h1 className="text-lg font-bold">팀원 관리</h1>
+      <header className="bg-green-700 text-white px-4 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.push("/dashboard")} className="text-white hover:text-green-200">← 뒤로</button>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">👥</span>
+            <h1 className="text-lg font-bold">팀원 관리</h1>
+          </div>
         </div>
+        <button
+          onClick={openAdd}
+          className="bg-white text-green-700 font-bold px-3 py-1.5 rounded-xl text-sm"
+        >
+          + 추가
+        </button>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex gap-3 text-sm text-gray-500">
-            <span>팀원 <b className="text-gray-800">{regularMembers.length}명</b></span>
-            <span>용병 <b className="text-orange-500">{mercenaryMembers.length}명</b></span>
+      {/* 탭 */}
+      <div className="flex border-b border-gray-200 bg-white">
+        <button
+          onClick={() => setTab("regular")}
+          className={`flex-1 py-3 text-sm font-bold transition-colors ${tab === "regular" ? "text-green-600 border-b-2 border-green-600" : "text-gray-400"}`}
+        >
+          정규 팀원 <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${tab === "regular" ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"}`}>{regularMembers.length}</span>
+        </button>
+        <button
+          onClick={() => setTab("mercenary")}
+          className={`flex-1 py-3 text-sm font-bold transition-colors ${tab === "mercenary" ? "text-orange-500 border-b-2 border-orange-500" : "text-gray-400"}`}
+        >
+          ⚡ 용병 <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${tab === "mercenary" ? "bg-orange-100 text-orange-500" : "bg-gray-100 text-gray-400"}`}>{mercenaryMembers.length}</span>
+        </button>
+      </div>
+
+      <main className="max-w-2xl mx-auto px-4 py-4">
+        {loading ? (
+          <p className="text-center text-gray-400 py-16">로딩 중...</p>
+        ) : displayedMembers.length === 0 ? (
+          <div className="text-center py-16 text-gray-400">
+            <div className="text-5xl mb-3">{tab === "regular" ? "👥" : "⚡"}</div>
+            <p>{tab === "regular" ? "정규 팀원이 없어요" : "용병이 없어요"}</p>
+            <button onClick={openAdd} className="mt-4 text-sm text-green-600 font-bold">+ 추가하기</button>
           </div>
-          <button
-            onClick={() => { setShowForm(true); setEditId(null); setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: false }); }}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-medium transition-colors"
-          >
-            + 팀원 추가
-          </button>
-        </div>
-
-        <div className="flex gap-6 items-start">
-
-          {/* 왼쪽: 폼 */}
-          <div className="w-72 shrink-0">
-            {showForm ? (
-              <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow p-5 sticky top-6">
-                <h2 className="font-bold text-gray-800 mb-4">{editId ? "팀원 수정" : "팀원 추가"}</h2>
-                <div className="flex flex-col gap-3">
-                  <div>
-                    <label className="text-xs text-gray-500 mb-1 block">이름 *</label>
-                    <input
-                      type="text"
-                      value={form.name}
-                      onChange={e => setForm({ ...form, name: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="팀원 이름"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 mb-1 block">1순위 포지션</label>
-                    <PositionSelect
-                      value={form.position_1st}
-                      onChange={v => setForm({ ...form, position_1st: v })}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 mb-1 block">2순위 포지션</label>
-                    <PositionSelect
-                      value={form.position_2nd}
-                      onChange={v => setForm({ ...form, position_2nd: v })}
-                    />
-                  </div>
-
-                  {/* 용병 토글 */}
-                  <div
-                    className={`flex items-center justify-between px-3 py-2.5 rounded-xl border-2 cursor-pointer transition-colors ${form.is_mercenary ? "border-orange-400 bg-orange-50" : "border-gray-200 bg-gray-50"}`}
-                    onClick={() => setForm({ ...form, is_mercenary: !form.is_mercenary })}
-                  >
-                    <div>
-                      <p className={`font-medium text-sm ${form.is_mercenary ? "text-orange-600" : "text-gray-600"}`}>용병</p>
-                      <p className="text-xs text-gray-400">정규 팀원이 아닌 용병</p>
-                    </div>
-                    <div className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${form.is_mercenary ? "bg-orange-400" : "bg-gray-300"}`}>
-                      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.is_mercenary ? "translate-x-5" : "translate-x-0.5"}`} />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl text-sm font-medium transition-colors">
-                      {editId ? "수정 완료" : "추가"}
-                    </button>
-                    <button type="button" onClick={() => { setShowForm(false); setEditId(null); }} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-xl text-sm font-medium transition-colors">
-                      취소
-                    </button>
-                  </div>
-                </div>
-              </form>
-            ) : (
-              <div className="bg-white rounded-2xl shadow p-5 text-center text-gray-400">
-                <div className="text-3xl mb-2">👆</div>
-                <p className="text-sm">우측 상단 버튼으로<br/>팀원을 추가하세요</p>
-              </div>
-            )}
+        ) : (
+          <div className="bg-white rounded-2xl shadow overflow-hidden">
+            {displayedMembers.map((member, idx) => (
+              <MemberRow
+                key={member.id}
+                member={member}
+                isLast={idx === displayedMembers.length - 1}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                isMercenary={member.is_mercenary}
+              />
+            ))}
           </div>
-
-          {/* 오른쪽: 정규팀원 + 용병 나란히 */}
-          <div className="flex-1 flex gap-4 items-start min-w-0">
-            {loading ? (
-              <p className="text-gray-400 py-10">로딩 중...</p>
-            ) : members.length === 0 ? (
-              <div className="flex-1 text-center py-16 text-gray-400">
-                <div className="text-5xl mb-3">👥</div>
-                <p>아직 팀원이 없어요</p>
-              </div>
-            ) : (
-              <>
-                {/* 정규 팀원 */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-400 mb-2 px-1">정규 팀원 ({regularMembers.length}명)</p>
-                  {regularMembers.length === 0 ? (
-                    <div className="bg-white rounded-2xl shadow p-6 text-center text-gray-300 text-sm">없음</div>
-                  ) : (
-                    <div className="bg-white rounded-2xl shadow overflow-hidden">
-                      {regularMembers.map((member, idx) => (
-                        <MemberRow key={member.id} member={member} isLast={idx === regularMembers.length - 1} onEdit={handleEdit} onDelete={handleDelete} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* 용병 */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-orange-400 mb-2 px-1">⚡ 용병 ({mercenaryMembers.length}명)</p>
-                  {mercenaryMembers.length === 0 ? (
-                    <div className="bg-white rounded-2xl shadow p-6 text-center text-gray-300 text-sm border-2 border-orange-100">없음</div>
-                  ) : (
-                    <div className="bg-white rounded-2xl shadow overflow-hidden border-2 border-orange-200">
-                      {mercenaryMembers.map((member, idx) => (
-                        <MemberRow key={member.id} member={member} isLast={idx === mercenaryMembers.length - 1} onEdit={handleEdit} onDelete={handleDelete} isMercenary />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-
-        </div>
+        )}
       </main>
+
+      {/* 모달 폼 */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => { setShowForm(false); setEditId(null); }} />
+          <form
+            onSubmit={handleSubmit}
+            className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-xl p-6 z-10"
+          >
+            <h2 className="font-bold text-gray-800 text-lg mb-5">{editId ? "팀원 수정" : "팀원 추가"}</h2>
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">이름 *</label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="팀원 이름"
+                  required
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">1순위 포지션</label>
+                <PositionSelect value={form.position_1st} onChange={v => setForm({ ...form, position_1st: v })} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">2순위 포지션</label>
+                <PositionSelect value={form.position_2nd} onChange={v => setForm({ ...form, position_2nd: v })} />
+              </div>
+
+              {/* 용병 토글 */}
+              <div
+                className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 cursor-pointer transition-colors ${form.is_mercenary ? "border-orange-400 bg-orange-50" : "border-gray-200 bg-gray-50"}`}
+                onClick={() => setForm({ ...form, is_mercenary: !form.is_mercenary })}
+              >
+                <div>
+                  <p className={`font-medium text-sm ${form.is_mercenary ? "text-orange-600" : "text-gray-600"}`}>⚡ 용병</p>
+                  <p className="text-xs text-gray-400">정규 팀원이 아닌 용병</p>
+                </div>
+                <div className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${form.is_mercenary ? "bg-orange-400" : "bg-gray-300"}`}>
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.is_mercenary ? "translate-x-6" : "translate-x-1"}`} />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold transition-colors">
+                  {editId ? "수정 완료" : "추가"}
+                </button>
+                <button type="button" onClick={() => { setShowForm(false); setEditId(null); }} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold transition-colors">
+                  취소
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
@@ -235,8 +225,8 @@ function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false }: {
           {member.name}{isMercenary && <span className="ml-1 text-xs">⚡</span>}
         </span>
         <div className="flex gap-1">
-          <button onClick={() => onEdit(member)} className="text-xs text-blue-500 hover:text-blue-700 px-2 py-0.5 rounded hover:bg-blue-50">수정</button>
-          <button onClick={() => onDelete(member.id)} className="text-xs text-red-400 hover:text-red-600 px-2 py-0.5 rounded hover:bg-red-50">삭제</button>
+          <button onClick={() => onEdit(member)} className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50">수정</button>
+          <button onClick={() => onDelete(member.id)} className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50">삭제</button>
         </div>
       </div>
       <div className="flex gap-1.5 flex-wrap">
