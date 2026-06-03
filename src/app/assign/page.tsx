@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
-import { FORMATIONS, Formation, PositionSlot } from "@/lib/formations";
+import { FORMATIONS, Formation, PositionSlot, SOCCER_FORMATIONS, FUTSAL_FORMATIONS } from "@/lib/formations";
 import KakaoShare from "@/components/KakaoShare";
 
 interface Member {
@@ -66,6 +66,9 @@ function AssignContent() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveSessionName, setSaveSessionName] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [attendingIds, setAttendingIds] = useState<Set<string>>(new Set());
+  const [showAttendModal, setShowAttendModal] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -168,18 +171,35 @@ function AssignContent() {
   async function fetchMembers() {
     const res = await fetch("/api/members");
     const data = await res.json();
-    setMembers(Array.isArray(data) ? data : []);
+    const list: Member[] = Array.isArray(data) ? data : [];
+    setMembers(list);
+    setAttendingIds(new Set()); // 기본: 전원 해제
     setLoading(false);
   }
 
+  function toggleAttending(id: string) {
+    setAttendingIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAllAttending(all: boolean) {
+    setAttendingIds(all ? new Set(members.map(m => m.id)) : new Set());
+  }
+
+  // 참가자 중 미배정 팀원
   function getUnassignedMembers(currentAssigned: Record<string, Member | null>, excludeSlotId?: string) {
     const assignedIds = new Set(
       Object.entries(currentAssigned)
         .filter(([slotId, m]) => m && slotId !== excludeSlotId)
         .map(([, m]) => m!.id)
     );
-    return members.filter(m => !assignedIds.has(m.id));
+    return members.filter(m => attendingIds.has(m.id) && !assignedIds.has(m.id));
   }
+
+  const attendingMembers = members.filter(m => attendingIds.has(m.id));
 
   function autoAssign() {
     const cf = customFormations.find(f => f.id === selectedFormation);
@@ -190,6 +210,9 @@ function AssignContent() {
 
     const assignedMemberIds = new Set<string>();
 
+    // 참가자만 대상으로
+    const pool = attendingMembers;
+
     // 라벨별 슬롯 그룹화
     const labelSlots: Record<string, string[]> = {};
     for (const slot of slots) {
@@ -199,7 +222,7 @@ function AssignContent() {
 
     // 라벨별 1순위 희망자 수집
     const labelWanters: Record<string, Member[]> = {};
-    for (const m of members) {
+    for (const m of pool) {
       if (m.position_1st) {
         if (!labelWanters[m.position_1st]) labelWanters[m.position_1st] = [];
         labelWanters[m.position_1st].push(m);
@@ -233,7 +256,7 @@ function AssignContent() {
       if (result[slot.id]) continue;
       const inConflict = conflictList.some(c => c.slotIds.includes(slot.id));
       if (inConflict) continue;
-      const wants = members.filter(
+      const wants = pool.filter(
         m => m.position_2nd === slot.label
           && !assignedMemberIds.has(m.id)
           && !conflictMemberIds.has(m.id)
@@ -283,7 +306,7 @@ function AssignContent() {
     const curFormation: Formation = cf ? { name: cf.name, slots: cf.slots } : FORMATIONS[selectedFormation] ?? FORMATIONS["4-3-3"];
     for (const slot of curFormation.slots) {
       if (updated[slot.id]) continue;
-      const wants = members.filter(
+      const wants = attendingMembers.filter(
         m => m.position_2nd === slot.label && !assignedMemberIds.has(m.id)
       );
       if (wants.length > 0) {
@@ -447,59 +470,22 @@ function AssignContent() {
                 )}
               </div>
 
-              {/* 참여 현황 */}
-              {savedAssignments.length > 0 && (() => {
-                const memberQuarters: Record<string, { name: string; isMercenary: boolean; quarters: boolean[] }> = {};
-                savedAssignments.forEach((s, qIdx) => {
-                  for (const member of Object.values(s.result)) {
-                    if (!member) continue;
-                    if (!memberQuarters[member.id]) {
-                      const m = members.find(x => x.id === member.id);
-                      memberQuarters[member.id] = {
-                        name: member.name,
-                        isMercenary: (m as Member & { is_mercenary?: boolean })?.is_mercenary || false,
-                        quarters: Array(savedAssignments.length).fill(false),
-                      };
-                    }
-                    memberQuarters[member.id].quarters[qIdx] = true;
-                  }
-                });
-                const sorted = Object.values(memberQuarters).sort((a, b) => b.quarters.filter(Boolean).length - a.quarters.filter(Boolean).length);
-                const total = savedAssignments.length;
-                return (
-                  <div>
-                    <p className="text-xs font-semibold text-gray-400 mb-2">📊 참여 현황 ({total}쿼터)</p>
-                    <div className="bg-white rounded-2xl shadow overflow-hidden">
-                      {sorted.map((p, idx) => {
-                        const count = p.quarters.filter(Boolean).length;
-                        return (
-                          <div key={idx} className={`px-3 py-2 ${idx !== sorted.length - 1 ? "border-b border-gray-100" : ""}`}>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className={`text-xs font-medium ${p.isMercenary ? "text-orange-600" : "text-gray-800"}`}>
-                                {p.name}{p.isMercenary && " ⚡"}
-                              </span>
-                              <span className="text-xs font-bold text-gray-400">{count}/{total}</span>
-                            </div>
-                            <div className="flex gap-1">
-                              {savedAssignments.map((s, i) => (
-                                p.quarters[i] ? (
-                                  <span key={i} className="text-xs font-bold bg-green-500 text-white rounded px-1 py-0.5 leading-none min-w-[18px] text-center">
-                                    {s.session_name.replace(/[^0-9]/g, "") || i + 1}
-                                  </span>
-                                ) : (
-                                  <span key={i} className="text-xs bg-gray-100 text-gray-300 rounded px-1 py-0.5 leading-none min-w-[18px] text-center">
-                                    {s.session_name.replace(/[^0-9]/g, "") || i + 1}
-                                  </span>
-                                )
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
+              {/* 참여 현황 버튼 */}
+              {savedAssignments.length > 0 && (
+                <button
+                  onClick={() => setShowStatsModal(true)}
+                  className="w-full flex items-center justify-between bg-white rounded-2xl shadow px-4 py-3 hover:shadow-md transition-shadow group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">📊</span>
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-gray-700">참여 현황</p>
+                      <p className="text-xs text-gray-400">{savedAssignments.length}쿼터 저장됨</p>
                     </div>
                   </div>
-                );
-              })()}
+                  <span className="text-xs text-green-600 font-semibold group-hover:underline">보기 →</span>
+                </button>
+              )}
             </div>
 
             {/* 가운데: 그라운드 */}
@@ -508,29 +494,16 @@ function AssignContent() {
                 <h2 className="font-bold text-gray-800">포메이션 선택</h2>
                 <button onClick={() => router.push("/formations")} className="text-xs text-green-600 hover:underline">+ 포메이션 만들기</button>
               </div>
-              <select
+              <FormationSelect
                 value={selectedFormation}
-                onChange={e => setSelectedFormation(e.target.value)}
-                className="w-full border-2 border-gray-200 focus:border-green-500 rounded-xl px-4 py-3 font-bold text-lg mb-4 focus:outline-none bg-white"
-              >
-                <optgroup label="기본 포메이션">
-                  {Object.keys(FORMATIONS).map(key => (
-                    <option key={key} value={key}>{key}</option>
-                  ))}
-                </optgroup>
-                {customFormations.length > 0 && (
-                  <optgroup label="내 커스텀 포메이션">
-                    {customFormations.map(f => (
-                      <option key={f.id} value={f.id}>{f.name}</option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
+                onChange={setSelectedFormation}
+                customFormations={customFormations}
+              />
               <FieldView formation={formation} assigned={{}} preview teamColor={teamColor} mercenaryIds={new Set()} />
             </div>
 
-            {/* 오른쪽: 팀원 목록 + 배정 버튼 */}
-            <div className="w-64 shrink-0 flex flex-col gap-4 sticky top-6">
+            {/* 오른쪽: 참가자 + 배정 버튼 */}
+            <div className="w-64 shrink-0 flex flex-col gap-3 sticky top-6">
               {members.length === 0 ? (
                 <div className="bg-white rounded-2xl shadow p-5 text-center text-gray-400">
                   <p className="text-sm">팀원이 없어요!</p>
@@ -538,53 +511,86 @@ function AssignContent() {
                 </div>
               ) : (
                 <>
-                  {/* 정규 팀원 */}
-                  {(() => {
-                    const regular = members.filter((m: Member & { is_mercenary?: boolean }) => !m.is_mercenary);
-                    return regular.length > 0 ? (
-                      <div className="bg-white rounded-2xl shadow p-4">
-                        <p className="text-xs font-semibold text-gray-400 mb-2">정규 팀원 ({regular.length}명)</p>
-                        <div className="flex flex-col gap-1">
-                          {regular.map((m: Member & { is_mercenary?: boolean }) => (
-                            <div key={m.id} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-gray-50">
-                              <span className="text-sm font-medium text-gray-800">{m.name}</span>
-                              <div className="flex gap-1">
-                                {m.position_1st && <span className="text-xs bg-green-100 text-green-700 px-1.5 rounded-full">{m.position_1st}</span>}
-                                {m.position_2nd && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 rounded-full">{m.position_2nd}</span>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                  {/* 참가 인원 카드 */}
+                  <div className="bg-white rounded-2xl shadow overflow-hidden">
+                    <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-gray-800">오늘 참가 인원</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          <span className="text-green-600 font-bold">{attendingIds.size}명</span> 참가
+                        </p>
                       </div>
-                    ) : null;
-                  })()}
+                      <button
+                        onClick={() => setShowAttendModal(true)}
+                        className="text-xs bg-green-500 hover:bg-green-600 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        ✏️ 설정
+                      </button>
+                    </div>
 
-                  {/* 용병 */}
-                  {(() => {
-                    const mercenary = members.filter((m: Member & { is_mercenary?: boolean }) => m.is_mercenary);
-                    return mercenary.length > 0 ? (
-                      <div className="bg-white rounded-2xl shadow p-4 border-2 border-orange-200">
-                        <p className="text-xs font-semibold text-orange-400 mb-2">⚡ 용병 ({mercenary.length}명)</p>
-                        <div className="flex flex-col gap-1">
-                          {mercenary.map((m: Member & { is_mercenary?: boolean }) => (
-                            <div key={m.id} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-orange-50">
-                              <span className="text-sm font-medium text-orange-700">{m.name}</span>
-                              <div className="flex gap-1">
-                                {m.position_1st && <span className="text-xs bg-green-100 text-green-700 px-1.5 rounded-full">{m.position_1st}</span>}
-                                {m.position_2nd && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 rounded-full">{m.position_2nd}</span>}
+                    {attendingIds.size === 0 ? (
+                      <div className="px-4 py-5 text-center">
+                        <p className="text-xs text-gray-400">참가 인원을 설정해주세요</p>
+                        <button
+                          onClick={() => setShowAttendModal(true)}
+                          className="mt-2 text-xs text-green-600 font-semibold hover:underline"
+                        >
+                          + 참가자 선택하기
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        {/* 정규 팀원 */}
+                        {(() => {
+                          const regular = attendingMembers.filter((m: Member & { is_mercenary?: boolean }) => !m.is_mercenary);
+                          return regular.length > 0 ? (
+                            <div>
+                              <p className="text-xs font-semibold text-gray-400 px-4 pt-3 pb-1">정규 팀원 ({regular.length}명)</p>
+                              <div className="flex flex-col px-3 pb-2 gap-0.5">
+                                {regular.map((m: Member & { is_mercenary?: boolean }) => (
+                                  <div key={m.id} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-gray-50">
+                                    <span className="text-sm font-medium text-gray-800">{m.name}</span>
+                                    <div className="flex gap-1">
+                                      {m.position_1st && <span className="text-xs bg-green-100 text-green-700 px-1.5 rounded-full">{m.position_1st}</span>}
+                                      {m.position_2nd && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 rounded-full">{m.position_2nd}</span>}
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             </div>
-                          ))}
-                        </div>
+                          ) : null;
+                        })()}
+                        {/* 용병 */}
+                        {(() => {
+                          const mercenary = attendingMembers.filter((m: Member & { is_mercenary?: boolean }) => m.is_mercenary);
+                          return mercenary.length > 0 ? (
+                            <div className="border-t border-orange-100">
+                              <p className="text-xs font-semibold text-orange-400 px-4 pt-3 pb-1">⚡ 용병 ({mercenary.length}명)</p>
+                              <div className="flex flex-col px-3 pb-3 gap-0.5">
+                                {mercenary.map((m: Member & { is_mercenary?: boolean }) => (
+                                  <div key={m.id} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-orange-50">
+                                    <span className="text-sm font-medium text-orange-700">{m.name}</span>
+                                    <div className="flex gap-1">
+                                      {m.position_1st && <span className="text-xs bg-green-100 text-green-700 px-1.5 rounded-full">{m.position_1st}</span>}
+                                      {m.position_2nd && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 rounded-full">{m.position_2nd}</span>}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
-                    ) : null;
-                  })()}
+                    )}
+                  </div>
 
                   <button
                     onClick={autoAssign}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-2xl font-bold text-lg transition-colors"
+                    disabled={attendingIds.size === 0}
+                    className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white py-4 rounded-2xl font-bold text-lg transition-colors"
                   >
                     🎲 자동 배정 시작
+                    {attendingIds.size > 0 && <span className="text-sm font-normal ml-1 opacity-80">({attendingIds.size}명)</span>}
                   </button>
                 </>
               )}
@@ -665,59 +671,22 @@ function AssignContent() {
                 )}
               </div>
 
-              {/* 참여 현황 */}
-              {savedAssignments.length > 0 && (() => {
-                const memberQuarters: Record<string, { name: string; isMercenary: boolean; quarters: boolean[] }> = {};
-                savedAssignments.forEach((s, qIdx) => {
-                  for (const member of Object.values(s.result)) {
-                    if (!member) continue;
-                    if (!memberQuarters[member.id]) {
-                      const m = members.find(x => x.id === member.id);
-                      memberQuarters[member.id] = {
-                        name: member.name,
-                        isMercenary: (m as Member & { is_mercenary?: boolean })?.is_mercenary || false,
-                        quarters: Array(savedAssignments.length).fill(false),
-                      };
-                    }
-                    memberQuarters[member.id].quarters[qIdx] = true;
-                  }
-                });
-                const sorted = Object.values(memberQuarters).sort((a, b) => b.quarters.filter(Boolean).length - a.quarters.filter(Boolean).length);
-                const total = savedAssignments.length;
-                return (
-                  <div>
-                    <p className="text-xs font-semibold text-gray-400 mb-2">📊 참여 현황 ({total}쿼터)</p>
-                    <div className="bg-white rounded-2xl shadow overflow-hidden">
-                      {sorted.map((p, idx) => {
-                        const count = p.quarters.filter(Boolean).length;
-                        return (
-                          <div key={idx} className={`px-3 py-2 ${idx !== sorted.length - 1 ? "border-b border-gray-100" : ""}`}>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className={`text-xs font-medium ${p.isMercenary ? "text-orange-600" : "text-gray-800"}`}>
-                                {p.name}{p.isMercenary && " ⚡"}
-                              </span>
-                              <span className="text-xs font-bold text-gray-400">{count}/{total}</span>
-                            </div>
-                            <div className="flex gap-1">
-                              {savedAssignments.map((s, i) => (
-                                p.quarters[i] ? (
-                                  <span key={i} className="text-xs font-bold bg-green-500 text-white rounded px-1 py-0.5 leading-none min-w-[18px] text-center">
-                                    {s.session_name.replace(/[^0-9]/g, "") || i + 1}
-                                  </span>
-                                ) : (
-                                  <span key={i} className="text-xs bg-gray-100 text-gray-300 rounded px-1 py-0.5 leading-none min-w-[18px] text-center">
-                                    {s.session_name.replace(/[^0-9]/g, "") || i + 1}
-                                  </span>
-                                )
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
+              {/* 참여 현황 버튼 */}
+              {savedAssignments.length > 0 && (
+                <button
+                  onClick={() => setShowStatsModal(true)}
+                  className="w-full flex items-center justify-between bg-white rounded-2xl shadow px-4 py-3 hover:shadow-md transition-shadow group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">📊</span>
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-gray-700">참여 현황</p>
+                      <p className="text-xs text-gray-400">{savedAssignments.length}쿼터 저장됨</p>
                     </div>
                   </div>
-                );
-              })()}
+                  <span className="text-xs text-green-600 font-semibold group-hover:underline">보기 →</span>
+                </button>
+              )}
             </div>
 
             {/* 가운데: 그라운드 */}
@@ -735,11 +704,11 @@ function AssignContent() {
               />
             </div>
 
-            {/* 오른쪽: 팀원 + 버튼 */}
+            {/* 오른쪽: 참가자 현황 + 버튼 */}
             <div className="w-64 shrink-0 flex flex-col gap-4 sticky top-6">
               {(() => {
-                const regular = members.filter((m: Member & { is_mercenary?: boolean }) => !m.is_mercenary);
-                const mercenary = members.filter((m: Member & { is_mercenary?: boolean }) => m.is_mercenary);
+                const regular = attendingMembers.filter((m: Member & { is_mercenary?: boolean }) => !m.is_mercenary);
+                const mercenary = attendingMembers.filter((m: Member & { is_mercenary?: boolean }) => m.is_mercenary);
                 const assignedIds = new Set(Object.values(assigned).filter(Boolean).map(m => m!.id));
                 return (
                   <>
@@ -750,7 +719,9 @@ function AssignContent() {
                           {regular.map((m: Member & { is_mercenary?: boolean }) => (
                             <div key={m.id} className={`flex items-center justify-between px-2 py-1.5 rounded-lg ${assignedIds.has(m.id) ? "bg-green-50" : "bg-yellow-50"}`}>
                               <span className={`text-sm font-medium ${assignedIds.has(m.id) ? "text-gray-800" : "text-yellow-600"}`}>{m.name}</span>
-                              {!assignedIds.has(m.id) && <span className="text-xs text-yellow-500">미배정</span>}
+                              {assignedIds.has(m.id)
+                                ? <span className="text-xs text-green-500">✓</span>
+                                : <span className="text-xs text-yellow-500">미배정</span>}
                             </div>
                           ))}
                         </div>
@@ -763,7 +734,9 @@ function AssignContent() {
                           {mercenary.map((m: Member & { is_mercenary?: boolean }) => (
                             <div key={m.id} className={`flex items-center justify-between px-2 py-1.5 rounded-lg ${assignedIds.has(m.id) ? "bg-green-50" : "bg-yellow-50"}`}>
                               <span className={`text-sm font-medium ${assignedIds.has(m.id) ? "text-orange-700" : "text-yellow-600"}`}>{m.name}</span>
-                              {!assignedIds.has(m.id) && <span className="text-xs text-yellow-500">미배정</span>}
+                              {assignedIds.has(m.id)
+                                ? <span className="text-xs text-green-500">✓</span>
+                                : <span className="text-xs text-yellow-500">미배정</span>}
                             </div>
                           ))}
                         </div>
@@ -794,6 +767,204 @@ function AssignContent() {
         )}
 
       </main>
+
+      {/* 참여 현황 모달 */}
+      {showStatsModal && (() => {
+        const memberQuarters: Record<string, { name: string; isMercenary: boolean; quarters: boolean[] }> = {};
+        savedAssignments.forEach((s, qIdx) => {
+          for (const member of Object.values(s.result)) {
+            if (!member) continue;
+            if (!memberQuarters[member.id]) {
+              const m = members.find(x => x.id === member.id);
+              memberQuarters[member.id] = {
+                name: member.name,
+                isMercenary: (m as Member & { is_mercenary?: boolean })?.is_mercenary || false,
+                quarters: Array(savedAssignments.length).fill(false),
+              };
+            }
+            memberQuarters[member.id].quarters[qIdx] = true;
+          }
+        });
+        const sorted = Object.values(memberQuarters).sort((a, b) => b.quarters.filter(Boolean).length - a.quarters.filter(Boolean).length);
+        const total = savedAssignments.length;
+        const quarterLabels = savedAssignments.map((s, i) => s.session_name.replace(/[^0-9]/g, "") || String(i + 1));
+
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4" onClick={() => setShowStatsModal(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+              {/* 모달 헤더 */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <div>
+                  <h3 className="font-bold text-gray-800 text-lg">📊 참여 현황</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">총 {total}쿼터 · {sorted.length}명</p>
+                </div>
+                <button onClick={() => setShowStatsModal(false)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+              </div>
+
+              {/* 쿼터 헤더 */}
+              <div className="px-6 pt-4 pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400 w-24 shrink-0">이름</span>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {quarterLabels.map((label, i) => (
+                      <span key={i} className="text-xs font-bold bg-gray-100 text-gray-500 rounded px-2 py-0.5 min-w-[24px] text-center">
+                        {label}Q
+                      </span>
+                    ))}
+                  </div>
+                  <span className="text-xs text-gray-400 ml-auto shrink-0">합계</span>
+                </div>
+              </div>
+
+              {/* 팀원 목록 */}
+              <div className="overflow-y-auto flex-1 px-6 pb-6">
+                <div className="flex flex-col gap-1">
+                  {sorted.map((p, idx) => {
+                    const count = p.quarters.filter(Boolean).length;
+                    const pct = Math.round((count / total) * 100);
+                    return (
+                      <div key={idx} className="flex items-center gap-2 py-2 border-b border-gray-50 last:border-0">
+                        {/* 이름 */}
+                        <span className={`text-sm font-medium w-24 shrink-0 truncate ${p.isMercenary ? "text-orange-600" : "text-gray-800"}`}>
+                          {p.name}{p.isMercenary && <span className="text-xs ml-0.5">⚡</span>}
+                        </span>
+
+                        {/* 쿼터 뱃지 */}
+                        <div className="flex gap-1.5 flex-wrap flex-1">
+                          {p.quarters.map((played, i) => (
+                            played ? (
+                              <span key={i} className="text-xs font-bold bg-green-500 text-white rounded px-1.5 py-0.5 min-w-[24px] text-center leading-none">
+                                {quarterLabels[i]}
+                              </span>
+                            ) : (
+                              <span key={i} className="text-xs bg-gray-100 text-gray-300 rounded px-1.5 py-0.5 min-w-[24px] text-center leading-none">
+                                {quarterLabels[i]}
+                              </span>
+                            )
+                          ))}
+                        </div>
+
+                        {/* 합계 + 바 */}
+                        <div className="shrink-0 text-right w-16">
+                          <span className="text-xs font-bold text-gray-700">{count}<span className="text-gray-300 font-normal">/{total}</span></span>
+                          <div className="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{ width: `${pct}%`, backgroundColor: pct === 100 ? "#10b981" : pct >= 50 ? "#facc15" : "#f87171" }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 닫기 버튼 */}
+              <div className="px-6 pb-5">
+                <button
+                  onClick={() => setShowStatsModal(false)}
+                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold py-2.5 rounded-xl transition-colors"
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 참가 인원 선택 모달 */}
+      {showAttendModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4" onClick={() => setShowAttendModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            {/* 헤더 */}
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-gray-800 text-base">오늘 참가 인원 선택</h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  <span className="text-green-600 font-bold">{attendingIds.size}명</span> / {members.length}명 선택됨
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => toggleAllAttending(true)} className="text-xs bg-green-50 hover:bg-green-100 text-green-700 font-semibold px-2.5 py-1.5 rounded-lg">전체</button>
+                <button onClick={() => toggleAllAttending(false)} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-500 font-semibold px-2.5 py-1.5 rounded-lg">해제</button>
+              </div>
+            </div>
+
+            {/* 팀원 목록 */}
+            <div className="overflow-y-auto flex-1">
+              {/* 정규 팀원 */}
+              {(() => {
+                const regular = members.filter((m: Member & { is_mercenary?: boolean }) => !m.is_mercenary);
+                return regular.length > 0 ? (
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 px-5 pt-4 pb-2 uppercase tracking-wide">정규 팀원 ({regular.length}명)</p>
+                    {regular.map((m: Member & { is_mercenary?: boolean }) => {
+                      const checked = attendingIds.has(m.id);
+                      return (
+                        <button
+                          key={m.id}
+                          onClick={() => toggleAttending(m.id)}
+                          className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-gray-50 ${checked ? "bg-green-50/60" : ""}`}
+                        >
+                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${checked ? "bg-green-500 border-green-500" : "border-gray-300"}`}>
+                            {checked && <span className="text-white text-xs font-bold leading-none">✓</span>}
+                          </div>
+                          <span className={`text-sm font-medium flex-1 ${checked ? "text-gray-800" : "text-gray-400"}`}>{m.name}</span>
+                          <div className="flex gap-1 shrink-0">
+                            {m.position_1st && <span className={`text-xs px-1.5 py-0.5 rounded-full ${checked ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"}`}>{m.position_1st}</span>}
+                            {m.position_2nd && <span className={`text-xs px-1.5 py-0.5 rounded-full ${checked ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-400"}`}>{m.position_2nd}</span>}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null;
+              })()}
+
+              {/* 용병 */}
+              {(() => {
+                const mercenary = members.filter((m: Member & { is_mercenary?: boolean }) => m.is_mercenary);
+                return mercenary.length > 0 ? (
+                  <div className="border-t border-gray-100 mt-1">
+                    <p className="text-xs font-bold text-orange-400 px-5 pt-4 pb-2 uppercase tracking-wide">⚡ 용병 ({mercenary.length}명)</p>
+                    {mercenary.map((m: Member & { is_mercenary?: boolean }) => {
+                      const checked = attendingIds.has(m.id);
+                      return (
+                        <button
+                          key={m.id}
+                          onClick={() => toggleAttending(m.id)}
+                          className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-orange-50/60 ${checked ? "bg-orange-50/60" : ""}`}
+                        >
+                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${checked ? "bg-orange-400 border-orange-400" : "border-gray-300"}`}>
+                            {checked && <span className="text-white text-xs font-bold leading-none">✓</span>}
+                          </div>
+                          <span className={`text-sm font-medium flex-1 ${checked ? "text-orange-700" : "text-gray-400"}`}>{m.name}</span>
+                          <div className="flex gap-1 shrink-0">
+                            {m.position_1st && <span className={`text-xs px-1.5 py-0.5 rounded-full ${checked ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"}`}>{m.position_1st}</span>}
+                            {m.position_2nd && <span className={`text-xs px-1.5 py-0.5 rounded-full ${checked ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-400"}`}>{m.position_2nd}</span>}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null;
+              })()}
+            </div>
+
+            {/* 확인 버튼 */}
+            <div className="px-5 py-4 border-t border-gray-100">
+              <button
+                onClick={() => setShowAttendModal(false)}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition-colors"
+              >
+                확인 ({attendingIds.size}명 선택됨)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 저장 모달 */}
       {showSaveModal && (
@@ -893,6 +1064,99 @@ export default function AssignPage() {
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><p className="text-gray-400">로딩 중...</p></div>}>
       <AssignContent />
     </Suspense>
+  );
+}
+
+function FormationSelect({ value, onChange, customFormations }: {
+  value: string;
+  onChange: (v: string) => void;
+  customFormations: CustomFormation[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({ "⚽ 축구": true });
+
+  const groups: { label: string; keys: string[] }[] = [
+    { label: "⚽ 축구", keys: SOCCER_FORMATIONS },
+    ...Object.entries(FUTSAL_FORMATIONS).map(([size, keys]) => ({
+      label: `🏃 풋살 ${size}`,
+      keys,
+    })),
+    ...(customFormations.length > 0
+      ? [{ label: "✏️ 내 커스텀 포메이션", keys: customFormations.map(f => f.id) }]
+      : []),
+  ];
+
+  const displayName = (key: string) => {
+    const cf = customFormations.find(f => f.id === key);
+    return cf ? cf.name : key;
+  };
+
+  const toggleGroup = (label: string) => {
+    setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const currentGroup = groups.find(g => g.keys.includes(value));
+
+  return (
+    <div className="relative mb-4">
+      {/* 트리거 버튼 */}
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between border-2 border-green-400 focus:border-green-600 rounded-xl px-4 py-3 bg-white transition-colors hover:border-green-500"
+      >
+        <div className="text-left">
+          {currentGroup && (
+            <p className="text-xs text-gray-400 leading-none mb-0.5">{currentGroup.label}</p>
+          )}
+          <p className="font-bold text-gray-800 text-base leading-none">{displayName(value)}</p>
+        </div>
+        <span className={`text-gray-400 text-sm transition-transform ${open ? "rotate-180" : ""}`}>▼</span>
+      </button>
+
+      {/* 드롭다운 패널 */}
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-2xl shadow-2xl border border-gray-100 z-40 overflow-hidden max-h-80 overflow-y-auto">
+            {groups.map(group => (
+              <div key={group.label}>
+                {/* 그룹 헤더 */}
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.label)}
+                  className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors"
+                >
+                  <span className="text-sm font-bold text-gray-600">{group.label}</span>
+                  <span className={`text-xs text-gray-400 transition-transform ${expandedGroups[group.label] ? "rotate-180" : ""}`}>▼</span>
+                </button>
+
+                {/* 그룹 아이템 */}
+                {expandedGroups[group.label] && (
+                  <div>
+                    {group.keys.map(key => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => { onChange(key); setOpen(false); }}
+                        className={`w-full text-left px-6 py-2.5 text-sm transition-colors flex items-center gap-2 ${
+                          value === key
+                            ? "bg-green-50 text-green-700 font-semibold"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {value === key && <span className="text-green-500 text-xs">✓</span>}
+                        <span className={value === key ? "" : "pl-4"}>{displayName(key)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

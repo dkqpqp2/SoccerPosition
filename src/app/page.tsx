@@ -1,8 +1,9 @@
 "use client";
 
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import SpmLogo from "@/components/SpmLogo";
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -23,22 +24,39 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-800 to-green-600">
-      <div className="bg-white rounded-2xl shadow-xl p-10 flex flex-col items-center gap-6 w-full max-w-sm">
-        <div className="text-5xl">⚽</div>
-        <h1 className="text-2xl font-bold text-gray-800 text-center">
-          축구 포지션 배정
-        </h1>
-        <p className="text-gray-500 text-center text-sm">
-          팀원의 포지션을 스마트하게 배정해드립니다
-        </p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-900 to-green-700 px-4">
+      {/* 상단 로고 */}
+      <div className="mb-8 flex flex-col items-center gap-3">
+        <SpmLogo size="lg" />
+        <p className="text-green-300 text-sm tracking-wide">팀원의 포지션을 스마트하게</p>
+      </div>
+
+      {/* 로그인 카드 */}
+      <div className="bg-white rounded-3xl shadow-2xl p-8 flex flex-col items-center gap-5 w-full max-w-xs">
+        {/* 아이콘 */}
+        <div
+          className="w-16 h-16 rounded-2xl flex items-center justify-center"
+          style={{ background: "linear-gradient(135deg, #16a34a, #166534)" }}
+        >
+          <span className="text-2xl font-black text-white tracking-tighter">SPM</span>
+        </div>
+
+        <div className="text-center">
+          <h2 className="text-xl font-black text-gray-800">시작하기</h2>
+          <p className="text-gray-400 text-sm mt-1">카카오 계정으로 간편하게 로그인</p>
+        </div>
+
         <button
           onClick={() => signIn("kakao")}
-          className="w-full flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold py-3 px-6 rounded-xl transition-colors"
+          className="w-full flex items-center justify-center gap-2.5 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3.5 px-6 rounded-xl transition-colors text-sm"
         >
-          <span className="text-lg">💬</span>
+          <span className="text-base">💬</span>
           카카오로 시작하기
         </button>
+
+        <p className="text-xs text-gray-300 text-center">
+          Soccer Position Management
+        </p>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import SpmLogo from "@/components/SpmLogo";
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -25,14 +26,11 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-green-700 text-white px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">⚽</span>
-          <h1 className="text-lg font-bold">축구 포지션 배정</h1>
-        </div>
+        <SpmLogo size="sm" />
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/mypage")}
-            className="flex items-center gap-1.5 text-sm text-green-100 hover:text-white transition-colors"
+            className="flex items-center gap-1.5 text-sm text-green-100 hover:text-white hover:bg-green-600 px-3 py-1.5 rounded-xl transition-colors"
           >
             {session?.user?.image ? (
               <img src={session.user.image} alt="프로필" className="w-7 h-7 rounded-full border border-white/30" />
