@@ -386,28 +386,28 @@ function AssignContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-green-700 text-white px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button onClick={() => matchId ? router.push("/matches") : router.push("/dashboard")} className="hover:text-green-200">← 뒤로</button>
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🎯</span>
-            <div>
-              <h1 className="text-lg font-bold leading-none">포지션 배정</h1>
-              {matchInfo && (
-                <p className="text-xs text-green-200 mt-0.5">
-                  📅 {new Date(matchInfo.match_date).toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" })}
-                  {matchInfo.title && ` · ${matchInfo.title}`}
-                </p>
-              )}
+      <header className="bg-green-700 text-white px-4 py-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <button onClick={() => matchId ? router.push("/matches") : router.push("/dashboard")} className="hover:text-green-200 shrink-0 text-sm">← 뒤로</button>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-base shrink-0">🎯</span>
+              <h1 className="text-base font-bold leading-none truncate">포지션 배정</h1>
             </div>
+            {matchInfo && (
+              <p className="text-xs text-green-200 mt-0.5 truncate">
+                📅 {new Date(matchInfo.match_date).toLocaleDateString("ko-KR", { month: "numeric", day: "numeric", weekday: "short" })}
+                {matchInfo.title && ` · ${matchInfo.title}`}
+              </p>
+            )}
           </div>
         </div>
         {/* 팀 색상 피커 */}
-        <div className="relative flex items-center gap-2">
-          <span className="text-sm text-green-200">팀 색상</span>
+        <div className="relative flex items-center gap-1.5 shrink-0">
+          <span className="text-xs text-green-200 hidden sm:block">팀 색상</span>
           <button
             onClick={() => setShowColorPicker(p => !p)}
-            className="w-8 h-8 rounded-full border-2 border-white shadow-lg transition-transform hover:scale-110"
+            className="w-7 h-7 rounded-full border-2 border-white shadow-lg transition-transform hover:scale-110"
             style={{ backgroundColor: teamColor }}
           />
           {showColorPicker && (
