@@ -1,0 +1,42 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase";
+
+async function getUserId(kakaoId: string) {
+  const { data } = await supabaseAdmin
+    .from("users")
+    .select("id")
+    .eq("kakao_id", kakaoId)
+    .single();
+  return data?.id;
+}
+
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const userId = await getUserId(session.user.id);
+  const { data } = await supabaseAdmin
+    .from("users")
+    .select("name, email, image, team_name, team_color")
+    .eq("id", userId)
+    .single();
+
+  return NextResponse.json(data);
+}
+
+export async function PUT(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const userId = await getUserId(session.user.id);
+  const { team_name } = await req.json();
+
+  await supabaseAdmin
+    .from("users")
+    .update({ team_name })
+    .eq("id", userId);
+
+  return NextResponse.json({ success: true });
+}
