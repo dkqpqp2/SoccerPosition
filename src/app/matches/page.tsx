@@ -200,34 +200,39 @@ export default function MatchesPage() {
             {matches.map(match => (
               <div
                 key={match.id}
-                className="bg-white rounded-2xl shadow p-5 cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => router.push(`/assign?matchId=${match.id}`)}
+                className="bg-white rounded-2xl shadow p-4 hover:shadow-md transition-shadow"
               >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-bold text-gray-800 text-lg">{formatDate(match.match_date)}</p>
-                    {match.title && <p className="text-sm text-gray-500 mt-0.5">{match.title}</p>}
-                    <div className="flex gap-1.5 mt-2 flex-wrap">
-                      {match.position_assignments?.length > 0 ? (
-                        [...match.position_assignments]
-                          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-                          .map(a => (
-                            <span key={a.id} className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{a.session_name}</span>
-                          ))
-                      ) : (
-                        <span className="text-xs text-gray-300">저장된 쿼터 없음</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-green-600 font-medium">배정하기 →</span>
-                    <button
-                      onClick={e => { e.stopPropagation(); deleteMatch(match.id); }}
-                      className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50"
-                    >
-                      삭제
-                    </button>
-                  </div>
+                {/* 날짜 + 제목 */}
+                <p className="font-bold text-gray-800 text-base">{formatDate(match.match_date)}</p>
+                {match.title && <p className="text-sm text-gray-500 mt-0.5">{match.title}</p>}
+
+                {/* 쿼터 뱃지 */}
+                <div className="flex gap-1.5 mt-2 flex-wrap">
+                  {match.position_assignments?.length > 0 ? (
+                    [...match.position_assignments]
+                      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                      .map(a => (
+                        <span key={a.id} className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{a.session_name}</span>
+                      ))
+                  ) : (
+                    <span className="text-xs text-gray-300">저장된 쿼터 없음</span>
+                  )}
+                </div>
+
+                {/* 버튼 row */}
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => router.push(`/assign?matchId=${match.id}`)}
+                    className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 font-semibold text-sm py-2 rounded-xl transition-colors"
+                  >
+                    배정하기 →
+                  </button>
+                  <button
+                    onClick={() => deleteMatch(match.id)}
+                    className="px-4 py-2 text-sm text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium"
+                  >
+                    삭제
+                  </button>
                 </div>
               </div>
             ))}
