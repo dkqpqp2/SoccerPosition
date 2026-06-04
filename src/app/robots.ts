@@ -1,7 +1,7 @@
 import { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = "https://soccer-position-project.vercel.app";
+  const baseUrl = "https://soccerpositionmanagement.com";
 
   return {
     rules: {

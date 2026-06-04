@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "SPM - Soccer Position Management",
     description: "축구팀 포지션 배정과 경기 관리를 스마트하게. SPM으로 팀 운영을 더 쉽게.",
-    url: "https://soccer-position-project.vercel.app",
+    url: "https://soccerpositionmanagement.com",
     siteName: "SPM",
     locale: "ko_KR",
     type: "website",
