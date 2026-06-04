@@ -211,7 +211,7 @@ export default function MembersPage() {
           <div className="absolute inset-0 bg-black/40" onClick={() => { setShowForm(false); setEditId(null); }} />
           <form
             onSubmit={handleSubmit}
-            className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-xl p-6 z-10"
+            className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-xl p-6 z-10 max-h-[90vh] overflow-y-auto"
           >
             <h2 className="font-bold text-gray-800 text-lg mb-5">{editId ? "팀원 수정" : "팀원 추가"}</h2>
             <div className="flex flex-col gap-4">
