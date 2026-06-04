@@ -77,7 +77,7 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-6">
-        <div id="capture-area" className="bg-gray-50 pb-2">
+        <div id="capture-area" className="bg-gray-50 p-4 rounded-2xl">
 
         {/* 헤더 */}
         <div className="text-center mb-5">
