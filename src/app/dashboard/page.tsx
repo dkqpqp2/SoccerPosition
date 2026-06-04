@@ -88,6 +88,8 @@ export default function Dashboard() {
   const [copied, setCopied] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
+  const [memberPage,  setMemberPage]  = useState(0);
+  const PAGE_SIZE = 10;
   const [switching, setSwitching] = useState(false);
 
   const [upcomingMatch, setUpcomingMatch] = useState<Match | null>(null);
@@ -414,7 +416,7 @@ export default function Dashboard() {
               </div>
               <div className="flex gap-2 shrink-0">
                 <button
-                  onClick={() => { setShowMembers(true); setShowInvite(false); }}
+                  onClick={() => { setShowMembers(true); setShowInvite(false); setMemberPage(0); }}
                   className="text-xs font-bold px-3 py-2 rounded-xl transition-colors bg-white/5 text-gray-400 hover:bg-white/10"
                 >
                   👥 팀원
@@ -698,43 +700,77 @@ export default function Dashboard() {
               </button>
             </div>
             {/* 목록 */}
-            <div className="overflow-y-auto px-5 py-4 flex flex-col gap-2" style={{ maxHeight: "calc(80vh - 70px)" }}>
-              {team.members.map((m) => (
-                <div key={m.user_id} className="flex items-center gap-3 bg-white/3 rounded-2xl px-4 py-3 border border-white/5">
-                  {m.users?.image ? (
-                    <img src={m.users.image} alt="" className="w-9 h-9 rounded-full shrink-0" />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-sm shrink-0">👤</div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{m.users?.name ?? "이름 없음"}</p>
+            {(() => {
+              const totalPages  = Math.ceil(team.members.length / PAGE_SIZE);
+              const paged       = team.members.slice(memberPage * PAGE_SIZE, (memberPage + 1) * PAGE_SIZE);
+              return (
+                <>
+                  <div className="px-5 py-4 flex flex-col gap-2">
+                    {paged.map((m, idx) => (
+                      <div key={m.user_id} className="flex items-center gap-3 bg-white/3 rounded-2xl px-4 py-3 border border-white/5">
+                        {/* 번호 */}
+                        <span className="text-xs text-gray-700 w-5 shrink-0 text-right">{memberPage * PAGE_SIZE + idx + 1}</span>
+                        {m.users?.image ? (
+                          <img src={m.users.image} alt="" className="w-9 h-9 rounded-full shrink-0" />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-sm shrink-0">👤</div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white truncate">{m.users?.name ?? "이름 없음"}</p>
+                        </div>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${ROLE_COLOR[m.role]}`}>
+                          {ROLE_LABEL[m.role]}
+                        </span>
+                        {team.is_owner && m.role !== "owner" && (
+                          <div className="flex gap-1 shrink-0">
+                            <select
+                              value={m.role}
+                              onChange={(e) => changeRole(m.user_id, e.target.value as TeamRole)}
+                              className="text-xs bg-white/5 border border-white/10 rounded-lg px-1.5 py-1 text-gray-400 focus:outline-none"
+                            >
+                              <option value="manager">감독</option>
+                              <option value="coach">코치</option>
+                              <option value="president">회장</option>
+                              <option value="member">팀원</option>
+                            </select>
+                            <button
+                              onClick={() => kickMember(m.user_id, m.users?.name)}
+                              className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2 py-1 rounded-lg transition-colors"
+                            >
+                              강퇴
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${ROLE_COLOR[m.role]}`}>
-                    {ROLE_LABEL[m.role]}
-                  </span>
-                  {team.is_owner && m.role !== "owner" && (
-                    <div className="flex gap-1 shrink-0">
-                      <select
-                        value={m.role}
-                        onChange={(e) => changeRole(m.user_id, e.target.value as TeamRole)}
-                        className="text-xs bg-white/5 border border-white/10 rounded-lg px-1.5 py-1 text-gray-400 focus:outline-none"
-                      >
-                        <option value="manager">감독</option>
-                        <option value="coach">코치</option>
-                        <option value="president">회장</option>
-                        <option value="member">팀원</option>
-                      </select>
+
+                  {/* 페이지네이션 */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between px-5 py-3 border-t border-white/5">
                       <button
-                        onClick={() => kickMember(m.user_id, m.users?.name)}
-                        className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2 py-1 rounded-lg transition-colors"
+                        onClick={() => setMemberPage(p => Math.max(0, p - 1))}
+                        disabled={memberPage === 0}
+                        className="text-sm px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       >
-                        강퇴
+                        ‹ 이전
+                      </button>
+                      <span className="text-xs text-gray-500">
+                        {memberPage + 1} / {totalPages}
+                        <span className="text-gray-700 ml-1">({team.members.length}명)</span>
+                      </span>
+                      <button
+                        onClick={() => setMemberPage(p => Math.min(totalPages - 1, p + 1))}
+                        disabled={memberPage === totalPages - 1}
+                        className="text-sm px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        다음 ›
                       </button>
                     </div>
                   )}
-                </div>
-              ))}
-            </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
