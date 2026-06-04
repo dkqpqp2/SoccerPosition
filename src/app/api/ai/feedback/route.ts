@@ -51,7 +51,8 @@ ${performance}
     const text = result.response.text();
     return NextResponse.json({ feedback: text.trim() });
   } catch (e) {
-    console.error("Gemini error:", e);
-    return NextResponse.json({ error: "AI 생성 중 오류가 발생했어요." }, { status: 500 });
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("Gemini error:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
