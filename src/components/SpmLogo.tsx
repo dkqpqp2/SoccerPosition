@@ -25,8 +25,8 @@ export default function SpmLogo({ size = "md", showText = true, clickable = fals
         style={{
           width: iconSize,
           height: iconSize,
-          background: "linear-gradient(135deg, #16a34a 0%, #15803d 50%, #166534 100%)",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15)",
+          background: "linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%)",
+          boxShadow: "0 0 12px rgba(16,185,129,0.4), inset 0 1px 0 rgba(255,255,255,0.15)",
         }}
       >
         {/* 축구공 라인 느낌의 장식 */}
@@ -55,7 +55,7 @@ export default function SpmLogo({ size = "md", showText = true, clickable = fals
           <span className={`font-black text-white tracking-tight ${fontSize}`} style={{ letterSpacing: "-0.5px" }}>
             Soccer Position
           </span>
-          <span className={`font-bold text-green-300 tracking-widest uppercase ${subSize}`}>
+          <span className={`font-bold text-emerald-400 tracking-widest uppercase ${subSize}`}>
             Management
           </span>
         </div>

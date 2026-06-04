@@ -32,27 +32,27 @@ export default function PositionSelect({ value, onChange, placeholder = "선택 
       <button
         type="button"
         onClick={() => setOpen(prev => !prev)}
-        className="w-full flex items-center justify-between border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500 hover:border-green-400 transition-colors"
+        className="w-full flex items-center justify-between bg-gray-800 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 hover:border-white/20 transition-colors"
       >
         {selected ? (
-          <span className="font-medium text-gray-800">
+          <span className="font-medium text-white">
             {selected.label}
-            <span className="ml-1.5 text-gray-400 font-normal">({selected.description})</span>
+            <span className="ml-1.5 text-gray-500 font-normal">({selected.description})</span>
           </span>
         ) : (
-          <span className="text-gray-400">{placeholder}</span>
+          <span className="text-gray-600">{placeholder}</span>
         )}
-        <span className={`text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
+        <span className={`text-gray-500 transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
       </button>
 
       {/* 드롭다운 패널 */}
       {open && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+        <div className="absolute z-50 w-full mt-1 bg-gray-800 border border-white/10 rounded-xl shadow-2xl overflow-hidden max-h-72 overflow-y-auto">
           {/* 선택 안 함 */}
           <button
             type="button"
             onClick={() => { onChange(""); setOpen(false); setExpandedGroup(null); }}
-            className="w-full text-left px-4 py-2.5 text-sm text-gray-400 hover:bg-gray-50 border-b border-gray-100"
+            className="w-full text-left px-4 py-2.5 text-sm text-gray-500 hover:bg-white/5 border-b border-white/5"
           >
             선택 안 함
           </button>
@@ -64,7 +64,7 @@ export default function PositionSelect({ value, onChange, placeholder = "선택 
               <button
                 type="button"
                 onClick={() => setExpandedGroup(expandedGroup === group.label ? null : group.label)}
-                className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-gray-500 hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-gray-500 hover:bg-white/5 transition-colors"
               >
                 <span>{group.label}</span>
                 <span className={`transition-transform ${expandedGroup === group.label ? "rotate-180" : ""}`}>▾</span>
@@ -72,17 +72,17 @@ export default function PositionSelect({ value, onChange, placeholder = "선택 
 
               {/* 그룹 포지션 목록 */}
               {expandedGroup === group.label && (
-                <div className="bg-gray-50">
+                <div className="bg-gray-900/50">
                   {POSITIONS.filter(p => group.values.includes(p.value)).map(p => (
                     <button
                       key={p.value}
                       type="button"
                       onClick={() => { onChange(p.value); setOpen(false); setExpandedGroup(null); }}
-                      className={`w-full text-left px-6 py-2 text-sm transition-colors flex items-center gap-2 ${value === p.value ? "bg-green-50 text-green-700 font-semibold" : "text-gray-700 hover:bg-green-50 hover:text-green-700"}`}
+                      className={`w-full text-left px-6 py-2 text-sm transition-colors flex items-center gap-2 ${value === p.value ? "bg-emerald-500/15 text-emerald-400 font-semibold" : "text-gray-300 hover:bg-emerald-500/10 hover:text-emerald-400"}`}
                     >
                       <span className="font-bold w-10 shrink-0">{p.label}</span>
-                      <span className="text-gray-400 text-xs">{p.description}</span>
-                      {value === p.value && <span className="ml-auto text-green-500">✓</span>}
+                      <span className="text-gray-500 text-xs">{p.description}</span>
+                      {value === p.value && <span className="ml-auto text-emerald-500">✓</span>}
                     </button>
                   ))}
                 </div>

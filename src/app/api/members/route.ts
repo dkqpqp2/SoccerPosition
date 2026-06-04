@@ -18,7 +18,24 @@ export async function GET() {
     .order("created_at", { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+
+  // user_id 있는 멤버의 birth_year를 users 테이블에서 가져와 병합
+  const userIds = (data ?? []).filter(m => m.user_id).map(m => m.user_id as string);
+  const birthYearMap: Record<string, number | null> = {};
+  if (userIds.length > 0) {
+    const { data: usersData } = await supabaseAdmin
+      .from("users")
+      .select("id, birth_year")
+      .in("id", userIds);
+    usersData?.forEach(u => { birthYearMap[u.id] = u.birth_year ?? null; });
+  }
+
+  return NextResponse.json(
+    (data ?? []).map(m => ({
+      ...m,
+      birth_year: m.user_id ? (birthYearMap[m.user_id] ?? null) : null,
+    }))
+  );
 }
 
 export async function POST(req: NextRequest) {

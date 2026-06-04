@@ -47,42 +47,48 @@ function JoinContent() {
 
   if (status === "loading" || (status === "unauthenticated" && codeFromUrl)) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-400">로딩 중...</p>
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (status === "unauthenticated") {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 gap-4">
+      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-4 gap-6">
         <SpmLogo size="md" />
-        <p className="text-gray-600">팀에 합류하려면 먼저 로그인해주세요</p>
-        <button
-          onClick={() => signIn("kakao", { callbackUrl: "/join" })}
-          className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-6 py-3 rounded-2xl"
-        >
-          카카오 로그인
-        </button>
+        <div className="bg-gray-900 border border-white/10 rounded-2xl p-6 w-full max-w-xs text-center flex flex-col gap-4">
+          <p className="text-gray-400 text-sm">팀에 합류하려면 먼저 로그인해주세요</p>
+          <button
+            onClick={() => signIn("kakao", { callbackUrl: "/join" })}
+            className="w-full flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold px-6 py-3 rounded-xl transition-colors text-sm"
+          >
+            <span>💬</span> 카카오 로그인
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-4 relative overflow-hidden">
+      {/* 배경 효과 */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(16,185,129,0.07)_0%,_transparent_65%)] pointer-events-none" />
+
+      <div className="relative w-full max-w-sm">
         <div className="flex justify-center mb-6">
           <SpmLogo size="md" />
         </div>
 
-        <div className="bg-white rounded-2xl shadow p-6">
-          <h1 className="text-lg font-bold text-gray-800 mb-1">팀 합류</h1>
+        <div className="bg-gray-900 border border-white/10 rounded-2xl p-6 shadow-2xl shadow-black/40">
+          <h1 className="text-lg font-bold text-white mb-1">팀 합류</h1>
           <p className="text-sm text-gray-500 mb-5">초대 코드를 입력해서 팀에 합류하세요</p>
 
           {success ? (
-            <div className="text-center py-4">
-              <p className="text-green-600 font-bold text-base">{success}</p>
-              <p className="text-sm text-gray-400 mt-1">잠시 후 대시보드로 이동해요...</p>
+            <div className="text-center py-6">
+              <div className="text-3xl mb-3">🎉</div>
+              <p className="text-emerald-400 font-bold text-base">{success}</p>
+              <p className="text-sm text-gray-500 mt-1">잠시 후 홈으로 이동해요...</p>
             </div>
           ) : (
             <form onSubmit={handleJoin} className="flex flex-col gap-3">
@@ -91,21 +97,25 @@ function JoinContent() {
                 value={code}
                 onChange={e => setCode(e.target.value)}
                 placeholder="초대 코드 입력 (예: a1b2c3d4)"
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
+                className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600 font-mono"
                 autoFocus
               />
-              {error && <p className="text-red-500 text-sm">{error}</p>}
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">
+                  <p className="text-red-400 text-sm">{error}</p>
+                </div>
+              )}
               <button
                 type="submit"
                 disabled={loading || !code.trim()}
-                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition-colors"
+                className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold py-3 rounded-xl transition-colors"
               >
                 {loading ? "합류 중..." : "팀 합류하기"}
               </button>
               <button
                 type="button"
                 onClick={() => router.push("/dashboard")}
-                className="w-full text-sm text-gray-400 hover:text-gray-600 py-2"
+                className="w-full text-sm text-gray-600 hover:text-gray-400 py-2 transition-colors"
               >
                 취소
               </button>
@@ -113,7 +123,7 @@ function JoinContent() {
           )}
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-4">
+        <p className="text-center text-xs text-gray-700 mt-4">
           로그인된 계정: {session?.user?.name}
         </p>
       </div>
@@ -123,7 +133,11 @@ function JoinContent() {
 
 export default function JoinPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><p className="text-gray-400">로딩 중...</p></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
       <JoinContent />
     </Suspense>
   );

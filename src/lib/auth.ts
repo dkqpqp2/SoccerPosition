@@ -17,6 +17,36 @@ export const authOptions: NextAuthOptions = {
         .eq("kakao_id", user.id)
         .single();
 
+      if (existing) {
+        // 기존 유저 로그인 — 본인 팀 team_members에 없으면 자동 추가 (레거시 계정 보완)
+        const [{ data: ownerTeam }, { data: userDetail }] = await Promise.all([
+          supabaseAdmin.from("teams").select("id").eq("owner_id", existing.id).single(),
+          supabaseAdmin.from("users").select("display_name, position_1st, position_2nd").eq("id", existing.id).single(),
+        ]);
+
+        if (ownerTeam) {
+          const { data: memberExists } = await supabaseAdmin
+            .from("team_members")
+            .select("id")
+            .eq("team_id", ownerTeam.id)
+            .eq("user_id", existing.id)
+            .single();
+
+          if (!memberExists) {
+            const displayName = userDetail?.display_name || user.name;
+            await supabaseAdmin.from("team_members").insert({
+              team_id: ownerTeam.id,
+              user_id: existing.id,
+              name: displayName,
+              position_1st: userDetail?.position_1st ?? null,
+              position_2nd: userDetail?.position_2nd ?? null,
+              is_mercenary: false,
+              is_cafe_mercenary: false,
+            });
+          }
+        }
+      }
+
       if (!existing) {
         // 신규 유저 생성
         const { data: newUser } = await supabaseAdmin
@@ -48,6 +78,15 @@ export const authOptions: NextAuthOptions = {
               team_id: team.id,
               user_id: newUser.id,
               role: "owner",
+            });
+
+            // team_members에도 자동 추가
+            await supabaseAdmin.from("team_members").insert({
+              team_id: team.id,
+              user_id: newUser.id,
+              name: user.name,
+              is_mercenary: false,
+              is_cafe_mercenary: false,
             });
           }
         }

@@ -80,5 +80,37 @@ export async function POST(req: NextRequest) {
     .update({ active_team_id: team.id })
     .eq("id", userId);
 
+  // 유저 정보 + 선호 포지션 가져와서 team_members에 자동 추가
+  const { data: userData } = await supabaseAdmin
+    .from("users")
+    .select("name, display_name, position_1st, position_2nd")
+    .eq("id", userId)
+    .single();
+
+  if (userData?.name) {
+    // display_name 우선, 없으면 카카오 닉네임
+    const displayName = userData.display_name || userData.name;
+
+    // user_id로 중복 체크 (name이 같아도 별개의 사람일 수 있음)
+    const { data: existingMember } = await supabaseAdmin
+      .from("team_members")
+      .select("id, user_id")
+      .eq("team_id", team.id)
+      .eq("user_id", userId)
+      .single();
+
+    if (!existingMember) {
+      await supabaseAdmin.from("team_members").insert({
+        user_id: userId,
+        team_id: team.id,
+        name: displayName,
+        position_1st: userData.position_1st ?? null,
+        position_2nd: userData.position_2nd ?? null,
+        is_mercenary: false,
+        is_cafe_mercenary: false,
+      });
+    }
+  }
+
   return NextResponse.json({ success: true, team_name: team.name });
 }
