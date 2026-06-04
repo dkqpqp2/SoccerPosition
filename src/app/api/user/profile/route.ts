@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getUserAndTeam } from "@/lib/team";
+import { getUserAndTeam, getUserRole } from "@/lib/team";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -11,11 +11,12 @@ export async function GET() {
   const { userId, teamId } = await getUserAndTeam(session.user.id);
   if (!userId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  const [{ data: userData }, { data: teamData }] = await Promise.all([
+  const [{ data: userData }, { data: teamData }, role] = await Promise.all([
     supabaseAdmin.from("users").select("name, email, image").eq("id", userId).single(),
     teamId
       ? supabaseAdmin.from("teams").select("name, color, invite_code, owner_id, uniform_info").eq("id", teamId).single()
       : Promise.resolve({ data: null }),
+    teamId ? getUserRole(userId, teamId) : Promise.resolve(null),
   ]);
 
   return NextResponse.json({
@@ -25,6 +26,7 @@ export async function GET() {
     invite_code: teamData?.invite_code ?? null,
     is_owner: teamData?.owner_id === userId,
     uniform_info: teamData?.uniform_info ?? null,
+    role: role ?? null,
   });
 }
 
