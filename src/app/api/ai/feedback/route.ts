@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
   const prompt = `당신은 축구 코치입니다. 선수에게 건설적이고 구체적인 피드백을 한국어로 작성해주세요.
 
