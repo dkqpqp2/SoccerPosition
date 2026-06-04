@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toPng } from "html-to-image";
 
 export default function CaptureButton({ targetId }: { targetId: string }) {
   const [loading, setLoading] = useState(false);
@@ -8,23 +9,20 @@ export default function CaptureButton({ targetId }: { targetId: string }) {
   async function handleCapture() {
     setLoading(true);
     try {
-      const html2canvas = (await import("html2canvas")).default;
       const el = document.getElementById(targetId);
       if (!el) {
-        alert("캡쳐 영역을 찾을 수 없어요. (id: " + targetId + ")");
+        alert("캡쳐 영역을 찾을 수 없어요.");
         return;
       }
 
-      const canvas = await html2canvas(el, {
+      const dataUrl = await toPng(el, {
         backgroundColor: "#f9fafb",
-        scale: 2,
-        useCORS: true,
-        logging: false,
+        pixelRatio: 2,
       });
 
       const link = document.createElement("a");
       link.download = `참가인원_${new Date().toLocaleDateString("ko-KR").replace(/\. /g, "-").replace(".", "")}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.href = dataUrl;
       link.click();
     } catch (e) {
       alert("캡쳐 실패: " + String(e));
@@ -44,9 +42,7 @@ export default function CaptureButton({ targetId }: { targetId: string }) {
           <span className="animate-spin text-base">⏳</span> 캡쳐 중...
         </>
       ) : (
-        <>
-          📸 이미지로 저장
-        </>
+        <>📸 이미지로 저장</>
       )}
     </button>
   );
