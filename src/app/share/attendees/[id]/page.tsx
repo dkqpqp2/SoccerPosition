@@ -36,7 +36,12 @@ function calcArrivalTime(matchTime: string): string {
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr);
-  return d.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" });
+  const days = ["일", "월", "화", "수", "목", "금", "토"];
+  const y = d.getFullYear();
+  const mo = d.getMonth() + 1;
+  const day = d.getDate();
+  const wd = days[d.getDay()];
+  return `${y}년 ${mo}월 ${day}일 (${wd})`;
 }
 
 function formatTime(time: string) {
