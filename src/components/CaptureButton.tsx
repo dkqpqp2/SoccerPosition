@@ -10,11 +10,14 @@ export default function CaptureButton({ targetId }: { targetId: string }) {
     try {
       const html2canvas = (await import("html2canvas")).default;
       const el = document.getElementById(targetId);
-      if (!el) return;
+      if (!el) {
+        alert("캡쳐 영역을 찾을 수 없어요. (id: " + targetId + ")");
+        return;
+      }
 
       const canvas = await html2canvas(el, {
-        backgroundColor: "#f9fafb", // bg-gray-50
-        scale: 2, // 고해상도
+        backgroundColor: "#f9fafb",
+        scale: 2,
         useCORS: true,
         logging: false,
       });
@@ -23,6 +26,8 @@ export default function CaptureButton({ targetId }: { targetId: string }) {
       link.download = `참가인원_${new Date().toLocaleDateString("ko-KR").replace(/\. /g, "-").replace(".", "")}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
+    } catch (e) {
+      alert("캡쳐 실패: " + String(e));
     } finally {
       setLoading(false);
     }
