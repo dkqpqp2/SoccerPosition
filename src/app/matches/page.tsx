@@ -65,6 +65,7 @@ export default function MatchesPage() {
   const [teamB, setTeamB] = useState("");
 
   // 수정 상태
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDate, setEditDate] = useState("");
   const [editTime, setEditTime] = useState("");
@@ -78,7 +79,7 @@ export default function MatchesPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
-    if (status === "authenticated") { fetchMatches(); fetchTeamName(); }
+    if (status === "authenticated") { fetchMatches(); fetchTeamName(); fetchUserRole(); }
   }, [status]);
 
   async function fetchTeamName() {
@@ -86,6 +87,14 @@ export default function MatchesPage() {
     const data = await res.json();
     setTeamName(data.team_name || "우리팀");
   }
+
+  async function fetchUserRole() {
+    const res = await fetch("/api/user/profile");
+    const data = await res.json();
+    setUserRole(data.role ?? null);
+  }
+
+  const canManage = userRole === "owner" || userRole === "manager" || userRole === "coach";
 
   async function fetchMatches() {
     const res = await fetch("/api/matches");
@@ -201,9 +210,11 @@ export default function MatchesPage() {
       <main className="max-w-2xl mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-4">
           <p className="text-sm text-gray-500">경기 {matches.length}개</p>
-          <button onClick={() => setShowForm(true)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-medium transition-colors">
-            + 경기 추가
-          </button>
+          {canManage && (
+            <button onClick={() => setShowForm(true)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-medium transition-colors">
+              + 경기 추가
+            </button>
+          )}
         </div>
 
         {showForm && (
@@ -415,18 +426,24 @@ export default function MatchesPage() {
                       )}
                     </div>
                     <div className="flex gap-2 mt-3">
-                      <button onClick={() => router.push(`/assign?matchId=${match.id}`)}
-                        className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 font-semibold text-sm py-2 rounded-xl transition-colors">
-                        배정하기 →
-                      </button>
-                      <button onClick={() => startEdit(match)}
-                        className="px-4 py-2 text-sm text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors font-medium">
-                        수정
-                      </button>
-                      <button onClick={() => deleteMatch(match.id)}
-                        className="px-4 py-2 text-sm text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium">
-                        삭제
-                      </button>
+                      {canManage && (
+                        <button onClick={() => router.push(`/assign?matchId=${match.id}`)}
+                          className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 font-semibold text-sm py-2 rounded-xl transition-colors">
+                          배정하기 →
+                        </button>
+                      )}
+                      {canManage && (
+                        <button onClick={() => startEdit(match)}
+                          className="px-4 py-2 text-sm text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors font-medium">
+                          수정
+                        </button>
+                      )}
+                      {canManage && (
+                        <button onClick={() => deleteMatch(match.id)}
+                          className="px-4 py-2 text-sm text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium">
+                          삭제
+                        </button>
+                      )}
                     </div>
                   </>
                 )}

@@ -74,6 +74,9 @@ function AssignContent() {
   const [showAttendModal, setShowAttendModal] = useState(false);
   const [showHistoryMobile, setShowHistoryMobile] = useState(false);
   const [shareToast, setShareToast] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  const canManage = userRole === "owner" || userRole === "manager" || userRole === "coach";
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -83,6 +86,7 @@ function AssignContent() {
       fetchTeamColor();
       fetchSavedAssignments();
       fetchMatchInfo();
+      fetchUserRole();
     }
   }, [status]);
 
@@ -150,6 +154,12 @@ function AssignContent() {
     setLoadedAssignmentId(saved.id);
     setSaveSessionName(saved.session_name);
     setStep("result");
+  }
+
+  async function fetchUserRole() {
+    const res = await fetch("/api/user/profile");
+    const data = await res.json();
+    setUserRole(data.role ?? null);
   }
 
   async function fetchTeamColor() {
@@ -569,7 +579,7 @@ function AssignContent() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="font-bold text-gray-800">포메이션 선택</h2>
-                  <button onClick={() => router.push("/formations")} className="text-xs text-green-600 hover:underline">+ 포메이션 만들기</button>
+                  {canManage && <button onClick={() => router.push("/formations")} className="text-xs text-green-600 hover:underline">+ 포메이션 만들기</button>}
                 </div>
                 <FormationSelect
                   value={selectedFormation}
@@ -606,24 +616,28 @@ function AssignContent() {
                               공유
                             </button>
                           )}
-                        <button
-                          onClick={() => setShowAttendModal(true)}
-                          className="text-xs bg-green-500 hover:bg-green-600 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors"
-                        >
-                          ✏️ 설정
-                        </button>
+                        {canManage && (
+                          <button
+                            onClick={() => setShowAttendModal(true)}
+                            className="text-xs bg-green-500 hover:bg-green-600 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                          >
+                            ✏️ 설정
+                          </button>
+                        )}
                         </div>
                       </div>
 
                       {attendingIds.size === 0 ? (
                         <div className="px-4 py-5 text-center">
                           <p className="text-xs text-gray-400">참가 인원을 설정해주세요</p>
-                          <button
-                            onClick={() => setShowAttendModal(true)}
-                            className="mt-2 text-xs text-green-600 font-semibold hover:underline"
-                          >
-                            + 참가자 선택하기
-                          </button>
+                          {canManage && (
+                            <button
+                              onClick={() => setShowAttendModal(true)}
+                              className="mt-2 text-xs text-green-600 font-semibold hover:underline"
+                            >
+                              + 참가자 선택하기
+                            </button>
+                          )}
                         </div>
                       ) : (
                         <div>
@@ -676,14 +690,16 @@ function AssignContent() {
                       )}
                     </div>
 
-                    <button
-                      onClick={autoAssign}
-                      disabled={attendingIds.size === 0}
-                      className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white py-4 rounded-2xl font-bold text-lg transition-colors"
-                    >
-                      🎲 자동 배정 시작
-                      {attendingIds.size > 0 && <span className="text-sm font-normal ml-1 opacity-80">({attendingIds.size}명)</span>}
-                    </button>
+                    {canManage && (
+                      <button
+                        onClick={autoAssign}
+                        disabled={attendingIds.size === 0}
+                        className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white py-4 rounded-2xl font-bold text-lg transition-colors"
+                      >
+                        🎲 자동 배정 시작
+                        {attendingIds.size > 0 && <span className="text-sm font-normal ml-1 opacity-80">({attendingIds.size}명)</span>}
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -849,12 +865,14 @@ function AssignContent() {
                     </>
                   );
                 })()}
-                <button
-                  onClick={() => { if (!loadedAssignmentId) setSaveSessionName(`${savedAssignments.length + 1}쿼터`); setShowSaveModal(true); }}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold transition-colors"
-                >
-                  💾 이 배정 저장
-                </button>
+                {canManage && (
+                  <button
+                    onClick={() => { if (!loadedAssignmentId) setSaveSessionName(`${savedAssignments.length + 1}쿼터`); setShowSaveModal(true); }}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold transition-colors"
+                  >
+                    💾 이 배정 저장
+                  </button>
+                )}
 
                 {loadedAssignmentId && (
                   <KakaoShare
