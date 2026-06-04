@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getUserAndTeam, getUserRole, canFeedback } from "@/lib/team";
+import Groq from "groq-sdk";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -21,10 +22,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "선수 이름과 경기력 설명이 필요해요." }, { status: 400 });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: "AI 기능이 설정되지 않았어요." }, { status: 500 });
   }
+
+  const groq = new Groq({ apiKey });
 
   const prompt = `당신은 축구 코치입니다. 선수에게 건설적이고 구체적인 피드백을 한국어로 작성해주세요.
 
@@ -43,28 +46,18 @@ ${performance}
 - 피드백 텍스트만 출력 (제목, 번호 없이)`;
 
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
-      }
-    );
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 512,
+      temperature: 0.7,
+    });
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error("Gemini API error:", errText);
-      return NextResponse.json({ error: errText }, { status: 500 });
-    }
-
-    const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    const text = completion.choices[0]?.message?.content ?? "";
     return NextResponse.json({ feedback: text.trim() });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    console.error("Groq error:", msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
