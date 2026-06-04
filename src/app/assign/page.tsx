@@ -461,8 +461,8 @@ function AssignContent() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-green-700 text-white px-4 py-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
+          <SpmLogo size="sm" showText={false} clickable />
           <button onClick={() => matchId ? router.push("/matches") : router.push("/dashboard")} className="hover:text-green-200 shrink-0 text-sm">← 뒤로</button>
-
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="text-base shrink-0">🎯</span>
@@ -476,9 +476,8 @@ function AssignContent() {
             )}
           </div>
         </div>
-        {/* 로고 + 팀 색상 피커 */}
+        {/* 팀 색상 피커 */}
         <div className="flex items-center gap-2 shrink-0">
-        <SpmLogo size="sm" showText={false} clickable />
         <div className="relative flex items-center gap-1.5 shrink-0">
           <span className="text-xs text-green-200 hidden sm:block">팀 색상</span>
           <button

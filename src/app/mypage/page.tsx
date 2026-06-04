@@ -52,15 +52,13 @@ export default function MyPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-green-700 text-white px-4 py-3 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.push("/dashboard")} className="hover:text-green-200 text-sm shrink-0">← 뒤로</button>
-          <div className="flex items-center gap-2">
-            <span className="text-xl">👤</span>
-            <h1 className="text-lg font-bold">마이페이지</h1>
-          </div>
-        </div>
+      <header className="bg-green-700 text-white px-4 py-3 flex items-center gap-3">
         <SpmLogo size="sm" showText={false} clickable />
+        <button onClick={() => router.push("/dashboard")} className="hover:text-green-200 text-sm shrink-0">← 뒤로</button>
+        <div className="flex items-center gap-2">
+          <span className="text-xl">👤</span>
+          <h1 className="text-lg font-bold">마이페이지</h1>
+        </div>
       </header>
 
       <main className="max-w-lg mx-auto px-6 py-8 flex flex-col gap-5">

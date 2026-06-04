@@ -114,6 +114,7 @@ export default function MembersPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-green-700 text-white px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
+          <SpmLogo size="sm" showText={false} clickable />
           <button onClick={() => router.push("/dashboard")} className="text-white hover:text-green-200 text-sm shrink-0">← 뒤로</button>
           <div className="flex items-center gap-2">
             <span className="text-xl">👥</span>
@@ -121,7 +122,6 @@ export default function MembersPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <SpmLogo size="sm" showText={false} clickable />
           {canManage && (
             <button
               onClick={openAdd}
