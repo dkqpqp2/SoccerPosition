@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { toPng } from "html-to-image";
 
-export default function CaptureButton({ targetId }: { targetId: string }) {
+interface Props {
+  targetId: string;
+  filename?: string;
+  bgColor?: string;
+}
+
+export default function CaptureButton({ targetId, filename, bgColor = "#030712" }: Props) {
   const [loading, setLoading] = useState(false);
 
   async function handleCapture() {
@@ -16,12 +22,14 @@ export default function CaptureButton({ targetId }: { targetId: string }) {
       }
 
       const dataUrl = await toPng(el, {
-        backgroundColor: "#f9fafb",
+        backgroundColor: bgColor,
         pixelRatio: 2,
       });
 
+      const name = filename ?? `캡쳐_${new Date().toLocaleDateString("ko-KR").replace(/\. /g, "-").replace(".", "")}.png`;
+
       const link = document.createElement("a");
-      link.download = `참가인원_${new Date().toLocaleDateString("ko-KR").replace(/\. /g, "-").replace(".", "")}.png`;
+      link.download = name;
       link.href = dataUrl;
       link.click();
     } catch (e) {
@@ -35,7 +43,7 @@ export default function CaptureButton({ targetId }: { targetId: string }) {
     <button
       onClick={handleCapture}
       disabled={loading}
-      className="w-full mt-4 flex items-center justify-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 font-semibold py-3 rounded-2xl shadow-sm transition-colors disabled:opacity-50"
+      className="w-full mt-4 flex items-center justify-center gap-2 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-gray-300 hover:text-white font-semibold py-3 rounded-2xl transition-colors disabled:opacity-50"
     >
       {loading ? (
         <>
