@@ -43,14 +43,14 @@ export async function getUserRole(
   return (data?.role as TeamRole) ?? null;
 }
 
-/** 포지션 배정 / 경기 생성·삭제 가능 여부 (관리자, 감독, 코치) */
+/** 포지션 배정 / 경기 생성·삭제 가능 여부 (관리자, 감독, 코치, 회장) */
 export function canManage(role: TeamRole | null): boolean {
-  return role === "owner" || role === "manager" || role === "coach";
+  return role === "owner" || role === "manager" || role === "coach" || role === "president";
 }
 
-/** 피드백 작성 가능 여부 (관리자, 감독, 코치) */
+/** 피드백 작성 가능 여부 (관리자, 감독, 코치, 회장) */
 export function canFeedback(role: TeamRole | null): boolean {
-  return role === "owner" || role === "manager" || role === "coach";
+  return role === "owner" || role === "manager" || role === "coach" || role === "president";
 }
 
 /** 역할 임명 / 강퇴 가능 여부 (관리자 전용) */

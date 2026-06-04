@@ -94,7 +94,7 @@ export default function MatchesPage() {
     setUserRole(data.role ?? null);
   }
 
-  const canManage = userRole === "owner" || userRole === "manager" || userRole === "coach";
+  const canManage = userRole === "owner" || userRole === "manager" || userRole === "coach" || userRole === "president";
 
   async function fetchMatches() {
     const res = await fetch("/api/matches");

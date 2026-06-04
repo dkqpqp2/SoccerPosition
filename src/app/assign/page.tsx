@@ -76,7 +76,7 @@ function AssignContent() {
   const [shareToast, setShareToast] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  const canManage = userRole === "owner" || userRole === "manager" || userRole === "coach";
+  const canManage = userRole === "owner" || userRole === "manager" || userRole === "coach" || userRole === "president";
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");

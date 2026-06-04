@@ -21,7 +21,7 @@ export async function GET() {
     ...team,
     my_role: myRole,
     is_owner: myRole === "owner",
-    can_manage: myRole === "owner" || myRole === "manager" || myRole === "coach",
+    can_manage: myRole === "owner" || myRole === "manager" || myRole === "coach" || myRole === "president",
     members: members ?? [],
   });
 }
