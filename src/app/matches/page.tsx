@@ -57,6 +57,7 @@ export default function MatchesPage() {
   const [matchTime, setMatchTime] = useState("");
   const [matchEndTime, setMatchEndTime] = useState("");
   const [location, setLocation] = useState("");
+  const [uniformInfo, setUniformInfo] = useState("");
   const [opponent, setOpponent] = useState("");
   const [teamName, setTeamName] = useState("");
   const [isScrimmage, setIsScrimmage] = useState(false);
@@ -93,11 +94,11 @@ export default function MatchesPage() {
     const res = await fetch("/api/matches", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ match_date: date, match_time: matchTime || null, match_end_time: matchEndTime || null, location: location || null, title }),
+      body: JSON.stringify({ match_date: date, match_time: matchTime || null, match_end_time: matchEndTime || null, location: location || null, title, uniform_info: uniformInfo || null }),
     });
     if (res.ok) {
       setShowForm(false);
-      setDate(""); setMatchTime(""); setMatchEndTime(""); setLocation("");
+      setDate(""); setMatchTime(""); setMatchEndTime(""); setLocation(""); setUniformInfo("");
       setOpponent(""); setTeamA(""); setTeamB(""); setIsScrimmage(false);
       fetchMatches();
     }
@@ -170,6 +171,15 @@ export default function MatchesPage() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" />
               </div>
 
+              {/* 복장 */}
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">복장 정보</label>
+                <input type="text" value={uniformInfo} onChange={e => setUniformInfo(e.target.value)}
+                  placeholder="예: 검빨하계 or 팀조끼"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                <p className="text-xs text-gray-400 mt-1">참가 인원 공유 시 공지에 자동으로 포함돼요</p>
+              </div>
+
               {/* 자체전 토글 */}
               <div className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 cursor-pointer transition-colors ${isScrimmage ? "border-blue-400 bg-blue-50" : "border-gray-200 bg-gray-50"}`}
                 onClick={() => setIsScrimmage(!isScrimmage)}>
@@ -210,7 +220,7 @@ export default function MatchesPage() {
 
               <div className="flex gap-2">
                 <button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl font-medium">추가</button>
-                <button type="button" onClick={() => { setShowForm(false); setIsScrimmage(false); setTeamA(""); setTeamB(""); setMatchTime(""); setMatchEndTime(""); setLocation(""); }}
+                <button type="button" onClick={() => { setShowForm(false); setIsScrimmage(false); setTeamA(""); setTeamB(""); setMatchTime(""); setMatchEndTime(""); setLocation(""); setUniformInfo(""); }}
                   className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-xl font-medium">취소</button>
               </div>
             </div>

@@ -13,10 +13,10 @@ export async function POST(req: NextRequest) {
 
   const { members, match_info } = await req.json();
 
-  // 팀 정보 (이름 + 유니폼)
+  // 팀 이름
   const { data: team } = await supabaseAdmin
     .from("teams")
-    .select("name, uniform_info")
+    .select("name")
     .eq("id", teamId)
     .single();
 
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     .from("shared_lists")
     .insert({
       team_name: team?.name ?? "우리팀",
-      data: { members, match_info, uniform_info: team?.uniform_info ?? null },
+      data: { members, match_info, uniform_info: match_info?.uniform_info ?? null },
     })
     .select("id")
     .single();

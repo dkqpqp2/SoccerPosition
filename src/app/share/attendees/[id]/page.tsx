@@ -17,6 +17,7 @@ interface MatchInfo {
   match_end_time: string | null;
   location: string | null;
   title: string | null;
+  uniform_info: string | null;
 }
 
 interface SharedData {
@@ -54,11 +55,18 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
 
   if (error || !data) notFound();
 
-  const { members, match_info, uniform_info } = data.data as SharedData;
+  const { members, match_info, uniform_info: storedUniform } = data.data as SharedData;
+  // uniform_info: match_info에 있으면 우선, 없으면 storedUniform 사용
+  const uniform_info = match_info?.uniform_info ?? storedUniform ?? null;
+
   const regular = members.filter(m => !m.is_mercenary);
   const mercenary = members.filter(m => m.is_mercenary);
 
   const hasMercenary = mercenary.length > 0;
+  // 정규팀원 10명 초과 시 2칸으로 분할
+  const regularOverflow = regular.length > 10;
+  const regular1 = regularOverflow ? regular.slice(0, Math.ceil(regular.length / 2)) : regular;
+  const regular2 = regularOverflow ? regular.slice(Math.ceil(regular.length / 2)) : [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -85,16 +93,16 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
           </div>
         </div>
 
-        {/* 참가 인원 2단 레이아웃 */}
-        <div className="grid grid-cols-2 gap-3 mb-5">
+        {/* 참가 인원 레이아웃: 정규 10명 초과 시 3단, 이하 시 2단 */}
+        <div className={`grid gap-3 mb-5 ${regularOverflow ? "grid-cols-3" : "grid-cols-2"}`}>
 
-          {/* 정규 팀원 */}
+          {/* 정규 팀원 (1번째 칸) */}
           <div className="bg-white rounded-2xl shadow overflow-hidden">
             <div className="bg-green-600 px-3 py-2">
-              <p className="text-white text-sm font-bold">👥 정규 팀원 · {regular.length}명</p>
+              <p className="text-white text-sm font-bold">👥 정규 {regular.length}명{regularOverflow ? " (1)" : ""}</p>
             </div>
             <div className="divide-y divide-gray-50">
-              {regular.map((m, i) => (
+              {regular1.map((m, i) => (
                 <div key={m.id} className="flex items-center px-3 py-2 gap-2">
                   <span className="text-xs text-gray-300 w-4 shrink-0">{i + 1}</span>
                   <span className="flex-1 text-sm font-semibold text-gray-800 truncate">{m.name}</span>
@@ -107,6 +115,27 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
               {regular.length === 0 && <p className="text-xs text-gray-300 px-3 py-3">없음</p>}
             </div>
           </div>
+
+          {/* 정규 팀원 (2번째 칸, 10명 초과 시만 표시) */}
+          {regularOverflow && (
+            <div className="bg-white rounded-2xl shadow overflow-hidden">
+              <div className="bg-green-600 px-3 py-2">
+                <p className="text-white text-sm font-bold">👥 정규 {regular.length}명 (2)</p>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {regular2.map((m, i) => (
+                  <div key={m.id} className="flex items-center px-3 py-2 gap-2">
+                    <span className="text-xs text-gray-300 w-4 shrink-0">{Math.ceil(regular.length / 2) + i + 1}</span>
+                    <span className="flex-1 text-sm font-semibold text-gray-800 truncate">{m.name}</span>
+                    <div className="flex gap-0.5 shrink-0">
+                      {m.position_1st && <span className="text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded-full">{m.position_1st}</span>}
+                      {m.position_2nd && <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded-full">{m.position_2nd}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* 용병 */}
           <div className="bg-white rounded-2xl shadow overflow-hidden">

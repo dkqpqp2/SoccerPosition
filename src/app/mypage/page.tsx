@@ -10,7 +10,6 @@ interface Profile {
   image: string;
   team_name: string | null;
   team_color: string;
-  uniform_info: string | null;
 }
 
 export default function MyPage() {
@@ -18,7 +17,6 @@ export default function MyPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [teamName, setTeamName] = useState("");
-  const [uniformInfo, setUniformInfo] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -32,7 +30,6 @@ export default function MyPage() {
     const data = await res.json();
     setProfile(data);
     setTeamName(data.team_name || "");
-    setUniformInfo(data.uniform_info || "");
   }
 
   async function save() {
@@ -40,7 +37,7 @@ export default function MyPage() {
     await fetch("/api/user/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ team_name: teamName, uniform_info: uniformInfo }),
+      body: JSON.stringify({ team_name: teamName }),
     });
     setSaving(false);
     setSaved(true);
@@ -101,18 +98,6 @@ export default function MyPage() {
                 <div className="w-8 h-8 rounded-full border-2 border-gray-200" style={{ backgroundColor: profile.team_color }} />
                 <span className="text-sm text-gray-500">포지션 배정 화면에서 변경 가능해요</span>
               </div>
-            </div>
-
-            <div>
-              <label className="text-sm text-gray-500 mb-1 block">유니폼 / 복장 정보</label>
-              <textarea
-                value={uniformInfo}
-                onChange={e => setUniformInfo(e.target.value)}
-                placeholder={"예: 검빨하계 or 팀조끼\n상의 색상 꼭 확인해주세요!"}
-                rows={3}
-                className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none text-sm"
-              />
-              <p className="text-xs text-gray-400 mt-1">참가 인원 공유 시 규칙에 자동으로 포함돼요</p>
             </div>
 
             <button
