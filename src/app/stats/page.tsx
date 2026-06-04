@@ -11,7 +11,7 @@ interface PlayerStat {
   is_me?: boolean;
   goals: number;
   assists: number;
-  attended: number;
+  games_played: number;
   total_matches: number;
   attendance_rate: number;
 }
@@ -295,7 +295,7 @@ function PlayerCard({ player, rank, sortKey }: {
             🏃 참석률
           </span>
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-gray-600">{player.attended}/{player.total_matches}경기</span>
+            <span className="text-[11px] text-gray-600">{player.games_played}/{player.total_matches}경기</span>
             <span className={`text-xs font-black ${
               player.total_matches === 0 ? "text-gray-700" :
               rate >= 80 ? "text-emerald-400" : rate >= 50 ? "text-amber-400" : "text-red-400"
