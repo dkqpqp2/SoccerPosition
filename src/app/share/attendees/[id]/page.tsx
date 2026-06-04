@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import { notFound } from "next/navigation";
+import CaptureButton from "@/components/CaptureButton";
 
 interface Member {
   id: string;
@@ -76,6 +77,7 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-6">
+        <div id="capture-area" className="bg-gray-50 pb-2">
 
         {/* 헤더 */}
         <div className="text-center mb-5">
@@ -206,9 +208,13 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
           </ol>
         </div>
 
-        <p className="text-center text-xs text-gray-300 mt-4">
-          {new Date(data.created_at).toLocaleString("ko-KR")} 공유됨
-        </p>
+          <p className="text-center text-xs text-gray-300 mt-4">
+            {new Date(data.created_at).toLocaleString("ko-KR")} 공유됨
+          </p>
+        </div>
+
+        {/* 캡쳐 버튼 (이미지에 포함 안 됨) */}
+        <CaptureButton targetId="capture-area" />
       </div>
     </div>
   );
