@@ -186,18 +186,18 @@ export default function FormationsPage() {
             {/* 포메이션 입력 */}
             <div className="bg-white rounded-2xl shadow p-5 mb-5">
               <label className="text-sm font-semibold text-gray-700 mb-2 block">포메이션 입력</label>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2">
                 <input
                   type="text"
                   value={formationInput}
                   onChange={e => { setFormationInput(e.target.value); setParseError(""); }}
                   onKeyDown={e => e.key === "Enter" && handleGenerate()}
                   placeholder="예: 4-3-3, 4-2-3-1, 3-5-2"
-                  className="flex-1 border-2 border-gray-200 focus:border-green-500 rounded-xl px-4 py-2 font-bold text-lg focus:outline-none"
+                  className="w-full border-2 border-gray-200 focus:border-green-500 rounded-xl px-4 py-2 font-bold text-lg focus:outline-none"
                 />
                 <button
                   onClick={handleGenerate}
-                  className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-xl font-semibold transition-colors"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl font-semibold transition-colors"
                 >
                   생성
                 </button>
