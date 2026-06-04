@@ -73,6 +73,7 @@ function AssignContent() {
   const [attendingIds, setAttendingIds] = useState<Set<string>>(new Set());
   const [showAttendModal, setShowAttendModal] = useState(false);
   const [showHistoryMobile, setShowHistoryMobile] = useState(false);
+  const [shareToast, setShareToast] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -222,11 +223,14 @@ function AssignContent() {
       });
     }
 
-    if (navigator.share) {
+    // 모바일에서만 share sheet 사용 (PC는 클립보드 복사)
+    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+    if (isMobile && navigator.share) {
       navigator.share({ text });
     } else {
       navigator.clipboard.writeText(text);
-      alert("참가 인원 목록이 복사됐어요!");
+      setShareToast(true);
+      setTimeout(() => setShareToast(false), 2500);
     }
   }
 
@@ -1040,6 +1044,13 @@ function AssignContent() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 공유 토스트 */}
+      {shareToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white text-sm font-medium px-5 py-3 rounded-2xl shadow-lg">
+          📋 참가 인원 목록이 복사됐어요!
         </div>
       )}
 
