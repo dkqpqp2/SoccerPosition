@@ -685,12 +685,12 @@ export default function Dashboard() {
         >
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div
-            className="relative bg-gray-900 border border-white/10 rounded-2xl w-full max-w-lg overflow-hidden"
+            className="relative bg-gray-900 border border-white/10 rounded-2xl w-full max-w-lg flex flex-col"
             style={{ maxHeight: "80vh" }}
             onClick={e => e.stopPropagation()}
           >
-            {/* 헤더 */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+            {/* 헤더 - 고정 */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 shrink-0">
               <h3 className="font-bold text-white text-base">팀원 목록</h3>
               <button
                 onClick={() => setShowMembers(false)}
@@ -705,7 +705,7 @@ export default function Dashboard() {
               const paged       = team.members.slice(memberPage * PAGE_SIZE, (memberPage + 1) * PAGE_SIZE);
               return (
                 <>
-                  <div className="px-5 py-4 flex flex-col gap-2">
+                  <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-2">
                     {paged.map((m, idx) => (
                       <div key={m.user_id} className="flex items-center gap-3 bg-white/3 rounded-2xl px-4 py-3 border border-white/5">
                         {/* 번호 */}
@@ -745,9 +745,9 @@ export default function Dashboard() {
                     ))}
                   </div>
 
-                  {/* 페이지네이션 */}
+                  {/* 페이지네이션 - 고정 */}
                   {totalPages > 1 && (
-                    <div className="flex items-center justify-between px-5 py-3 border-t border-white/5">
+                    <div className="shrink-0 flex items-center justify-between px-5 py-3 border-t border-white/5">
                       <button
                         onClick={() => setMemberPage(p => Math.max(0, p - 1))}
                         disabled={memberPage === 0}
