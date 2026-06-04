@@ -36,11 +36,19 @@ export default function MembersPage() {
   const [tab, setTab] = useState<"regular" | "mercenary">("regular");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const canManage = userRole === "owner" || userRole === "manager" || userRole === "coach" || userRole === "president";
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
-    if (status === "authenticated") fetchMembers();
+    if (status === "authenticated") { fetchMembers(); fetchUserRole(); }
   }, [status]);
+
+  async function fetchUserRole() {
+    const res = await fetch("/api/user/profile");
+    const data = await res.json();
+    setUserRole(data.role ?? null);
+  }
 
   async function fetchMembers() {
     const res = await fetch("/api/members");
@@ -111,12 +119,14 @@ export default function MembersPage() {
             <h1 className="text-lg font-bold">팀원 관리</h1>
           </div>
         </div>
-        <button
-          onClick={openAdd}
-          className="bg-white text-green-700 font-bold px-3 py-1.5 rounded-xl text-sm"
-        >
-          + 추가
-        </button>
+        {canManage && (
+          <button
+            onClick={openAdd}
+            className="bg-white text-green-700 font-bold px-3 py-1.5 rounded-xl text-sm"
+          >
+            + 추가
+          </button>
+        )}
       </header>
 
       {/* 탭 */}
@@ -142,7 +152,7 @@ export default function MembersPage() {
           <div className="text-center py-16 text-gray-400">
             <div className="text-5xl mb-3">{tab === "regular" ? "👥" : "⚡"}</div>
             <p>{tab === "regular" ? "정규 팀원이 없어요" : "용병이 없어요"}</p>
-            <button onClick={openAdd} className="mt-4 text-sm text-green-600 font-bold">+ 추가하기</button>
+            {canManage && <button onClick={openAdd} className="mt-4 text-sm text-green-600 font-bold">+ 추가하기</button>}
           </div>
         ) : (
           <>
@@ -155,6 +165,7 @@ export default function MembersPage() {
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   isMercenary={member.is_mercenary}
+                  canManage={canManage}
                 />
               ))}
             </div>
@@ -206,7 +217,7 @@ export default function MembersPage() {
       </main>
 
       {/* 모달 폼 */}
-      {showForm && (
+      {showForm && canManage && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => { setShowForm(false); setEditId(null); }} />
           <form
@@ -302,11 +313,12 @@ export default function MembersPage() {
   );
 }
 
-function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false }: {
+function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canManage = false }: {
   member: Member;
   isLast: boolean;
   onEdit: (m: Member) => void;
   onDelete: (id: string) => void;
+  canManage?: boolean;
   isMercenary?: boolean;
 }) {
   return (
@@ -325,10 +337,12 @@ function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false }: {
             </span>
           )}
         </div>
-        <div className="flex gap-1 shrink-0">
-          <button onClick={() => onEdit(member)} className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50">수정</button>
-          <button onClick={() => onDelete(member.id)} className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50">삭제</button>
-        </div>
+        {canManage && (
+          <div className="flex gap-1 shrink-0">
+            <button onClick={() => onEdit(member)} className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50">수정</button>
+            <button onClick={() => onDelete(member.id)} className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50">삭제</button>
+          </div>
+        )}
       </div>
       <div className="flex gap-1.5 flex-wrap">
         {member.position_1st ? (

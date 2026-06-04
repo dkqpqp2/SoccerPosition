@@ -419,7 +419,17 @@ export default function MatchesPage() {
                         [...match.position_assignments]
                           .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
                           .map(a => (
-                            <span key={a.id} className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{a.session_name}</span>
+                            canManage ? (
+                              <span key={a.id} className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{a.session_name}</span>
+                            ) : (
+                              <button
+                                key={a.id}
+                                onClick={() => router.push(`/share/${a.id}`)}
+                                className="text-xs bg-green-100 hover:bg-green-200 text-green-700 font-semibold px-2.5 py-1 rounded-full transition-colors"
+                              >
+                                {a.session_name} 보기 →
+                              </button>
+                            )
                           ))
                       ) : (
                         <span className="text-xs text-gray-300">저장된 쿼터 없음</span>
