@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getUserAndTeam, getUserRole, canFeedback } from "@/lib/team";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -27,9 +26,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "AI 기능이 설정되지 않았어요." }, { status: 500 });
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
   const prompt = `당신은 축구 코치입니다. 선수에게 건설적이고 구체적인 피드백을 한국어로 작성해주세요.
 
 선수 정보:
@@ -47,12 +43,28 @@ ${performance}
 - 피드백 텍스트만 출력 (제목, 번호 없이)`;
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Gemini API error:", errText);
+      return NextResponse.json({ error: errText }, { status: 500 });
+    }
+
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     return NextResponse.json({ feedback: text.trim() });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("Gemini error:", msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
