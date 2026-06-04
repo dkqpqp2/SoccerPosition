@@ -178,8 +178,30 @@ function AssignContent() {
     const data = await res.json();
     const list: Member[] = Array.isArray(data) ? data : [];
     setMembers(list);
-    setAttendingIds(new Set()); // 기본: 전원 해제
+
+    // 경기별 저장된 참가자 불러오기
+    if (matchId) {
+      const attRes = await fetch(`/api/matches/attendees?matchId=${matchId}`);
+      const attData = await attRes.json();
+      if (attData.member_ids && attData.member_ids.length > 0) {
+        setAttendingIds(new Set(attData.member_ids));
+      } else {
+        setAttendingIds(new Set());
+      }
+    } else {
+      setAttendingIds(new Set());
+    }
+
     setLoading(false);
+  }
+
+  async function saveAttendees(ids: Set<string>) {
+    if (!matchId) return;
+    await fetch("/api/matches/attendees", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ match_id: matchId, member_ids: [...ids] }),
+    });
   }
 
   function toggleAttending(id: string) {
@@ -191,7 +213,15 @@ function AssignContent() {
   }
 
   function toggleAllAttending(all: boolean) {
-    setAttendingIds(all ? new Set(members.map(m => m.id)) : new Set());
+    const next = all ? new Set(members.map(m => m.id)) : new Set<string>();
+    setAttendingIds(next);
+  }
+
+  // 참가 확인 버튼 클릭 시 저장
+  async function confirmAttendees(ids: Set<string>) {
+    setAttendingIds(ids);
+    setShowAttendModal(false);
+    await saveAttendees(ids);
   }
 
   // 참가자 중 미배정 팀원
@@ -1037,7 +1067,7 @@ function AssignContent() {
             {/* 확인 버튼 */}
             <div className="px-5 py-4 border-t border-gray-100">
               <button
-                onClick={() => setShowAttendModal(false)}
+                onClick={() => confirmAttendees(attendingIds)}
                 className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition-colors"
               >
                 확인 ({attendingIds.size}명 선택됨)
