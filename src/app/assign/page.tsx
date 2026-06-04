@@ -206,32 +206,32 @@ function AssignContent() {
 
   const attendingMembers = members.filter(m => attendingIds.has(m.id));
 
-  function shareAttendees(attending: Member[]) {
-    const regular = attending.filter(m => !m.is_mercenary);
-    const mercenary = attending.filter(m => m.is_mercenary);
+  async function shareAttendees(attending: Member[]) {
+    setShareToast(true);
 
-    let text = `⚽ 오늘 참가 인원 (${attending.length}명)\n\n`;
-    if (regular.length > 0) {
-      text += `👥 정규 팀원 (${regular.length}명)\n`;
-      regular.forEach((m, i) => { text += `${i + 1}. ${m.name}\n`; });
-    }
-    if (mercenary.length > 0) {
-      text += `\n⚡ 용병 (${mercenary.length}명)\n`;
-      mercenary.forEach((m, i) => {
-        const tag = m.is_cafe_mercenary ? "☕카페" : m.referrer ? `${m.referrer}지인` : "";
-        text += `${i + 1}. ${m.name}${tag ? ` (${tag})` : ""}\n`;
-      });
+    const res = await fetch("/api/share/attendees", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ members: attending, match_info: matchInfo }),
+    });
+
+    if (!res.ok) {
+      setShareToast(false);
+      alert("공유 링크 생성에 실패했어요");
+      return;
     }
 
-    // 모바일에서만 share sheet 사용 (PC는 클립보드 복사)
+    const { id } = await res.json();
+    const url = `${window.location.origin}/share/attendees/${id}`;
+
     const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
     if (isMobile && navigator.share) {
-      navigator.share({ text });
+      await navigator.share({ url });
     } else {
-      navigator.clipboard.writeText(text);
-      setShareToast(true);
-      setTimeout(() => setShareToast(false), 2500);
+      await navigator.clipboard.writeText(url);
     }
+
+    setTimeout(() => setShareToast(false), 2500);
   }
 
   function autoAssign() {
@@ -1050,7 +1050,7 @@ function AssignContent() {
       {/* 공유 토스트 */}
       {shareToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white text-sm font-medium px-5 py-3 rounded-2xl shadow-lg">
-          📋 참가 인원 목록이 복사됐어요!
+          🔗 공유 링크가 복사됐어요!
         </div>
       )}
 
