@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { POSITION_MAP } from "@/lib/positions";
+import SpmLogo from "@/components/SpmLogo";
 import PositionSelect from "@/components/PositionSelect";
 
 interface Member {
@@ -113,20 +114,23 @@ export default function MembersPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-green-700 text-white px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.push("/dashboard")} className="text-white hover:text-green-200">← 뒤로</button>
+          <button onClick={() => router.push("/dashboard")} className="text-white hover:text-green-200 text-sm shrink-0">← 뒤로</button>
           <div className="flex items-center gap-2">
             <span className="text-xl">👥</span>
             <h1 className="text-lg font-bold">팀원 관리</h1>
           </div>
         </div>
-        {canManage && (
-          <button
-            onClick={openAdd}
-            className="bg-white text-green-700 font-bold px-3 py-1.5 rounded-xl text-sm"
-          >
-            + 추가
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <SpmLogo size="sm" showText={false} clickable />
+          {canManage && (
+            <button
+              onClick={openAdd}
+              className="bg-white text-green-700 font-bold px-3 py-1.5 rounded-xl text-sm"
+            >
+              + 추가
+            </button>
+          )}
+        </div>
       </header>
 
       {/* 탭 */}

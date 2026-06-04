@@ -1,15 +1,24 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+
 interface SpmLogoProps {
   size?: "sm" | "md" | "lg";
   showText?: boolean;
+  clickable?: boolean;
 }
 
-export default function SpmLogo({ size = "md", showText = true }: SpmLogoProps) {
+export default function SpmLogo({ size = "md", showText = true, clickable = false }: SpmLogoProps) {
+  const router = useRouter();
   const iconSize = size === "sm" ? 28 : size === "md" ? 36 : 56;
   const fontSize = size === "sm" ? "text-base" : size === "md" ? "text-lg" : "text-3xl";
   const subSize = size === "sm" ? "text-[9px]" : size === "md" ? "text-[10px]" : "text-sm";
 
   return (
-    <div className="flex items-center gap-2.5">
+    <div
+      className={`flex items-center gap-2.5 ${clickable ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
+      onClick={clickable ? () => router.push("/dashboard") : undefined}
+    >
       {/* SPM 아이콘 */}
       <div
         className="relative flex items-center justify-center rounded-xl shrink-0"

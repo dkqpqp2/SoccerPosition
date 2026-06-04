@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import SpmLogo from "@/components/SpmLogo";
 
 // 24시간제 시간 선택기
 function TimePicker({ value, onChange, placeholder = "시간 선택" }: {
@@ -199,12 +200,15 @@ export default function MatchesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-green-700 text-white px-4 py-3 flex items-center gap-4">
-        <button onClick={() => router.push("/dashboard")} className="hover:text-green-200">← 뒤로</button>
-        <div className="flex items-center gap-2">
-          <span className="text-xl">📅</span>
-          <h1 className="text-lg font-bold">경기 관리</h1>
+      <header className="bg-green-700 text-white px-4 py-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.push("/dashboard")} className="hover:text-green-200 text-sm shrink-0">← 뒤로</button>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">📅</span>
+            <h1 className="text-lg font-bold">경기 관리</h1>
+          </div>
         </div>
+        <SpmLogo size="sm" showText={false} clickable />
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6">

@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
+import SpmLogo from "@/components/SpmLogo";
 
 interface Match {
   id: string;
@@ -177,12 +178,15 @@ function FeedbackContent() {
         </div>
       )}
 
-      <header className="bg-green-700 text-white px-4 py-3 flex items-center gap-4">
-        <button onClick={() => router.push("/dashboard")} className="hover:text-green-200">← 뒤로</button>
-        <div className="flex items-center gap-2">
-          <span className="text-xl">📝</span>
-          <h1 className="text-lg font-bold">경기 피드백</h1>
+      <header className="bg-green-700 text-white px-4 py-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.push("/dashboard")} className="hover:text-green-200 text-sm shrink-0">← 뒤로</button>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">📝</span>
+            <h1 className="text-lg font-bold">경기 피드백</h1>
+          </div>
         </div>
+        <SpmLogo size="sm" showText={false} clickable />
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6">
