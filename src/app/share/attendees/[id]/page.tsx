@@ -11,9 +11,35 @@ interface Member {
   referrer?: string | null;
 }
 
+interface MatchInfo {
+  match_date: string;
+  match_time: string | null;
+  location: string | null;
+  title: string | null;
+}
+
 interface SharedData {
   members: Member[];
-  match_info?: { match_date: string; title: string | null } | null;
+  match_info?: MatchInfo | null;
+  uniform_info?: string | null;
+}
+
+function calcArrivalTime(matchTime: string): string {
+  const [h, m] = matchTime.split(":").map(Number);
+  const total = h * 60 + m - 30;
+  const ah = Math.floor(total / 60);
+  const am = total % 60;
+  return `${ah}시 ${String(am).padStart(2, "0")}분`;
+}
+
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" });
+}
+
+function formatTime(time: string) {
+  const [h, m] = time.split(":").map(Number);
+  return `${h}시${m > 0 ? ` ${String(m).padStart(2, "0")}분` : ""}`;
 }
 
 export default async function ShareAttendeesPage({ params }: { params: Promise<{ id: string }> }) {
@@ -27,81 +53,122 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
 
   if (error || !data) notFound();
 
-  const { members, match_info } = data.data as SharedData;
+  const { members, match_info, uniform_info } = data.data as SharedData;
   const regular = members.filter(m => !m.is_mercenary);
   const mercenary = members.filter(m => m.is_mercenary);
 
-  function formatDate(dateStr: string) {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
-  }
+  const hasMercenary = mercenary.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-md mx-auto px-4 py-8">
+      <div className="max-w-2xl mx-auto px-4 py-6">
+
         {/* 헤더 */}
-        <div className="text-center mb-6">
-          <p className="text-green-600 font-bold text-lg">⚽ {data.team_name}</p>
+        <div className="text-center mb-5">
+          <p className="text-green-600 font-bold text-base">⚽ {data.team_name}</p>
           {match_info && (
-            <p className="text-gray-500 text-sm mt-1">
-              {formatDate(match_info.match_date)}
-              {match_info.title && <span className="ml-1">· {match_info.title}</span>}
-            </p>
+            <div className="mt-1">
+              <p className="text-gray-700 font-bold text-lg">{formatDate(match_info.match_date)}</p>
+              {match_info.match_time && (
+                <p className="text-green-600 font-semibold">{formatTime(match_info.match_time)}</p>
+              )}
+              {match_info.title && <p className="text-gray-500 text-sm">{match_info.title}</p>}
+              {match_info.location && <p className="text-gray-500 text-sm">📍 {match_info.location}</p>}
+            </div>
           )}
-          <h1 className="text-2xl font-black text-gray-800 mt-2">오늘 참가 인원</h1>
-          <p className="text-gray-400 text-sm mt-1">총 {members.length}명</p>
+          <div className="mt-2 inline-block bg-green-600 text-white font-black text-xl px-5 py-2 rounded-2xl">
+            오늘 참가 인원 · {members.length}명
+          </div>
         </div>
 
-        {/* 정규 팀원 */}
-        {regular.length > 0 && (
-          <div className="bg-white rounded-2xl shadow mb-4 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100">
-              <p className="text-sm font-bold text-gray-600">👥 정규 팀원 <span className="text-green-600">{regular.length}명</span></p>
+        {/* 참가 인원 2단 레이아웃 */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+
+          {/* 정규 팀원 */}
+          <div className="bg-white rounded-2xl shadow overflow-hidden">
+            <div className="bg-green-600 px-3 py-2">
+              <p className="text-white text-sm font-bold">👥 정규 팀원 · {regular.length}명</p>
             </div>
             <div className="divide-y divide-gray-50">
               {regular.map((m, i) => (
-                <div key={m.id} className="flex items-center px-4 py-3 gap-3">
-                  <span className="text-xs text-gray-300 w-5">{i + 1}</span>
-                  <span className="flex-1 text-sm font-semibold text-gray-800">{m.name}</span>
-                  <div className="flex gap-1">
-                    {m.position_1st && <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">{m.position_1st}</span>}
-                    {m.position_2nd && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">{m.position_2nd}</span>}
+                <div key={m.id} className="flex items-center px-3 py-2 gap-2">
+                  <span className="text-xs text-gray-300 w-4 shrink-0">{i + 1}</span>
+                  <span className="flex-1 text-sm font-semibold text-gray-800 truncate">{m.name}</span>
+                  <div className="flex gap-0.5 shrink-0">
+                    {m.position_1st && <span className="text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded-full">{m.position_1st}</span>}
+                    {m.position_2nd && <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded-full">{m.position_2nd}</span>}
                   </div>
                 </div>
               ))}
+              {regular.length === 0 && <p className="text-xs text-gray-300 px-3 py-3">없음</p>}
             </div>
           </div>
-        )}
 
-        {/* 용병 */}
-        {mercenary.length > 0 && (
+          {/* 용병 */}
           <div className="bg-white rounded-2xl shadow overflow-hidden">
-            <div className="px-4 py-3 border-b border-orange-100">
-              <p className="text-sm font-bold text-orange-500">⚡ 용병 <span>{mercenary.length}명</span></p>
+            <div className="bg-orange-400 px-3 py-2">
+              <p className="text-white text-sm font-bold">⚡ 용병 · {mercenary.length}명</p>
             </div>
             <div className="divide-y divide-orange-50">
               {mercenary.map((m, i) => (
-                <div key={m.id} className="flex items-center px-4 py-3 gap-3 bg-orange-50/30">
-                  <span className="text-xs text-gray-300 w-5">{i + 1}</span>
-                  <div className="flex-1 flex items-center gap-1.5 flex-wrap">
-                    <span className="text-sm font-semibold text-orange-700">{m.name}</span>
+                <div key={m.id} className="flex items-center px-3 py-2 gap-2 bg-orange-50/30">
+                  <span className="text-xs text-gray-300 w-4 shrink-0">{i + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-orange-700 truncate">{m.name}</p>
                     {m.is_cafe_mercenary
-                      ? <span className="text-xs text-sky-500 bg-sky-50 px-1.5 py-0.5 rounded-full">☕카페</span>
+                      ? <span className="text-xs text-sky-500">☕카페</span>
                       : m.referrer
-                      ? <span className="text-xs text-orange-400 bg-orange-100 px-1.5 py-0.5 rounded-full">{m.referrer}지인</span>
+                      ? <span className="text-xs text-orange-400">{m.referrer}지인</span>
                       : null}
                   </div>
-                  <div className="flex gap-1">
-                    {m.position_1st && <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">{m.position_1st}</span>}
-                    {m.position_2nd && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">{m.position_2nd}</span>}
+                  <div className="flex gap-0.5 shrink-0">
+                    {m.position_1st && <span className="text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded-full">{m.position_1st}</span>}
+                    {m.position_2nd && <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded-full">{m.position_2nd}</span>}
                   </div>
                 </div>
               ))}
+              {mercenary.length === 0 && <p className="text-xs text-gray-300 px-3 py-3">없음</p>}
             </div>
           </div>
-        )}
+        </div>
 
-        <p className="text-center text-xs text-gray-300 mt-6">
+        {/* 규칙 섹션 */}
+        <div className="bg-white rounded-2xl shadow p-4">
+          <p className="font-bold text-gray-800 mb-3">📋 공지사항</p>
+          <ol className="flex flex-col gap-2.5">
+            {match_info?.match_time && (
+              <li className="flex gap-2 text-sm text-gray-700">
+                <span className="font-bold text-green-600 shrink-0">1.</span>
+                <span>
+                  <b>{calcArrivalTime(match_info.match_time)}까지</b> 구장으로 출석
+                  <span className="text-red-500 text-xs ml-1">(지각비 1만원)</span>
+                </span>
+              </li>
+            )}
+            {uniform_info && (
+              <li className="flex gap-2 text-sm text-gray-700">
+                <span className="font-bold text-green-600 shrink-0">{match_info?.match_time ? "2" : "1"}.</span>
+                <span>복장: <b>{uniform_info}</b></span>
+              </li>
+            )}
+            {hasMercenary && (
+              <li className="flex gap-2 text-sm text-gray-700">
+                <span className="font-bold text-green-600 shrink-0">
+                  {[match_info?.match_time, uniform_info].filter(Boolean).length + 1}.
+                </span>
+                <span>용병 부르시는 분들은 장소, 시간 및 상의 색상 전달</span>
+              </li>
+            )}
+            <li className="flex gap-2 text-sm text-gray-700">
+              <span className="font-bold text-green-600 shrink-0">
+                {[match_info?.match_time, uniform_info, hasMercenary || null].filter(Boolean).length + 1}.
+              </span>
+              <span>참석 가능한 인원은 갠톡 바랍니다</span>
+            </li>
+          </ol>
+        </div>
+
+        <p className="text-center text-xs text-gray-300 mt-4">
           {new Date(data.created_at).toLocaleString("ko-KR")} 공유됨
         </p>
       </div>

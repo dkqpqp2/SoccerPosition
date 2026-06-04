@@ -33,11 +33,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "경기 추가 권한이 없어요. 팀장 또는 부팀장만 가능해요." }, { status: 403 });
   }
 
-  const { match_date, title } = await req.json();
+  const { match_date, match_time, location, title } = await req.json();
 
   const { data, error } = await supabaseAdmin
     .from("matches")
-    .insert({ user_id: userId, team_id: teamId, match_date, title })
+    .insert({ user_id: userId, team_id: teamId, match_date, match_time: match_time || null, location: location || null, title })
     .select()
     .single();
 

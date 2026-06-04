@@ -10,6 +10,7 @@ interface Profile {
   image: string;
   team_name: string | null;
   team_color: string;
+  uniform_info: string | null;
 }
 
 export default function MyPage() {
@@ -17,6 +18,7 @@ export default function MyPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [teamName, setTeamName] = useState("");
+  const [uniformInfo, setUniformInfo] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -30,14 +32,15 @@ export default function MyPage() {
     const data = await res.json();
     setProfile(data);
     setTeamName(data.team_name || "");
+    setUniformInfo(data.uniform_info || "");
   }
 
-  async function saveTeamName() {
+  async function save() {
     setSaving(true);
     await fetch("/api/user/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ team_name: teamName }),
+      body: JSON.stringify({ team_name: teamName, uniform_info: uniformInfo }),
     });
     setSaving(false);
     setSaved(true);
@@ -46,11 +49,7 @@ export default function MyPage() {
   }
 
   if (!profile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-400">로딩 중...</p>
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-400">로딩 중...</p></div>;
   }
 
   return (
@@ -83,14 +82,14 @@ export default function MyPage() {
         <div className="bg-white rounded-2xl shadow p-6">
           <h2 className="font-bold text-gray-800 mb-4">⚽ 우리 팀 정보</h2>
           <div className="flex flex-col gap-4">
+
             <div>
               <label className="text-sm text-gray-500 mb-1 block">팀 이름</label>
               <input
                 type="text"
                 value={teamName}
                 onChange={e => setTeamName(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && saveTeamName()}
-                placeholder="예: FC키싱구라미, 레드팀"
+                placeholder="예: FC키싱구라미"
                 className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500"
               />
               <p className="text-xs text-gray-400 mt-1">경기 추가 시 "팀이름 vs 상대팀" 형식으로 표시돼요</p>
@@ -104,8 +103,20 @@ export default function MyPage() {
               </div>
             </div>
 
+            <div>
+              <label className="text-sm text-gray-500 mb-1 block">유니폼 / 복장 정보</label>
+              <textarea
+                value={uniformInfo}
+                onChange={e => setUniformInfo(e.target.value)}
+                placeholder={"예: 검빨하계 or 팀조끼\n상의 색상 꼭 확인해주세요!"}
+                rows={3}
+                className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none text-sm"
+              />
+              <p className="text-xs text-gray-400 mt-1">참가 인원 공유 시 규칙에 자동으로 포함돼요</p>
+            </div>
+
             <button
-              onClick={saveTeamName}
+              onClick={save}
               disabled={saving}
               className={`w-full py-2.5 rounded-xl font-semibold transition-colors ${saved ? "bg-blue-500 text-white" : "bg-green-600 hover:bg-green-700 text-white"}`}
             >
