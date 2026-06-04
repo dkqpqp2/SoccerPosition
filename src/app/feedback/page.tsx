@@ -65,12 +65,6 @@ function FeedbackContent() {
   const [sharing, setSharing] = useState(false);
   const [shareToast, setShareToast] = useState("");
 
-  // AI 피드백
-  const [aiModal, setAiModal] = useState<{ tabIdx: number; memberId: string; name: string; positions: string[] } | null>(null);
-  const [aiCharacteristics, setAiCharacteristics] = useState("");
-  const [aiPerformance, setAiPerformance] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
     if (status === "authenticated") fetchMatches();
@@ -150,34 +144,6 @@ function FeedbackContent() {
     setTimeout(() => setSaved(false), 2000);
   }
 
-  async function generateAiFeedback() {
-    if (!aiModal) return;
-    setAiLoading(true);
-    try {
-      const res = await fetch("/api/ai/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          playerName: aiModal.name,
-          positions: aiModal.positions,
-          characteristics: aiCharacteristics,
-          performance: aiPerformance,
-        }),
-      });
-      const data = await res.json();
-      if (data.feedback) {
-        updatePlayerFeedback(aiModal.tabIdx, aiModal.memberId, data.feedback);
-        setAiModal(null);
-        setAiCharacteristics("");
-        setAiPerformance("");
-      } else {
-        alert(data.error || "AI 생성 실패");
-      }
-    } finally {
-      setAiLoading(false);
-    }
-  }
-
   async function shareFeedback() {
     if (!selectedMatch) return;
     setSharing(true);
@@ -211,57 +177,6 @@ function FeedbackContent() {
         </div>
       )}
 
-      {/* AI 피드백 모달 */}
-      {aiModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4" onClick={() => setAiModal(null)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-xl">🤖</span>
-              <h3 className="font-bold text-gray-800">AI 피드백 생성</h3>
-              <span className="ml-auto text-sm text-purple-600 font-semibold bg-purple-50 px-2 py-0.5 rounded-lg">{aiModal.name}</span>
-            </div>
-            <div className="flex gap-1.5 mb-4 flex-wrap">
-              {aiModal.positions.map(p => (
-                <span key={p} className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{p}</span>
-              ))}
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <div>
-                <label className="text-xs font-semibold text-gray-500 mb-1 block">선수 특징 <span className="text-gray-300">(선택)</span></label>
-                <input
-                  type="text"
-                  value={aiCharacteristics}
-                  onChange={e => setAiCharacteristics(e.target.value)}
-                  placeholder="예: 왼발잡이, 적극적인 수비, 체력 좋음"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 mb-1 block">오늘 경기력 <span className="text-red-400">*</span></label>
-                <textarea
-                  value={aiPerformance}
-                  onChange={e => setAiPerformance(e.target.value)}
-                  placeholder="예: 전반에 측면 돌파 시도가 많았고 크로스 성공률이 높았음. 후반엔 체력 저하로 수비 가담이 줄었음."
-                  rows={4}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-4">
-              <button onClick={() => setAiModal(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-sm font-semibold">취소</button>
-              <button
-                onClick={generateAiFeedback}
-                disabled={aiLoading || !aiPerformance.trim()}
-                className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white text-sm font-bold transition-colors"
-              >
-                {aiLoading ? "생성 중..." : "🤖 피드백 생성"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       <header className="bg-green-700 text-white px-4 py-3 flex items-center gap-4">
         <button onClick={() => router.push("/dashboard")} className="hover:text-green-200">← 뒤로</button>
         <div className="flex items-center gap-2">
@@ -442,14 +357,6 @@ function FeedbackContent() {
                                     ))}
                                   </div>
                                 </div>
-                                {canWrite && (
-                                  <button
-                                    onClick={() => { setAiModal({ tabIdx: activeTab, memberId: p.member_id, name: p.name, positions: p.positions }); setAiCharacteristics(""); setAiPerformance(""); }}
-                                    className="text-xs bg-purple-50 hover:bg-purple-100 text-purple-600 font-semibold px-2.5 py-1 rounded-lg transition-colors shrink-0"
-                                  >
-                                    🤖 AI
-                                  </button>
-                                )}
                               </div>
                               {canWrite ? (
                                 <textarea
