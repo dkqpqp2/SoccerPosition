@@ -17,6 +17,11 @@ export async function GET(req: Request) {
     .select("id, name, email, image, created_at")
     .order("created_at", { ascending: false });
 
+  // 전체 팀 수
+  const { count: teamCount } = await supabaseAdmin
+    .from("teams")
+    .select("*", { count: "exact", head: true });
+
   // 전체 팀원 수
   const { count: memberCount } = await supabaseAdmin
     .from("team_members")
@@ -46,6 +51,7 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     totalUsers: users?.length || 0,
+    totalTeams: teamCount || 0,
     totalMembers: memberCount || 0,
     totalMatches: matchCount || 0,
     users: users || [],
