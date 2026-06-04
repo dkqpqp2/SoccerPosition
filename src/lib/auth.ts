@@ -11,19 +11,46 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user }) {
-      const { data } = await supabaseAdmin
+      const { data: existing } = await supabaseAdmin
         .from("users")
         .select("id")
         .eq("kakao_id", user.id)
         .single();
 
-      if (!data) {
-        await supabaseAdmin.from("users").insert({
-          kakao_id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.image,
-        });
+      if (!existing) {
+        // 신규 유저 생성
+        const { data: newUser } = await supabaseAdmin
+          .from("users")
+          .insert({
+            kakao_id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image,
+          })
+          .select("id")
+          .single();
+
+        if (newUser) {
+          // 팀 자동 생성
+          const { data: team } = await supabaseAdmin
+            .from("teams")
+            .insert({
+              name: "우리팀",
+              color: "#16a34a",
+              owner_id: newUser.id,
+            })
+            .select("id")
+            .single();
+
+          if (team) {
+            // 팀장으로 등록
+            await supabaseAdmin.from("team_users").insert({
+              team_id: team.id,
+              user_id: newUser.id,
+              role: "owner",
+            });
+          }
+        }
       }
       return true;
     },

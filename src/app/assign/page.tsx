@@ -11,6 +11,9 @@ interface Member {
   name: string;
   position_1st: string | null;
   position_2nd: string | null;
+  is_mercenary?: boolean;
+  is_cafe_mercenary?: boolean;
+  referrer?: string | null;
 }
 
 type Step = "setup" | "conflict" | "result";
@@ -201,6 +204,31 @@ function AssignContent() {
   }
 
   const attendingMembers = members.filter(m => attendingIds.has(m.id));
+
+  function shareAttendees(attending: Member[]) {
+    const regular = attending.filter(m => !m.is_mercenary);
+    const mercenary = attending.filter(m => m.is_mercenary);
+
+    let text = `⚽ 오늘 참가 인원 (${attending.length}명)\n\n`;
+    if (regular.length > 0) {
+      text += `👥 정규 팀원 (${regular.length}명)\n`;
+      regular.forEach((m, i) => { text += `${i + 1}. ${m.name}\n`; });
+    }
+    if (mercenary.length > 0) {
+      text += `\n⚡ 용병 (${mercenary.length}명)\n`;
+      mercenary.forEach((m, i) => {
+        const tag = m.is_cafe_mercenary ? "☕카페" : m.referrer ? `${m.referrer}지인` : "";
+        text += `${i + 1}. ${m.name}${tag ? ` (${tag})` : ""}\n`;
+      });
+    }
+
+    if (navigator.share) {
+      navigator.share({ text });
+    } else {
+      navigator.clipboard.writeText(text);
+      alert("참가 인원 목록이 복사됐어요!");
+    }
+  }
 
   function autoAssign() {
     const cf = customFormations.find(f => f.id === selectedFormation);
@@ -535,12 +563,22 @@ function AssignContent() {
                             <span className="text-green-600 font-bold">{attendingIds.size}명</span> 참가
                           </p>
                         </div>
+                        <div className="flex gap-1.5">
+                          {attendingIds.size > 0 && (
+                            <button
+                              onClick={() => shareAttendees(attendingMembers)}
+                              className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                            >
+                              공유
+                            </button>
+                          )}
                         <button
                           onClick={() => setShowAttendModal(true)}
                           className="text-xs bg-green-500 hover:bg-green-600 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors"
                         >
                           ✏️ 설정
                         </button>
+                        </div>
                       </div>
 
                       {attendingIds.size === 0 ? (
@@ -580,9 +618,16 @@ function AssignContent() {
                               <div className="border-t border-orange-100">
                                 <p className="text-xs font-semibold text-orange-400 px-4 pt-3 pb-1">⚡ 용병 ({mercenary.length}명)</p>
                                 <div className="flex flex-col px-3 pb-3 gap-0.5">
-                                  {mercenary.map((m: Member & { is_mercenary?: boolean }) => (
+                                  {mercenary.map((m: Member) => (
                                     <div key={m.id} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-orange-50">
-                                      <span className="text-sm font-medium text-orange-700">{m.name}</span>
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="text-sm font-medium text-orange-700">{m.name}</span>
+                                        {m.is_cafe_mercenary
+                                          ? <span className="text-xs text-sky-500 bg-sky-50 px-1.5 py-0.5 rounded-full">☕카페</span>
+                                          : m.referrer
+                                          ? <span className="text-xs text-orange-400 bg-white px-1.5 py-0.5 rounded-full">{m.referrer}지인</span>
+                                          : null}
+                                      </div>
                                       <div className="flex gap-1">
                                         {m.position_1st && <span className="text-xs bg-green-100 text-green-700 px-1.5 rounded-full">{m.position_1st}</span>}
                                         {m.position_2nd && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 rounded-full">{m.position_2nd}</span>}
@@ -954,7 +999,7 @@ function AssignContent() {
                 return mercenary.length > 0 ? (
                   <div className="border-t border-gray-100 mt-1">
                     <p className="text-xs font-bold text-orange-400 px-5 pt-4 pb-2 uppercase tracking-wide">⚡ 용병 ({mercenary.length}명)</p>
-                    {mercenary.map((m: Member & { is_mercenary?: boolean }) => {
+                    {mercenary.map((m: Member) => {
                       const checked = attendingIds.has(m.id);
                       return (
                         <button
@@ -965,7 +1010,14 @@ function AssignContent() {
                           <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${checked ? "bg-orange-400 border-orange-400" : "border-gray-300"}`}>
                             {checked && <span className="text-white text-xs font-bold leading-none">✓</span>}
                           </div>
-                          <span className={`text-sm font-medium flex-1 ${checked ? "text-orange-700" : "text-gray-400"}`}>{m.name}</span>
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                            <span className={`text-sm font-medium ${checked ? "text-orange-700" : "text-gray-400"}`}>{m.name}</span>
+                            {m.is_cafe_mercenary
+                              ? <span className="text-xs text-sky-500 bg-sky-50 px-1.5 py-0.5 rounded-full shrink-0">☕카페</span>
+                              : m.referrer
+                              ? <span className="text-xs text-orange-400 bg-orange-50 px-1.5 py-0.5 rounded-full shrink-0">{m.referrer}지인</span>
+                              : null}
+                          </div>
                           <div className="flex gap-1 shrink-0">
                             {m.position_1st && <span className={`text-xs px-1.5 py-0.5 rounded-full ${checked ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"}`}>{m.position_1st}</span>}
                             {m.position_2nd && <span className={`text-xs px-1.5 py-0.5 rounded-full ${checked ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-400"}`}>{m.position_2nd}</span>}
