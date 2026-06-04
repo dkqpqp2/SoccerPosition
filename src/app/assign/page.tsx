@@ -1118,23 +1118,55 @@ function AssignContent() {
             </p>
 
             <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
-              {getUnassignedMembers(assigned, popup.slotId).length === 0 ? (
-                <p className="text-center text-gray-400 py-4 text-sm">미배정 팀원이 없어요</p>
-              ) : (
-                getUnassignedMembers(assigned, popup.slotId).map(m => (
-                  <button
-                    key={m.id}
-                    onClick={() => handleAssignMember(m.id)}
-                    className="flex items-center justify-between px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 transition-colors text-left"
-                  >
-                    <span className="font-medium text-gray-800">{m.name}</span>
-                    <div className="flex gap-1">
-                      {m.position_1st && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">1순위: {m.position_1st}</span>}
-                      {m.position_2nd && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">2순위: {m.position_2nd}</span>}
-                    </div>
-                  </button>
-                ))
-              )}
+              {(() => {
+                const unassigned = getUnassignedMembers(assigned, popup.slotId);
+                if (unassigned.length === 0) {
+                  return <p className="text-center text-gray-400 py-4 text-sm">미배정 팀원이 없어요</p>;
+                }
+                const regular = unassigned.filter(m => !m.is_mercenary);
+                const mercenary = unassigned.filter(m => m.is_mercenary);
+                return (
+                  <>
+                    {regular.length > 0 && (
+                      <>
+                        <p className="text-xs font-bold text-gray-400 px-1">👥 정규팀원</p>
+                        {regular.map(m => (
+                          <button key={m.id} onClick={() => handleAssignMember(m.id)}
+                            className="flex items-center justify-between px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 transition-colors text-left">
+                            <span className="font-medium text-gray-800">{m.name}</span>
+                            <div className="flex gap-1">
+                              {m.position_1st && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">1순위: {m.position_1st}</span>}
+                              {m.position_2nd && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">2순위: {m.position_2nd}</span>}
+                            </div>
+                          </button>
+                        ))}
+                      </>
+                    )}
+                    {mercenary.length > 0 && (
+                      <>
+                        <p className="text-xs font-bold text-orange-400 px-1 mt-1">⚡ 용병</p>
+                        {mercenary.map(m => (
+                          <button key={m.id} onClick={() => handleAssignMember(m.id)}
+                            className="flex items-center justify-between px-4 py-3 rounded-xl border-2 border-orange-100 hover:border-orange-400 hover:bg-orange-50 transition-colors text-left">
+                            <div>
+                              <span className="font-medium text-orange-700">{m.name}</span>
+                              {m.is_cafe_mercenary
+                                ? <span className="ml-2 text-xs text-sky-500">☕카페</span>
+                                : m.referrer
+                                ? <span className="ml-2 text-xs text-orange-400">{m.referrer}지인</span>
+                                : null}
+                            </div>
+                            <div className="flex gap-1">
+                              {m.position_1st && <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">1순위: {m.position_1st}</span>}
+                              {m.position_2nd && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">2순위: {m.position_2nd}</span>}
+                            </div>
+                          </button>
+                        ))}
+                      </>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             <button onClick={() => setPopup(null)} className="w-full mt-4 bg-gray-100 hover:bg-gray-200 text-gray-600 py-2 rounded-xl font-medium transition-colors">

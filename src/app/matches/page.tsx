@@ -64,6 +64,18 @@ export default function MatchesPage() {
   const [teamA, setTeamA] = useState("");
   const [teamB, setTeamB] = useState("");
 
+  // 수정 상태
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [editEndTime, setEditEndTime] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editOpponent, setEditOpponent] = useState("");
+  const [editIsScrimmage, setEditIsScrimmage] = useState(false);
+  const [editTeamA, setEditTeamA] = useState("");
+  const [editTeamB, setEditTeamB] = useState("");
+  const [editUniformInfo, setEditUniformInfo] = useState("");
+
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
     if (status === "authenticated") { fetchMatches(); fetchTeamName(); }
@@ -102,6 +114,57 @@ export default function MatchesPage() {
       setOpponent(""); setTeamA(""); setTeamB(""); setIsScrimmage(false);
       fetchMatches();
     }
+  }
+
+  function startEdit(match: Match) {
+    setEditingId(match.id);
+    setEditDate(match.match_date);
+    setEditTime(match.match_time ?? "");
+    setEditEndTime(match.match_end_time ?? "");
+    setEditLocation(match.location ?? "");
+    setEditUniformInfo((match as Match & { uniform_info?: string }).uniform_info ?? "");
+
+    // 제목 파싱: "팀이름 vs 상대팀" or "A팀 vs B팀"(자체전)
+    const title = match.title ?? "";
+    const parts = title.split(" vs ");
+    if (parts.length === 2 && parts[0] === teamName) {
+      setEditIsScrimmage(false);
+      setEditOpponent(parts[1]);
+      setEditTeamA(""); setEditTeamB("");
+    } else if (parts.length === 2) {
+      setEditIsScrimmage(true);
+      setEditTeamA(parts[0]); setEditTeamB(parts[1]);
+      setEditOpponent("");
+    } else {
+      setEditIsScrimmage(false);
+      setEditOpponent("");
+      setEditTeamA(""); setEditTeamB("");
+    }
+  }
+
+  function cancelEdit() { setEditingId(null); }
+
+  async function saveEdit(id: string) {
+    let title: string | null = null;
+    if (editIsScrimmage) {
+      title = editTeamA && editTeamB ? `${editTeamA} vs ${editTeamB}` : editTeamA || editTeamB || "자체전";
+    } else {
+      title = editOpponent ? `${teamName} vs ${editOpponent}` : null;
+    }
+    await fetch(`/api/matches/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        match_date: editDate,
+        match_time: editTime || null,
+        match_end_time: editEndTime || null,
+        location: editLocation || null,
+        title,
+        uniform_info: editUniformInfo || null,
+      }),
+    });
+    setEditingId(null);
+    fetchMatches();
   }
 
   async function deleteMatch(id: string) {
@@ -243,40 +306,130 @@ export default function MatchesPage() {
           <div className="flex flex-col gap-3">
             {matches.map(match => (
               <div key={match.id} className="bg-white rounded-2xl shadow p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-bold text-gray-800">{formatDate(match.match_date)}</p>
-                    {match.match_time && (
-                      <p className="text-sm text-green-600 font-medium">
-                        {formatTime(match.match_time)}
-                        {match.match_end_time && ` ~ ${formatTime(match.match_end_time)}`}
-                      </p>
+
+                {editingId === match.id ? (
+                  /* 수정 폼 */
+                  <div className="flex flex-col gap-3">
+                    <p className="font-bold text-gray-700 text-sm">경기 수정</p>
+
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">경기 날짜</label>
+                      <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+
+                    <div className="flex gap-2 items-end">
+                      <div className="flex-1">
+                        <label className="text-xs text-gray-500 mb-1 block">시작 시간</label>
+                        <TimePicker value={editTime} onChange={setEditTime} />
+                      </div>
+                      <div className="pb-2 text-gray-400 text-sm">~</div>
+                      <div className="flex-1">
+                        <label className="text-xs text-gray-500 mb-1 block">종료 시간</label>
+                        <TimePicker value={editEndTime} onChange={setEditEndTime} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">경기 장소</label>
+                      <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)}
+                        placeholder="예: 수원 황구지천구장"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">복장 정보</label>
+                      <input type="text" value={editUniformInfo} onChange={e => setEditUniformInfo(e.target.value)}
+                        placeholder="예: 검빨하계 or 팀조끼"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+
+                    {/* 자체전 토글 */}
+                    <div className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 cursor-pointer transition-colors ${editIsScrimmage ? "border-blue-400 bg-blue-50" : "border-gray-200 bg-gray-50"}`}
+                      onClick={() => setEditIsScrimmage(!editIsScrimmage)}>
+                      <div>
+                        <p className={`font-medium text-sm ${editIsScrimmage ? "text-blue-600" : "text-gray-600"}`}>자체전</p>
+                        <p className="text-xs text-gray-400">우리끼리 팀 나눠서 하는 경기</p>
+                      </div>
+                      <div className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${editIsScrimmage ? "bg-blue-400" : "bg-gray-300"}`}>
+                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${editIsScrimmage ? "translate-x-5" : "translate-x-0.5"}`} />
+                      </div>
+                    </div>
+
+                    {!editIsScrimmage ? (
+                      <div>
+                        <label className="text-xs text-gray-500 mb-1 block">상대팀 이름</label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-green-700 whitespace-nowrap">{teamName}</span>
+                          <span className="text-gray-400 text-sm">vs</span>
+                          <input type="text" value={editOpponent} onChange={e => setEditOpponent(e.target.value)}
+                            placeholder="상대팀 이름"
+                            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="text-xs text-gray-500 mb-1 block">팀 이름</label>
+                        <div className="flex items-center gap-2">
+                          <input type="text" value={editTeamA} onChange={e => setEditTeamA(e.target.value)} placeholder="A팀"
+                            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                          <span className="text-gray-400 font-bold">vs</span>
+                          <input type="text" value={editTeamB} onChange={e => setEditTeamB(e.target.value)} placeholder="B팀"
+                            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                        </div>
+                      </div>
                     )}
-                    {match.title && <p className="text-sm text-gray-500 mt-0.5">{match.title}</p>}
-                    {match.location && <p className="text-xs text-gray-400 mt-0.5">📍 {match.location}</p>}
+
+                    <div className="flex gap-2">
+                      <button onClick={() => saveEdit(match.id)}
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl text-sm font-semibold">저장</button>
+                      <button onClick={cancelEdit}
+                        className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 py-2 rounded-xl text-sm font-semibold">취소</button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex gap-1.5 mt-2 flex-wrap">
-                  {match.position_assignments?.length > 0 ? (
-                    [...match.position_assignments]
-                      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-                      .map(a => (
-                        <span key={a.id} className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{a.session_name}</span>
-                      ))
-                  ) : (
-                    <span className="text-xs text-gray-300">저장된 쿼터 없음</span>
-                  )}
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <button onClick={() => router.push(`/assign?matchId=${match.id}`)}
-                    className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 font-semibold text-sm py-2 rounded-xl transition-colors">
-                    배정하기 →
-                  </button>
-                  <button onClick={() => deleteMatch(match.id)}
-                    className="px-4 py-2 text-sm text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium">
-                    삭제
-                  </button>
-                </div>
+                ) : (
+                  /* 일반 카드 */
+                  <>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-bold text-gray-800">{formatDate(match.match_date)}</p>
+                        {match.match_time && (
+                          <p className="text-sm text-green-600 font-medium">
+                            {formatTime(match.match_time)}
+                            {match.match_end_time && ` ~ ${formatTime(match.match_end_time)}`}
+                          </p>
+                        )}
+                        {match.title && <p className="text-sm text-gray-500 mt-0.5">{match.title}</p>}
+                        {match.location && <p className="text-xs text-gray-400 mt-0.5">📍 {match.location}</p>}
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5 mt-2 flex-wrap">
+                      {match.position_assignments?.length > 0 ? (
+                        [...match.position_assignments]
+                          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                          .map(a => (
+                            <span key={a.id} className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{a.session_name}</span>
+                          ))
+                      ) : (
+                        <span className="text-xs text-gray-300">저장된 쿼터 없음</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <button onClick={() => router.push(`/assign?matchId=${match.id}`)}
+                        className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 font-semibold text-sm py-2 rounded-xl transition-colors">
+                        배정하기 →
+                      </button>
+                      <button onClick={() => startEdit(match)}
+                        className="px-4 py-2 text-sm text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors font-medium">
+                        수정
+                      </button>
+                      <button onClick={() => deleteMatch(match.id)}
+                        className="px-4 py-2 text-sm text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium">
+                        삭제
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>

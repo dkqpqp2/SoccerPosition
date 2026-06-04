@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "./supabase";
 
-export type TeamRole = "owner" | "manager" | "coach" | "member";
+export type TeamRole = "owner" | "manager" | "coach" | "president" | "member";
 
 export async function getUserId(kakaoId: string): Promise<string | null> {
   const { data } = await supabaseAdmin
@@ -45,6 +45,11 @@ export async function getUserRole(
 
 /** 포지션 배정 / 경기 생성·삭제 가능 여부 (관리자, 감독, 코치) */
 export function canManage(role: TeamRole | null): boolean {
+  return role === "owner" || role === "manager" || role === "coach";
+}
+
+/** 피드백 작성 가능 여부 (관리자, 감독, 코치) */
+export function canFeedback(role: TeamRole | null): boolean {
   return role === "owner" || role === "manager" || role === "coach";
 }
 

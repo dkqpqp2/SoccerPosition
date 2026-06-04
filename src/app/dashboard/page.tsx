@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import SpmLogo from "@/components/SpmLogo";
 
-type TeamRole = "owner" | "manager" | "coach" | "member";
+type TeamRole = "owner" | "manager" | "coach" | "president" | "member";
 
 interface TeamMember {
   role: TeamRole;
@@ -37,6 +37,7 @@ const ROLE_LABEL: Record<TeamRole, string> = {
   owner: "관리자",
   manager: "감독",
   coach: "코치",
+  president: "회장",
   member: "팀원",
 };
 
@@ -44,6 +45,7 @@ const ROLE_COLOR: Record<TeamRole, string> = {
   owner: "bg-green-100 text-green-700",
   manager: "bg-blue-100 text-blue-700",
   coach: "bg-purple-100 text-purple-700",
+  president: "bg-yellow-100 text-yellow-700",
   member: "bg-gray-100 text-gray-500",
 };
 
@@ -274,6 +276,7 @@ export default function Dashboard() {
                           >
                             <option value="manager">감독</option>
                             <option value="coach">코치</option>
+                            <option value="president">회장</option>
                             <option value="member">팀원</option>
                           </select>
                           <button
@@ -357,6 +360,23 @@ export default function Dashboard() {
             <p className="text-gray-500 text-sm">
               {team?.can_manage
                 ? "팀원에게 포지션을 랜덤 배정하세요"
+                : "관리자·감독·코치만 사용할 수 있어요"}
+            </p>
+          </div>
+
+          <div
+            className={`bg-white rounded-2xl shadow p-6 transition-shadow ${
+              team?.can_manage
+                ? "cursor-pointer hover:shadow-md"
+                : "opacity-50 cursor-not-allowed"
+            }`}
+            onClick={() => team?.can_manage && router.push("/feedback")}
+          >
+            <div className="text-3xl mb-3">📝</div>
+            <h2 className="text-lg font-bold text-gray-800 mb-1">경기 피드백</h2>
+            <p className="text-gray-500 text-sm">
+              {team?.can_manage
+                ? "경기별 팀·개인 피드백을 작성하세요"
                 : "관리자·감독·코치만 사용할 수 있어요"}
             </p>
           </div>
