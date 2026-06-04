@@ -4,6 +4,39 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+// 24시간제 시간 선택기
+function TimePicker({ value, onChange, placeholder = "시간 선택" }: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  const [h, m] = value ? value.split(":") : ["", ""];
+
+  function update(newH: string, newM: string) {
+    if (!newH && !newM) { onChange(""); return; }
+    onChange(`${newH.padStart(2, "0")}:${(newM || "00").padStart(2, "0")}`);
+  }
+
+  const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+  const minutes = ["00", "10", "20", "30", "40", "50"];
+
+  const sel = "border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white";
+
+  return (
+    <div className="flex items-center gap-1">
+      <select value={h || ""} onChange={e => update(e.target.value, m || "00")} className={`flex-1 ${sel}`}>
+        <option value="">시</option>
+        {hours.map(hh => <option key={hh} value={hh}>{hh}시</option>)}
+      </select>
+      <span className="text-gray-400 text-sm">:</span>
+      <select value={m || ""} onChange={e => update(h || "00", e.target.value)} className={`flex-1 ${sel}`}>
+        <option value="">분</option>
+        {minutes.map(mm => <option key={mm} value={mm}>{mm}분</option>)}
+      </select>
+    </div>
+  );
+}
+
 interface Match {
   id: string;
   match_date: string;
@@ -117,17 +150,15 @@ export default function MatchesPage() {
               </div>
 
               {/* 시작 시간 + 종료 시간 */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-end">
                 <div className="flex-1">
                   <label className="text-xs text-gray-500 mb-1 block">시작 시간</label>
-                  <input type="time" value={matchTime} onChange={e => setMatchTime(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                  <TimePicker value={matchTime} onChange={setMatchTime} />
                 </div>
-                <div className="flex items-end pb-2 text-gray-400 text-sm">~</div>
+                <div className="pb-2 text-gray-400 text-sm">~</div>
                 <div className="flex-1">
                   <label className="text-xs text-gray-500 mb-1 block">종료 시간</label>
-                  <input type="time" value={matchEndTime} onChange={e => setMatchEndTime(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                  <TimePicker value={matchEndTime} onChange={setMatchEndTime} />
                 </div>
               </div>
 
