@@ -8,7 +8,8 @@ export default function CaptureButton({ targetId }: { targetId: string }) {
   async function handleCapture() {
     setLoading(true);
     try {
-      const html2canvas = (await import("html2canvas")).default;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const html2canvas = (await import("html2canvas" as any)).default;
       const el = document.getElementById(targetId);
       if (!el) return;
 
