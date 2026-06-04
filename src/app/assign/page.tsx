@@ -64,7 +64,7 @@ function AssignContent() {
   const [popup, setPopup] = useState<SlotPopup | null>(null);
   const [teamColor, setTeamColor] = useState("#facc15");
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [matchInfo, setMatchInfo] = useState<{ match_date: string; match_time: string | null; location: string | null; title: string | null } | null>(null);
+  const [matchInfo, setMatchInfo] = useState<{ match_date: string; match_time: string | null; match_end_time: string | null; location: string | null; title: string | null } | null>(null);
   const [savedAssignments, setSavedAssignments] = useState<SavedAssignment[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveSessionName, setSaveSessionName] = useState("");
@@ -98,7 +98,7 @@ function AssignContent() {
     const res = await fetch("/api/matches");
     const data = await res.json();
     const match = data.find((m: { id: string; match_date: string; title: string | null }) => m.id === matchId);
-    if (match) setMatchInfo({ match_date: match.match_date, match_time: match.match_time ?? null, location: match.location ?? null, title: match.title });
+    if (match) setMatchInfo({ match_date: match.match_date, match_time: match.match_time ?? null, match_end_time: match.match_end_time ?? null, location: match.location ?? null, title: match.title });
   }
 
   async function saveAssignment() {

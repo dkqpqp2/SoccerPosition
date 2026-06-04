@@ -8,6 +8,7 @@ interface Match {
   id: string;
   match_date: string;
   match_time: string | null;
+  match_end_time: string | null;
   location: string | null;
   title: string | null;
   position_assignments: { id: string; session_name: string; created_at: string }[];
@@ -21,6 +22,7 @@ export default function MatchesPage() {
   const [showForm, setShowForm] = useState(false);
   const [date, setDate] = useState("");
   const [matchTime, setMatchTime] = useState("");
+  const [matchEndTime, setMatchEndTime] = useState("");
   const [location, setLocation] = useState("");
   const [opponent, setOpponent] = useState("");
   const [teamName, setTeamName] = useState("");
@@ -58,11 +60,11 @@ export default function MatchesPage() {
     const res = await fetch("/api/matches", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ match_date: date, match_time: matchTime || null, location: location || null, title }),
+      body: JSON.stringify({ match_date: date, match_time: matchTime || null, match_end_time: matchEndTime || null, location: location || null, title }),
     });
     if (res.ok) {
       setShowForm(false);
-      setDate(""); setMatchTime(""); setLocation("");
+      setDate(""); setMatchTime(""); setMatchEndTime(""); setLocation("");
       setOpponent(""); setTeamA(""); setTeamB(""); setIsScrimmage(false);
       fetchMatches();
     }
@@ -107,16 +109,24 @@ export default function MatchesPage() {
             <h2 className="font-bold text-gray-800 mb-4">경기 추가</h2>
             <div className="flex flex-col gap-3">
 
-              {/* 날짜 + 시간 */}
+              {/* 날짜 */}
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">경기 날짜 *</label>
+                <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" required />
+              </div>
+
+              {/* 시작 시간 + 종료 시간 */}
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">경기 날짜 *</label>
-                  <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" required />
-                </div>
-                <div className="w-32">
                   <label className="text-xs text-gray-500 mb-1 block">시작 시간</label>
                   <input type="time" value={matchTime} onChange={e => setMatchTime(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                </div>
+                <div className="flex items-end pb-2 text-gray-400 text-sm">~</div>
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 mb-1 block">종료 시간</label>
+                  <input type="time" value={matchEndTime} onChange={e => setMatchEndTime(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" />
                 </div>
               </div>
@@ -169,7 +179,7 @@ export default function MatchesPage() {
 
               <div className="flex gap-2">
                 <button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl font-medium">추가</button>
-                <button type="button" onClick={() => { setShowForm(false); setIsScrimmage(false); setTeamA(""); setTeamB(""); setMatchTime(""); setLocation(""); }}
+                <button type="button" onClick={() => { setShowForm(false); setIsScrimmage(false); setTeamA(""); setTeamB(""); setMatchTime(""); setMatchEndTime(""); setLocation(""); }}
                   className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-xl font-medium">취소</button>
               </div>
             </div>
@@ -191,7 +201,10 @@ export default function MatchesPage() {
                   <div>
                     <p className="font-bold text-gray-800">{formatDate(match.match_date)}</p>
                     {match.match_time && (
-                      <p className="text-sm text-green-600 font-medium">{formatTime(match.match_time)}</p>
+                      <p className="text-sm text-green-600 font-medium">
+                        {formatTime(match.match_time)}
+                        {match.match_end_time && ` ~ ${formatTime(match.match_end_time)}`}
+                      </p>
                     )}
                     {match.title && <p className="text-sm text-gray-500 mt-0.5">{match.title}</p>}
                     {match.location && <p className="text-xs text-gray-400 mt-0.5">📍 {match.location}</p>}

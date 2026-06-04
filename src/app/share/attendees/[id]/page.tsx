@@ -14,6 +14,7 @@ interface Member {
 interface MatchInfo {
   match_date: string;
   match_time: string | null;
+  match_end_time: string | null;
   location: string | null;
   title: string | null;
 }
@@ -70,7 +71,10 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
             <div className="mt-1">
               <p className="text-gray-700 font-bold text-lg">{formatDate(match_info.match_date)}</p>
               {match_info.match_time && (
-                <p className="text-green-600 font-semibold">{formatTime(match_info.match_time)}</p>
+                <p className="text-green-600 font-semibold">
+                  {formatTime(match_info.match_time)}
+                  {match_info.match_end_time && ` ~ ${formatTime(match_info.match_end_time)}`}
+                </p>
               )}
               {match_info.title && <p className="text-gray-500 text-sm">{match_info.title}</p>}
               {match_info.location && <p className="text-gray-500 text-sm">📍 {match_info.location}</p>}
