@@ -365,19 +365,15 @@ export default function Dashboard() {
           </div>
 
           <div
-            className={`bg-white rounded-2xl shadow p-6 transition-shadow ${
-              team?.can_manage
-                ? "cursor-pointer hover:shadow-md"
-                : "opacity-50 cursor-not-allowed"
-            }`}
-            onClick={() => team?.can_manage && router.push("/feedback")}
+            className="bg-white rounded-2xl shadow p-6 transition-shadow cursor-pointer hover:shadow-md"
+            onClick={() => router.push("/feedback")}
           >
             <div className="text-3xl mb-3">📝</div>
             <h2 className="text-lg font-bold text-gray-800 mb-1">경기 피드백</h2>
             <p className="text-gray-500 text-sm">
               {team?.can_manage
                 ? "경기별 팀·개인 피드백을 작성하세요"
-                : "관리자·감독·코치만 사용할 수 있어요"}
+                : "경기 피드백을 확인하세요"}
             </p>
           </div>
         </div>
