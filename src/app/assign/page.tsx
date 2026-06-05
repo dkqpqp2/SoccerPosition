@@ -145,11 +145,14 @@ function AssignContent() {
     setAssigned(saved.result);
     setLoadedAssignmentId(saved.id);
     setSaveSessionName(saved.session_name);
-    // 저장된 배정에 있는 팀원들을 attendingIds에 등록 (포지션 변경 팝업을 위해)
-    const assignedMemberIds = new Set(
-      Object.values(saved.result).filter(Boolean).map(m => m!.id)
-    );
-    setAttendingIds(assignedMemberIds);
+    // attendingIds는 건드리지 않음 — 사용자가 설정한 참가 인원 유지
+    // (attendingIds가 비어있을 때만 불러온 배정의 팀원으로 채워서 팝업이 동작하게)
+    if (attendingIds.size === 0) {
+      const assignedMemberIds = new Set(
+        Object.values(saved.result).filter(Boolean).map(m => m!.id)
+      );
+      setAttendingIds(assignedMemberIds);
+    }
     setStep("result");
   }
 
@@ -888,8 +891,12 @@ function AssignContent() {
             <p className="text-sm text-gray-500 mb-3">{popup.currentMember ? "다른 팀원으로 교체 (이미 배정된 팀원 선택 시 스왑):" : "배정할 팀원 선택:"}</p>
             <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
               {(() => {
-                // 현재 슬롯의 팀원을 제외한 전체 참가 팀원 (미배정 + 다른 슬롯에 배정된 팀원 모두 표시)
-                const allOthers = attendingMembers.filter(m => m.id !== popup.currentMember?.id);
+                // 참가 인원 + 현재 배정에 있는 팀원 합집합 (attendingIds가 있어도 배정된 팀원 모두 포함)
+                const assignedInResult = new Set(Object.values(assigned).filter(Boolean).map(m => m!.id));
+                const popupPool = members.filter(m =>
+                  (attendingIds.has(m.id) || assignedInResult.has(m.id)) && m.id !== popup.currentMember?.id
+                );
+                const allOthers = popupPool;
                 if (allOthers.length === 0) return <p className="text-center text-gray-600 py-4 text-sm">교체할 팀원이 없어요</p>;
                 const regular = allOthers.filter(m => !m.is_mercenary);
                 const mercenary = allOthers.filter(m => m.is_mercenary);
