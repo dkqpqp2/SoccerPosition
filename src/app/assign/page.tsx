@@ -929,15 +929,17 @@ function AssignContent() {
                           const currentSlot = memberSlotLabel(m.id);
                           return (
                           <button key={m.id} onClick={() => handleAssignMember(m.id)}
-                            className="flex items-center justify-between px-4 py-3 rounded-xl border border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-colors text-left">
-                            <div>
+                            className="flex flex-col px-4 py-2.5 rounded-xl border border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-colors text-left w-full">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="font-medium text-white">{m.name}</span>
-                              {currentSlot && <span className="ml-2 text-xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full">{currentSlot}에서 스왑</span>}
+                              {currentSlot && <span className="text-xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">{currentSlot}에서 스왑</span>}
                             </div>
-                            <div className="flex gap-1">
-                              {m.position_1st && <span className="text-xs bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">1: {m.position_1st}</span>}
-                              {m.position_2nd && <span className="text-xs bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">2: {m.position_2nd}</span>}
-                            </div>
+                            {(m.position_1st || m.position_2nd) && (
+                              <div className="flex gap-1 mt-1 flex-wrap">
+                                {m.position_1st && <span className="text-xs bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">1: {m.position_1st}</span>}
+                                {m.position_2nd && <span className="text-xs bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">2: {m.position_2nd}</span>}
+                              </div>
+                            )}
                           </button>
                           );
                         })}
@@ -950,16 +952,18 @@ function AssignContent() {
                           const currentSlot = memberSlotLabel(m.id);
                           return (
                           <button key={m.id} onClick={() => handleAssignMember(m.id)}
-                            className="flex items-center justify-between px-4 py-3 rounded-xl border border-amber-500/20 hover:border-amber-400/50 hover:bg-amber-500/5 transition-colors text-left">
-                            <div>
+                            className="flex flex-col px-4 py-2.5 rounded-xl border border-amber-500/20 hover:border-amber-400/50 hover:bg-amber-500/5 transition-colors text-left w-full">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="font-medium text-amber-300">{m.name}</span>
-                              {m.is_cafe_mercenary ? <span className="ml-2 text-xs text-sky-400">☕카페</span> : m.referrer ? <span className="ml-2 text-xs text-amber-400">{m.referrer}지인</span> : null}
-                              {currentSlot && <span className="ml-2 text-xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full">{currentSlot}에서 스왑</span>}
+                              {m.is_cafe_mercenary ? <span className="text-xs text-sky-400">☕카페</span> : m.referrer ? <span className="text-xs text-amber-400">{m.referrer}지인</span> : null}
+                              {currentSlot && <span className="text-xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">{currentSlot}에서 스왑</span>}
                             </div>
-                            <div className="flex gap-1">
-                              {m.position_1st && <span className="text-xs bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">1: {m.position_1st}</span>}
-                              {m.position_2nd && <span className="text-xs bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">2: {m.position_2nd}</span>}
-                            </div>
+                            {(m.position_1st || m.position_2nd) && (
+                              <div className="flex gap-1 mt-1 flex-wrap">
+                                {m.position_1st && <span className="text-xs bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">1: {m.position_1st}</span>}
+                                {m.position_2nd && <span className="text-xs bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">2: {m.position_2nd}</span>}
+                              </div>
+                            )}
                           </button>
                           );
                         })}
