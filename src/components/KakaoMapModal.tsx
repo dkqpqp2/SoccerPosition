@@ -41,7 +41,7 @@ export default function KakaoMapModal({ place, onClose }: Props) {
     const marker = new kakao.maps.Marker({ position: coords });
     marker.setMap(map);
     new kakao.maps.InfoWindow({
-      content: `<div style="padding:5px 10px;font-size:13px;font-weight:bold;white-space:nowrap;">${place.name}</div>`,
+      content: `<div style="padding:5px 10px;font-size:13px;font-weight:bold;white-space:nowrap;color:#111111;background:#fff;">${place.name}</div>`,
     }).open(map, marker);
   }, [ready, place]);
 
