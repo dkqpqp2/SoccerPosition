@@ -68,6 +68,7 @@ function AssignContent() {
   const [savedAssignments, setSavedAssignments] = useState<SavedAssignment[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveSessionName, setSaveSessionName] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [showHistoryMobile, setShowHistoryMobile] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [attendingIds, setAttendingIds] = useState<Set<string>>(new Set());
@@ -105,6 +106,7 @@ function AssignContent() {
 
   async function saveAssignment() {
     if (!saveSessionName.trim()) return;
+    setSaveError("");
     if (loadedAssignmentId) {
       await fetch(`/api/assignments/${loadedAssignmentId}`, {
         method: "PUT",
@@ -112,14 +114,20 @@ function AssignContent() {
         body: JSON.stringify({ result: assigned, formation_name: formation.name, formation_id: selectedFormation, formation_slots: formation.slots }),
       });
     } else {
-      await fetch("/api/assignments", {
+      const res = await fetch("/api/assignments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_name: saveSessionName, formation_name: formation.name, formation_id: selectedFormation, formation_slots: formation.slots, result: assigned, match_id: matchId || null }),
       });
+      if (!res.ok) {
+        const err = await res.json();
+        setSaveError(err.error ?? "저장에 실패했어요.");
+        return;
+      }
     }
     setShowSaveModal(false);
     setSaveSessionName("");
+    setSaveError("");
     await fetchSavedAssignments();
     reset();
   }
@@ -779,14 +787,20 @@ function AssignContent() {
             ) : (
               <div className="mb-4">
                 <label className="text-sm text-gray-500 mb-1 block">저장 이름</label>
-                <input type="text" value={saveSessionName} onChange={e => setSaveSessionName(e.target.value)} onKeyDown={e => e.key === "Enter" && saveAssignment()}
+                <input type="text" value={saveSessionName}
+                  onChange={e => { setSaveSessionName(e.target.value); setSaveError(""); }}
+                  onKeyDown={e => e.key === "Enter" && saveAssignment()}
                   placeholder="예: 1쿼터, 2쿼터..."
-                  className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600" autoFocus />
+                  className={`w-full bg-gray-800 border text-white rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600 ${saveError ? "border-red-500/50" : "border-white/10"}`} autoFocus />
+                {saveError && (
+                  <p className="text-xs text-red-400 mt-1.5">{saveError}</p>
+                )}
+                <p className="text-xs text-gray-600 mt-1">같은 이름은 사용할 수 없어요 · 이름순으로 자동 정렬돼요</p>
               </div>
             )}
             <div className="flex gap-3">
               <button onClick={saveAssignment} className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-black py-2.5 rounded-xl font-bold">저장</button>
-              <button onClick={() => setShowSaveModal(false)} className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2.5 rounded-xl font-semibold">취소</button>
+              <button onClick={() => { setShowSaveModal(false); setSaveError(""); }} className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2.5 rounded-xl font-semibold">취소</button>
             </div>
           </div>
         </div>

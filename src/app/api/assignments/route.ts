@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     .from("position_assignments")
     .select("*")
     .eq("team_id", teamId)
-    .order("created_at", { ascending: true });
+    .order("session_name", { ascending: true });
 
   if (matchId) {
     query = query.eq("match_id", matchId);
@@ -45,9 +45,22 @@ export async function POST(req: NextRequest) {
 
   const { session_name, formation_name, formation_id, formation_slots, result, match_id } = await req.json();
 
+  // 같은 경기(또는 같은 팀)에서 중복 이름 방지
+  const dupQuery = supabaseAdmin
+    .from("position_assignments")
+    .select("id")
+    .eq("team_id", teamId)
+    .eq("session_name", session_name.trim());
+  if (match_id) dupQuery.eq("match_id", match_id);
+  else          dupQuery.is("match_id", null);
+  const { data: dup } = await dupQuery.limit(1);
+  if (dup && dup.length > 0) {
+    return NextResponse.json({ error: `"${session_name}" 이름이 이미 있어요. 다른 이름을 사용해주세요.` }, { status: 409 });
+  }
+
   const { data, error } = await supabaseAdmin
     .from("position_assignments")
-    .insert({ user_id: userId, team_id: teamId, session_name, formation_name, formation_id, formation_slots, result, match_id })
+    .insert({ user_id: userId, team_id: teamId, session_name: session_name.trim(), formation_name, formation_id, formation_slots, result, match_id })
     .select()
     .single();
 

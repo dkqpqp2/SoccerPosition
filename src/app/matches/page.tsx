@@ -497,7 +497,7 @@ export default function MatchesPage() {
                     <div className="flex gap-1.5 mt-2.5 flex-wrap">
                       {match.position_assignments?.length > 0 ? (
                         [...match.position_assignments]
-                          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                          .sort((a, b) => a.session_name.localeCompare(b.session_name, "ko"))
                           .map(a => canManage ? (
                             <span key={a.id} className="text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full">{a.session_name}</span>
                           ) : (
