@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import KakaoPlaceSearch, { type SelectedPlace } from "@/components/KakaoPlaceSearch";
 import KakaoMapModal from "@/components/KakaoMapModal";
+import { loadKakaoSDK } from "@/lib/kakao";
 
 function TimePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [h, m] = value ? value.split(":") : ["", ""];
@@ -112,6 +113,8 @@ export default function MatchesPage() {
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
     if (status === "authenticated") { fetchMatches(); fetchTeamName(); fetchUserRole(); }
+    // 페이지 로드 시 Kakao SDK 미리 초기화 (검색 딜레이 방지)
+    loadKakaoSDK();
   }, [status]);
 
   async function fetchTeamName() {
