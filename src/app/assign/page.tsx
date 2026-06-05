@@ -71,6 +71,7 @@ function AssignContent() {
   const [saveError, setSaveError] = useState("");
   const [showHistoryMobile, setShowHistoryMobile] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
+  const [showFormationChange, setShowFormationChange] = useState(false);
   const [attendingIds, setAttendingIds] = useState<Set<string>>(new Set());
   const [showAttendModal, setShowAttendModal] = useState(false);
   const [shareToast, setShareToast] = useState(false);
@@ -309,6 +310,29 @@ function AssignContent() {
   function reset() {
     setStep("setup"); setAssigned({}); setConflicts([]); setConflictChoices({});
     setPopup(null); setLoadedFormationSlots(null); setLoadedAssignmentId(null); setSaveSessionName("");
+    setShowFormationChange(false);
+  }
+
+  /** result 단계에서 포메이션 변경 — 기존 배정은 슬롯 ID가 같은 것만 유지 */
+  function changeFormationInResult(newFormationId: string) {
+    const cf = customFormations.find(f => f.id === newFormationId);
+    const newFormation = cf
+      ? { name: cf.name, slots: cf.slots }
+      : FORMATIONS[newFormationId] ?? FORMATIONS["4-3-3"];
+
+    setSelectedFormation(newFormationId);
+    setLoadedFormationSlots(null); // 커스텀 슬롯 초기화
+
+    // 새 포메이션의 슬롯 중 기존 배정이 있으면 유지, 없으면 null
+    setAssigned(prev => {
+      const next: Record<string, Member | null> = {};
+      for (const slot of newFormation.slots) {
+        next[slot.id] = prev[slot.id] ?? null;
+      }
+      return next;
+    });
+
+    setShowFormationChange(false);
   }
 
   const customFormation = customFormations.find(f => f.id === selectedFormation);
@@ -581,9 +605,31 @@ function AssignContent() {
             <div className="flex-1 min-w-0 w-full flex flex-col lg:flex-row gap-4 lg:gap-5">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-bold text-white">🏆 {formation.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-white">🏆 {formation.name}</p>
+                    {canManage && (
+                      <button
+                        onClick={() => setShowFormationChange(v => !v)}
+                        className="text-xs text-gray-500 hover:text-emerald-400 bg-white/5 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/30 px-2 py-1 rounded-lg transition-colors"
+                      >
+                        변경
+                      </button>
+                    )}
+                  </div>
                   <span className="text-xs text-gray-600">슬롯을 눌러 수정</span>
                 </div>
+
+                {/* 포메이션 변경 드롭다운 */}
+                {showFormationChange && (
+                  <div className="mb-3">
+                    <FormationSelect
+                      value={selectedFormation}
+                      onChange={changeFormationInResult}
+                      customFormations={customFormations}
+                    />
+                  </div>
+                )}
+
                 <FieldView formation={formation} assigned={assigned} onSlotClick={handleSlotClick} teamColor={teamColor} mercenaryIds={mercenaryIds} />
               </div>
 
