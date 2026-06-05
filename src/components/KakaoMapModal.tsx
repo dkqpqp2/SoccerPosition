@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { loadKakaoSDK } from "@/lib/kakao";
+import { useState } from "react";
 
 interface Place {
   name: string;
@@ -23,48 +22,29 @@ const ROUTE_MODES: { mode: RouteMode; icon: string; label: string }[] = [
 ];
 
 export default function KakaoMapModal({ place, onClose }: Props) {
-  const mapRef    = useRef<HTMLDivElement>(null);
-  const [ready,   setReady]   = useState(false);
-  const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
+  const [userLoc,    setUserLoc]    = useState<{ lat: number; lng: number } | null>(null);
   const [locLoading, setLocLoading] = useState(false);
+  const [imgError,   setImgError]   = useState(false);
 
   const eName = encodeURIComponent(place.name);
 
-  /* SDK 로드 + 지도 렌더링 */
-  useEffect(() => {
-    loadKakaoSDK().then(() => setReady(true));
-  }, []);
-
-  useEffect(() => {
-    if (!ready || !mapRef.current) return;
-    const kakao  = window.kakao;
-    const coords = new kakao.maps.LatLng(place.lat, place.lng);
-    const map    = new kakao.maps.Map(mapRef.current, { center: coords, level: 4 });
-    const marker = new kakao.maps.Marker({ position: coords });
-    marker.setMap(map);
-    new kakao.maps.InfoWindow({
-      content: `<div style="padding:4px 10px;font-size:12px;font-weight:bold;white-space:nowrap;">${place.name}</div>`,
-    }).open(map, marker);
-  }, [ready, place]);
+  /* 정적 지도 이미지 URL (서버 프록시) */
+  const staticMapUrl = `/api/kakao/staticmap?lat=${place.lat}&lng=${place.lng}`;
 
   /* 현재 위치 가져오기 */
   function getLocation() {
     if (!navigator.geolocation) return;
     setLocLoading(true);
     navigator.geolocation.getCurrentPosition(
-      pos => {
-        setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setLocLoading(false);
-      },
-      () => setLocLoading(false),
+      pos => { setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocLoading(false); },
+      ()  => setLocLoading(false),
       { timeout: 10000 }
     );
   }
 
   /* 길찾기 URL */
-  function routeUrl(mode: RouteMode): string {
+  function routeUrl(): string {
     if (userLoc) {
-      // 출발지 지정 길찾기
       return `https://map.kakao.com/link/from/현재위치,${userLoc.lat},${userLoc.lng}/to/${eName},${place.lat},${place.lng}`;
     }
     return `https://map.kakao.com/link/to/${eName},${place.lat},${place.lng}`;
@@ -74,13 +54,8 @@ export default function KakaoMapModal({ place, onClose }: Props) {
   function openKakaoNavi() {
     const appUrl = `kakaomap://route?ep=${place.lat},${place.lng}&by=CAR`;
     const webUrl = `https://map.kakao.com/link/to/${eName},${place.lat},${place.lng}`;
-
-    // 앱 딥링크 시도
     window.location.href = appUrl;
-    // 앱이 없으면 1.5초 후 웹으로 폴백
-    setTimeout(() => {
-      if (!document.hidden) window.open(webUrl, "_blank");
-    }, 1500);
+    setTimeout(() => { if (!document.hidden) window.open(webUrl, "_blank"); }, 1500);
   }
 
   return (
@@ -104,11 +79,27 @@ export default function KakaoMapModal({ place, onClose }: Props) {
           >✕</button>
         </div>
 
-        {/* 지도 영역 */}
-        <div ref={mapRef} className="w-full h-52 bg-gray-800">
-          {!ready && (
-            <div className="flex items-center justify-center h-full">
-              <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+        {/* 지도 이미지 */}
+        <div className="w-full h-48 bg-gray-800 overflow-hidden relative">
+          {!imgError ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={staticMapUrl}
+              alt={place.name}
+              className="w-full h-full object-cover"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            /* 이미지 로드 실패 시 플레이스홀더 */
+            <div className="flex flex-col items-center justify-center h-full gap-2">
+              <span className="text-3xl">🗺️</span>
+              <p className="text-xs text-gray-500">지도를 불러올 수 없어요</p>
+              <a
+                href={`https://map.kakao.com/link/to/${eName},${place.lat},${place.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-400 hover:underline"
+              >카카오맵에서 보기 →</a>
             </div>
           )}
         </div>
@@ -134,10 +125,10 @@ export default function KakaoMapModal({ place, onClose }: Props) {
             </button>
           ) : (
             <div className="grid grid-cols-3 gap-2">
-              {ROUTE_MODES.map(({ mode, icon, label }) => (
+              {ROUTE_MODES.map(({ icon, label }) => (
                 <a
-                  key={mode}
-                  href={routeUrl(mode)}
+                  key={label}
+                  href={routeUrl()}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs py-3 rounded-xl font-semibold transition-colors flex flex-col items-center gap-1.5"
