@@ -64,7 +64,11 @@ function FeedbackContent() {
     setTeamFeedback(data.feedback?.team_feedback ?? "");
     setActiveTab(0);
     const existingQF: QuarterFeedback[] = data.feedback?.player_feedbacks ?? [];
-    const merged: QuarterFeedback[] = (data.quarters as { session_id: string; session_name: string; players: PlayerEntry[] }[]).map(q => {
+    const sortedQuarters = (data.quarters as { session_id: string; session_name: string; players: PlayerEntry[] }[])
+      .slice()
+      .sort((a, b) => a.session_name.localeCompare(b.session_name, "ko"));
+
+    const merged: QuarterFeedback[] = sortedQuarters.map(q => {
       const existingQ = existingQF.find(eq => eq.session_id === q.session_id);
       return {
         session_id: q.session_id,

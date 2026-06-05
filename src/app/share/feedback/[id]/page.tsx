@@ -58,7 +58,8 @@ export default async function ShareFeedbackPage({ params }: { params: Promise<{ 
 
   if (error || !data) notFound();
 
-  const { match_info, team_feedback, quarter_feedbacks } = data.data as SharedFeedbackData;
+  const { match_info, team_feedback, quarter_feedbacks: rawQuarterFeedbacks } = data.data as SharedFeedbackData;
+  const quarter_feedbacks = [...rawQuarterFeedbacks].sort((a, b) => a.session_name.localeCompare(b.session_name, "ko"));
 
   return (
     <div className="min-h-screen bg-gray-950">
