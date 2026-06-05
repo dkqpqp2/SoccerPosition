@@ -269,6 +269,29 @@ export default function MatchesPage() {
     return `${h}시${m > 0 ? ` ${m}분` : ""}`;
   }
 
+  // 최근 4개 고유 경기장 (날짜 최신순)
+  const recentLocations = Array.from(
+    new Map(
+      [...matches]
+        .filter(m => m.location)
+        .sort((a, b) => b.match_date.localeCompare(a.match_date))
+        .map(m => [m.location!, m.location!])
+    ).values()
+  ).slice(0, 4);
+
+  // 최근 4개 고유 상대팀 (날짜 최신순, 자체전 제외)
+  const recentOpponents = Array.from(
+    new Map(
+      [...matches]
+        .filter(m => m.title && m.title.includes(" vs ") && m.title.startsWith(teamName + " vs "))
+        .sort((a, b) => b.match_date.localeCompare(a.match_date))
+        .map(m => {
+          const opp = m.title!.replace(teamName + " vs ", "");
+          return [opp, opp];
+        })
+    ).values()
+  ).slice(0, 4);
+
   const Toggle = ({ on, onToggle, label, sub }: { on: boolean; onToggle: () => void; label: string; sub: string }) => (
     <div className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 cursor-pointer transition-colors ${on ? "border-blue-500/40 bg-blue-500/10" : "border-white/10 bg-white/3"}`} onClick={onToggle}>
       <div>
@@ -325,6 +348,24 @@ export default function MatchesPage() {
                   onSelect={p => { setSelectedPlace(p); setLocation(p.name); }}
                   onClear={() => { setSelectedPlace(null); setLocation(""); }}
                 />
+                {recentLocations.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {recentLocations.map(loc => (
+                      <button
+                        key={loc}
+                        type="button"
+                        onClick={() => { setSelectedPlace(null); setLocation(loc); }}
+                        className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                          location === loc
+                            ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                            : "bg-white/5 border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300"
+                        }`}
+                      >
+                        📍 {loc}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">복장 정보</label>
@@ -340,6 +381,24 @@ export default function MatchesPage() {
                     <span className="text-gray-600 text-sm">vs</span>
                     <input type="text" value={opponent} onChange={e => setOpponent(e.target.value)} placeholder="상대팀 이름" className={`flex-1 bg-gray-800 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600`} />
                   </div>
+                  {recentOpponents.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {recentOpponents.map(opp => (
+                        <button
+                          key={opp}
+                          type="button"
+                          onClick={() => setOpponent(opp)}
+                          className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                            opponent === opp
+                              ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                              : "bg-white/5 border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300"
+                          }`}
+                        >
+                          🆚 {opp}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div>
