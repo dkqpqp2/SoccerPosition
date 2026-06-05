@@ -112,13 +112,27 @@ function AssignContent() {
       await fetch(`/api/assignments/${loadedAssignmentId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ result: assigned, formation_name: formation.name, formation_id: selectedFormation, formation_slots: formation.slots }),
+        body: JSON.stringify({
+          result: assigned,
+          formation_name: formation.name,
+          formation_id: selectedFormation,
+          formation_slots: formation.slots,
+          attending_members: attendingIds.size > 0 ? members.filter(m => attendingIds.has(m.id)) : undefined,
+        }),
       });
     } else {
       const res = await fetch("/api/assignments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_name: saveSessionName, formation_name: formation.name, formation_id: selectedFormation, formation_slots: formation.slots, result: assigned, match_id: matchId || null }),
+        body: JSON.stringify({
+          session_name: saveSessionName,
+          formation_name: formation.name,
+          formation_id: selectedFormation,
+          formation_slots: formation.slots,
+          result: assigned,
+          match_id: matchId || null,
+          attending_members: attendingIds.size > 0 ? members.filter(m => attendingIds.has(m.id)) : null,
+        }),
       });
       if (!res.ok) {
         const err = await res.json();

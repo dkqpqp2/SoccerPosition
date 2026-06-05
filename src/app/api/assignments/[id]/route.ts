@@ -8,11 +8,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const { result, formation_name, formation_id, formation_slots } = await req.json();
+  const { result, formation_name, formation_id, formation_slots, attending_members } = await req.json();
+
+  const updatePayload: Record<string, unknown> = { result, formation_name, formation_id, formation_slots };
+  if (attending_members !== undefined) updatePayload.attending_members = attending_members;
 
   const { data, error } = await supabaseAdmin
     .from("position_assignments")
-    .update({ result, formation_name, formation_id, formation_slots })
+    .update(updatePayload)
     .eq("id", id)
     .select()
     .single();

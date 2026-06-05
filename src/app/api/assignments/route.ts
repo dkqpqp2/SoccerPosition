@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "포지션 배정 권한이 없어요. 팀장 또는 부팀장만 가능해요." }, { status: 403 });
   }
 
-  const { session_name, formation_name, formation_id, formation_slots, result, match_id } = await req.json();
+  const { session_name, formation_name, formation_id, formation_slots, result, match_id, attending_members } = await req.json();
 
   // 같은 경기(또는 같은 팀)에서 중복 이름 방지
   const dupQuery = supabaseAdmin
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from("position_assignments")
-    .insert({ user_id: userId, team_id: teamId, session_name: session_name.trim(), formation_name, formation_id, formation_slots, result, match_id })
+    .insert({ user_id: userId, team_id: teamId, session_name: session_name.trim(), formation_name, formation_id, formation_slots, result, match_id, attending_members: attending_members ?? null })
     .select()
     .single();
 

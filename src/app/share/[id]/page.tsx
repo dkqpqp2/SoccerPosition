@@ -21,6 +21,7 @@ interface AssignmentData {
   formation_name: string;
   formation_slots: PositionSlot[];
   result: Record<string, Member | null>;
+  attending_members: Member[] | null;
   matches?: { match_date: string; title: string | null } | null;
 }
 
@@ -62,6 +63,7 @@ export default function SharePage() {
 
   const match = data!.matches;
   const assigned = data!.result;
+  const attendingMembers: Member[] = data!.attending_members ?? [];
 
   const sessionName = data!.session_name;
   const captureFilename = `${sessionName}_${data!.formation_name}.png`;
@@ -69,9 +71,24 @@ export default function SharePage() {
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" });
 
+  // 출전 명단 계산
+  const assignedMembers = formation.slots.map(s => assigned[s.id]).filter(Boolean) as Member[];
+  const assignedIds = new Set(assignedMembers.map(m => m.id));
+
+  const regularStarters = formation.slots.filter(s => assigned[s.id] && !assigned[s.id]!.is_mercenary);
+  const mercenaryStarters = formation.slots.filter(s => assigned[s.id]?.is_mercenary);
+
+  // 교체 가능 인원 (참가했지만 출전 명단에 없는 사람)
+  const benchMembers = attendingMembers.filter(m => !assignedIds.has(m.id));
+  const hasAttendingData = attendingMembers.length > 0;
+
+  const totalCount = hasAttendingData ? attendingMembers.length : assignedMembers.length;
+  const starterCount = assignedMembers.length;
+  const benchCount = benchMembers.length;
+
   return (
     <div className="min-h-screen bg-gray-950">
-      <div className="max-w-sm mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-3 py-6">
 
         {/* ── 캡쳐 영역 시작 ── */}
         <div id="capture-area" className="bg-gray-950 rounded-2xl">
@@ -88,120 +105,206 @@ export default function SharePage() {
             <p className="text-emerald-400/70 text-xs mt-1 font-medium">{data!.formation_name} 포메이션</p>
           </div>
 
-          {/* 그라운드 */}
-          <div
-            className="relative w-full rounded-2xl overflow-hidden shadow-2xl"
-            style={{ paddingBottom: "140%", background: "linear-gradient(180deg, #166534 0%, #14532d 40%, #15803d 60%, #166534 100%)" }}
-          >
-            <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute border border-white/20 inset-[4%] rounded-sm" />
-              <div className="absolute w-[92%] left-[4%] border-t border-white/20" style={{ top: "50%" }} />
-              <div className="absolute border border-white/20 rounded-full"
-                style={{ width: "22%", height: "14%", top: "43%", left: "39%" }} />
-              <div className="absolute border border-white/20"
-                style={{ width: "46%", height: "13%", top: "4%", left: "27%" }} />
-              <div className="absolute border border-white/20"
-                style={{ width: "46%", height: "13%", bottom: "4%", left: "27%" }} />
+          {/* ── 1행: 포지션 필드 | 참여 현황 ── */}
+          <div className="flex gap-2.5 mb-2.5">
+
+            {/* 그라운드 (왼쪽 55%) */}
+            <div className="w-[55%] shrink-0">
+              <div
+                className="relative w-full rounded-2xl overflow-hidden shadow-2xl"
+                style={{ paddingBottom: "140%", background: "linear-gradient(180deg, #166534 0%, #14532d 40%, #15803d 60%, #166534 100%)" }}
+              >
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="absolute border border-white/20 inset-[4%] rounded-sm" />
+                  <div className="absolute w-[92%] left-[4%] border-t border-white/20" style={{ top: "50%" }} />
+                  <div className="absolute border border-white/20 rounded-full"
+                    style={{ width: "22%", height: "14%", top: "43%", left: "39%" }} />
+                  <div className="absolute border border-white/20"
+                    style={{ width: "46%", height: "13%", top: "4%", left: "27%" }} />
+                  <div className="absolute border border-white/20"
+                    style={{ width: "46%", height: "13%", bottom: "4%", left: "27%" }} />
+                </div>
+
+                {formation.slots.map(slot => {
+                  const member = assigned[slot.id];
+                  const isGK = slot.id === "GK";
+                  const pos = slot.label.toUpperCase();
+                  const isMercenary = member?.is_mercenary ?? false;
+
+                  const bgText = !member
+                    ? "bg-white/15 text-white/50"
+                    : isGK
+                    ? "bg-amber-400 text-gray-900"
+                    : /^(CB|LB|RB|LWB|RWB|SW|DC|DL|DR|WB|FB)/.test(pos)
+                    ? "bg-blue-500 text-white"
+                    : /^(ST|CF|SS|LW|RW|LF|RF|FW|ATT|WG|CW)/.test(pos)
+                    ? "bg-red-500 text-white"
+                    : "bg-emerald-400 text-gray-900";
+
+                  const borderClass = !member
+                    ? "border-white/25"
+                    : isMercenary
+                    ? "border-white border-[2.5px]"
+                    : isGK
+                    ? "border-amber-300"
+                    : /^(CB|LB|RB|LWB|RWB|SW|DC|DL|DR|WB|FB)/.test(pos)
+                    ? "border-blue-400"
+                    : /^(ST|CF|SS|LW|RW|LF|RF|FW|ATT|WG|CW)/.test(pos)
+                    ? "border-red-400"
+                    : "border-emerald-300";
+
+                  return (
+                    <div
+                      key={slot.id}
+                      className="absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
+                      style={{ left: `${slot.x}%`, top: `${slot.y}%` }}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[8px] shadow-lg border-2 ${bgText} ${borderClass}`}>
+                        {slot.label}
+                      </div>
+                      {member && (
+                        <span className={`mt-0.5 text-[8px] font-bold whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] ${isMercenary ? "text-amber-300" : "text-white"}`}>
+                          {member.name}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            {formation.slots.map(slot => {
-              const member = assigned[slot.id];
-              const isGK = slot.id === "GK";
-              const pos = slot.label.toUpperCase();
-              const isMercenary = member?.is_mercenary ?? false;
+            {/* 참여 현황 (오른쪽 45%) */}
+            <div className="flex-1 flex flex-col gap-2">
 
-              const bgText = !member
-                ? "bg-white/15 text-white/50"
-                : isGK
-                ? "bg-amber-400 text-gray-900"
-                : /^(CB|LB|RB|LWB|RWB|SW|DC|DL|DR|WB|FB)/.test(pos)
-                ? "bg-blue-500 text-white"
-                : /^(ST|CF|SS|LW|RW|LF|RF|FW|ATT|WG|CW)/.test(pos)
-                ? "bg-red-500 text-white"
-                : "bg-emerald-400 text-gray-900";
+              {/* 총 인원 카드 */}
+              <div className="bg-gray-900 border border-white/5 rounded-2xl p-3 text-center">
+                <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">참여 현황</p>
+                <p className="text-3xl font-black text-emerald-400">{totalCount}</p>
+                <p className="text-[10px] text-gray-500 mt-0.5">총 참가인원</p>
+              </div>
 
-              const borderClass = !member
-                ? "border-white/25"
-                : isMercenary
-                ? "border-white border-[2.5px]"
-                : isGK
-                ? "border-amber-300"
-                : /^(CB|LB|RB|LWB|RWB|SW|DC|DL|DR|WB|FB)/.test(pos)
-                ? "border-blue-400"
-                : /^(ST|CF|SS|LW|RW|LF|RF|FW|ATT|WG|CW)/.test(pos)
-                ? "border-red-400"
-                : "border-emerald-300";
-
-              return (
-                <div
-                  key={slot.id}
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
-                  style={{ left: `${slot.x}%`, top: `${slot.y}%` }}
-                >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-[9px] shadow-lg border-2 ${bgText} ${borderClass}`}>
-                    {slot.label}
-                  </div>
-                  {member && (
-                    <span className={`mt-1 text-[9px] font-bold whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] ${isMercenary ? "text-amber-300" : "text-white"}`}>
-                      {member.name}
-                    </span>
-                  )}
+              {/* 출전/대기 분리 */}
+              <div className="bg-gray-900 border border-white/5 rounded-2xl p-3 flex flex-col gap-2">
+                {/* 출전 */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-500">출전</span>
+                  <span className="text-sm font-bold text-white">{starterCount}명</span>
                 </div>
-              );
-            })}
+                <div className="w-full bg-white/5 rounded-full h-1.5">
+                  <div
+                    className="bg-emerald-400 h-1.5 rounded-full transition-all"
+                    style={{ width: totalCount > 0 ? `${Math.round((starterCount / totalCount) * 100)}%` : "0%" }}
+                  />
+                </div>
+
+                {/* 대기 */}
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-[10px] text-gray-500">교체대기</span>
+                  <span className="text-sm font-bold text-white">{benchCount}명</span>
+                </div>
+                <div className="w-full bg-white/5 rounded-full h-1.5">
+                  <div
+                    className="bg-sky-400 h-1.5 rounded-full transition-all"
+                    style={{ width: totalCount > 0 ? `${Math.round((benchCount / totalCount) * 100)}%` : "0%" }}
+                  />
+                </div>
+              </div>
+
+              {/* 용병 있으면 표시 */}
+              {mercenaryStarters.length > 0 && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3 text-center">
+                  <p className="text-[10px] text-amber-400/70 mb-0.5">용병</p>
+                  <p className="text-xl font-black text-amber-400">{mercenaryStarters.length}명</p>
+                </div>
+              )}
+
+              {/* 포메이션 슬롯 수 */}
+              <div className="bg-gray-900 border border-white/5 rounded-2xl p-3 text-center">
+                <p className="text-[10px] text-gray-500 mb-0.5">슬롯</p>
+                <p className="text-lg font-black text-white">{formation.slots.length}명</p>
+                <p className="text-[9px] text-gray-600 mt-0.5">{data!.formation_name}</p>
+              </div>
+            </div>
           </div>
 
-          {/* 명단 */}
-          {(() => {
-            const regularSlots   = formation.slots.filter(s => assigned[s.id] && !assigned[s.id]!.is_mercenary);
-            const mercenarySlots = formation.slots.filter(s => assigned[s.id]?.is_mercenary);
-            return (
-              <div className="mt-4 bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
-                {/* 정규 팀원 */}
-                {regularSlots.length > 0 && (
-                  <div className="p-4">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">출전 명단</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {regularSlots.map(slot => {
-                        const member = assigned[slot.id]!;
-                        return (
-                          <div key={slot.id} className="flex items-center gap-2 bg-white/5 border border-white/5 rounded-xl px-3 py-2">
-                            <span className="text-xs font-bold text-emerald-400 w-8 shrink-0">{slot.label}</span>
-                            <span className="text-gray-300 text-xs font-medium truncate">{member.name}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+          {/* ── 2행: 출전 명단 | 남은 인원 ── */}
+          <div className="grid grid-cols-2 gap-2.5">
 
-                {/* 용병 */}
-                {mercenarySlots.length > 0 && (
-                  <div className={`p-4 ${regularSlots.length > 0 ? "border-t border-amber-500/20 bg-amber-500/5" : ""}`}>
-                    <p className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-3">⚡ 용병 · {mercenarySlots.length}명</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {mercenarySlots.map(slot => {
-                        const member = assigned[slot.id]!;
-                        return (
-                          <div key={slot.id} className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
-                            <span className="text-xs font-bold text-amber-400 w-8 shrink-0">{slot.label}</span>
-                            <div className="flex-1 min-w-0">
-                              <span className="text-amber-300 text-xs font-medium truncate block">{member.name}</span>
-                              {member.is_cafe_mercenary
-                                ? <span className="text-[10px] text-sky-400">☕카페</span>
-                                : member.referrer
-                                ? <span className="text-[10px] text-amber-500">{member.referrer}지인</span>
-                                : null}
-                            </div>
-                          </div>
-                        );
-                      })}
+            {/* 출전 명단 */}
+            <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+              <div className="px-3 py-2 border-b border-white/5">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">출전 명단</p>
+              </div>
+              <div className="p-2 flex flex-col gap-1">
+                {regularStarters.length === 0 && mercenaryStarters.length === 0 && (
+                  <p className="text-[10px] text-gray-600 px-1 py-2 text-center">배정 없음</p>
+                )}
+                {regularStarters.map(slot => {
+                  const member = assigned[slot.id]!;
+                  return (
+                    <div key={slot.id} className="flex items-center gap-1.5 bg-white/5 rounded-xl px-2 py-1.5">
+                      <span className="text-[9px] font-bold text-emerald-400 w-7 shrink-0">{slot.label}</span>
+                      <span className="text-gray-300 text-[10px] font-medium truncate">{member.name}</span>
                     </div>
-                  </div>
+                  );
+                })}
+                {mercenaryStarters.length > 0 && (
+                  <>
+                    <div className="border-t border-amber-500/20 my-1" />
+                    {mercenaryStarters.map(slot => {
+                      const member = assigned[slot.id]!;
+                      return (
+                        <div key={slot.id} className="flex items-center gap-1.5 bg-amber-500/10 rounded-xl px-2 py-1.5">
+                          <span className="text-[9px] font-bold text-amber-400 w-7 shrink-0">{slot.label}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-amber-300 text-[10px] font-medium truncate block">{member.name}</span>
+                            {member.is_cafe_mercenary
+                              ? <span className="text-[9px] text-sky-400">☕카페</span>
+                              : member.referrer
+                              ? <span className="text-[9px] text-amber-500">{member.referrer}지인</span>
+                              : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
                 )}
               </div>
-            );
-          })()}
+            </div>
+
+            {/* 남은 인원 (교체가능) */}
+            <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+              <div className="px-3 py-2 border-b border-white/5">
+                <p className="text-[10px] font-bold text-sky-400 uppercase tracking-widest">교체 가능</p>
+              </div>
+              <div className="p-2 flex flex-col gap-1">
+                {!hasAttendingData ? (
+                  <p className="text-[10px] text-gray-600 px-1 py-2 text-center leading-relaxed">
+                    참가 인원을<br />설정 후 저장 시<br />표시됩니다
+                  </p>
+                ) : benchMembers.length === 0 ? (
+                  <p className="text-[10px] text-gray-600 px-1 py-2 text-center">교체 없음</p>
+                ) : (
+                  benchMembers.map((m, i) => (
+                    <div key={m.id} className="flex items-center gap-1.5 bg-sky-500/10 border border-sky-500/20 rounded-xl px-2 py-1.5">
+                      <span className="text-[9px] text-sky-500/60 w-4 shrink-0">{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sky-300 text-[10px] font-medium truncate">{m.name}</p>
+                        {(m.position_1st || m.position_2nd) && (
+                          <p className="text-[9px] text-sky-500/60 truncate">
+                            {[m.position_1st, m.position_2nd].filter(Boolean).join(" · ")}
+                          </p>
+                        )}
+                        {m.is_mercenary && (
+                          <span className="text-[9px] text-amber-400">용병</span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
 
           <p className="text-center text-gray-700 text-xs mt-4 pb-2">⚽ Soccer Position Management</p>
         </div>
