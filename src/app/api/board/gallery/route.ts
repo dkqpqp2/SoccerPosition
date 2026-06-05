@@ -46,11 +46,12 @@ export async function POST(req: NextRequest) {
     .single();
 
   const formData = await req.formData();
-  const file        = formData.get("file")     as File | null;
-  const title       = formData.get("title")    as string;
+  const file        = formData.get("file")        as File | null;
+  const title       = formData.get("title")       as string;
   const description = formData.get("description") as string || "";
   const year        = parseInt(formData.get("year") as string) || new Date().getFullYear();
-  const category    = formData.get("category") as string || "기타";
+  const category    = formData.get("category")    as string || "기타";
+  const group_id    = formData.get("group_id")    as string | null;
 
   if (!file || !title) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
@@ -81,6 +82,7 @@ export async function POST(req: NextRequest) {
       image_url:   urlData.publicUrl,
       year,
       category,
+      group_id:    group_id || null,
     })
     .select()
     .single();
