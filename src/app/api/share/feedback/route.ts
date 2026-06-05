@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   // 피드백 데이터
   const { data: feedback } = await supabaseAdmin
     .from("match_feedbacks")
-    .select("team_feedback, player_feedbacks")
+    .select("team_feedback, player_feedbacks, videos")
     .eq("match_id", match_id)
     .eq("team_id", teamId)
     .single();
@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
         match_info: match,
         team_feedback: feedback?.team_feedback ?? null,
         quarter_feedbacks: feedback?.player_feedbacks ?? [],
+        videos: feedback?.videos ?? [],
       },
     })
     .select("id")

@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import { notFound } from "next/navigation";
+import { ytThumb, ytEmbed, VIDEO_CATEGORIES } from "@/lib/youtube";
 
 interface MatchInfo {
   match_date: string;
@@ -25,11 +26,19 @@ interface QuarterFeedback {
   players: PlayerFeedback[];
 }
 
+interface FeedbackVideo {
+  youtube_id: string;
+  title: string;
+  description?: string;
+  category: string;
+}
+
 interface SharedFeedbackData {
   type: "feedback";
   match_info: MatchInfo;
   team_feedback: string | null;
   quarter_feedbacks: QuarterFeedback[];
+  videos?: FeedbackVideo[];
 }
 
 function formatDate(dateStr: string) {
@@ -58,7 +67,7 @@ export default async function ShareFeedbackPage({ params }: { params: Promise<{ 
 
   if (error || !data) notFound();
 
-  const { match_info, team_feedback, quarter_feedbacks: rawQuarterFeedbacks } = data.data as SharedFeedbackData;
+  const { match_info, team_feedback, quarter_feedbacks: rawQuarterFeedbacks, videos } = data.data as SharedFeedbackData;
   const quarter_feedbacks = [...rawQuarterFeedbacks].sort((a, b) => a.session_name.localeCompare(b.session_name, "ko"));
 
   return (
@@ -149,6 +158,37 @@ export default async function ShareFeedbackPage({ params }: { params: Promise<{ 
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* 추천 영상 */}
+        {videos && videos.length > 0 && (
+          <div className="bg-gray-900 border border-white/5 rounded-2xl p-5 mb-4">
+            <p className="font-bold text-white mb-4 flex items-center gap-2">
+              <span>🎬</span> 추천 영상
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {videos.map((v, i) => (
+                <div key={i} className="bg-gray-800/50 border border-white/5 rounded-xl overflow-hidden">
+                  <a href={`https://www.youtube.com/watch?v=${v.youtube_id}`} target="_blank" rel="noopener noreferrer">
+                    <div className="relative aspect-video group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={ytThumb(v.youtube_id)} alt={v.title} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
+                        <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                        </div>
+                      </div>
+                    </div>
+                  </a>
+                  <div className="p-2.5">
+                    <p className="text-xs font-semibold text-white line-clamp-1">{v.title}</p>
+                    {v.description && <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-1">{v.description}</p>}
+                    <span className="text-[10px] text-gray-600 mt-1 block">{VIDEO_CATEGORIES.find(c => c.value === v.category)?.label ?? v.category}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

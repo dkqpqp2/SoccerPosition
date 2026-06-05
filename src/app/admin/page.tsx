@@ -16,6 +16,7 @@ interface User {
 interface Stats {
   totalUsers: number;
   totalTeams: number;
+  totalTeamsAll: number;
   totalMembers: number;
   totalMatches: number;
   users: User[];
@@ -131,10 +132,21 @@ export default function AdminPage() {
         {/* 핵심 통계 카드 */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <StatCard value={stats.totalUsers}   label="👥 총 가입자"      color="emerald" />
-          <StatCard value={stats.totalTeams}   label="🏆 생성된 팀"      color="blue"    />
+          <StatCard value={stats.totalTeams}   label="🏆 활성 팀"        color="blue"    />
           <StatCard value={stats.totalMembers} label="⚽ 등록된 팀원"    color="amber"   />
           <StatCard value={stats.totalMatches} label="📅 총 경기 수"     color="purple"  />
         </div>
+        {/* 미설정 팀 안내 */}
+        {stats.totalTeamsAll > stats.totalTeams && (
+          <div className="bg-gray-900 border border-white/5 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-gray-500">
+            <span>⚠️</span>
+            <span>
+              팀 이름 미설정 (기본값 &quot;우리팀&quot;) :{" "}
+              <span className="text-amber-400 font-bold">{stats.totalTeamsAll - stats.totalTeams}개</span>
+              {" "}· 전체 가입 팀 {stats.totalTeamsAll}개
+            </span>
+          </div>
+        )}
 
         {/* Vercel Analytics 안내 */}
         <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">

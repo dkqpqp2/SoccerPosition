@@ -343,6 +343,26 @@ export default function Dashboard() {
     <AppLayout title="홈">
       <div className="px-4 py-6 max-w-2xl mx-auto space-y-5">
 
+        {/* 신규 가입 온보딩 배너: 팀 이름이 기본값인 경우 */}
+        {team?.name === "우리팀" && (
+          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-start gap-3">
+            <span className="text-2xl shrink-0">👋</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-emerald-300 text-sm">가입을 환영해요!</p>
+              <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+                아직 팀 이름이 <span className="text-white font-semibold">"우리팀"</span>으로 되어 있어요.
+                마이페이지에서 팀 이름을 변경해주세요!
+              </p>
+            </div>
+            <button
+              onClick={() => router.push("/mypage")}
+              className="shrink-0 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs px-3 py-2 rounded-xl transition-colors whitespace-nowrap"
+            >
+              팀 이름 설정 →
+            </button>
+          </div>
+        )}
+
         {/* 팀 전환 탭 */}
         {myTeams.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1">

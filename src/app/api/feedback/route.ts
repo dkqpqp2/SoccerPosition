@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 
 
   const assignments = [...(match.position_assignments ?? [])].sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    (a, b) => a.session_name.localeCompare(b.session_name, "ko")
   );
 
   // 배정된 멤버 용병 정보 조회
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "피드백 작성 권한이 없어요." }, { status: 403 });
   }
 
-  const { match_id, team_feedback, quarter_feedbacks } = await req.json();
+  const { match_id, team_feedback, quarter_feedbacks, videos } = await req.json();
   if (!match_id) return NextResponse.json({ error: "match_id required" }, { status: 400 });
 
   const { data, error } = await supabaseAdmin
@@ -125,6 +125,7 @@ export async function POST(req: NextRequest) {
         author_id: userId,
         team_feedback: team_feedback ?? null,
         player_feedbacks: quarter_feedbacks ?? [],
+        videos: videos ?? [],
         updated_at: new Date().toISOString(),
       },
       { onConflict: "match_id,team_id" }

@@ -4,11 +4,13 @@ import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import AppLayout from "@/components/AppLayout";
+import { extractYouTubeId, ytThumb, ytEmbed, VIDEO_CATEGORIES, VideoCategory } from "@/lib/youtube";
 
 interface Match { id: string; match_date: string; match_time: string | null; match_end_time: string | null; title: string | null; location: string | null; }
 interface MatchSummary { id: string; match_date: string; match_time: string | null; title: string | null; position_assignments: { id: string }[]; }
 interface PlayerEntry { member_id: string; name: string; positions: string[]; }
 interface QuarterFeedback { session_id: string; session_name: string; players: (PlayerEntry & { feedback: string })[]; }
+interface FeedbackVideo { youtube_id: string; title: string; description?: string; category: VideoCategory; }
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr);
@@ -39,6 +41,11 @@ function FeedbackContent() {
   const [saved, setSaved] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [shareToast, setShareToast] = useState("");
+  const [videos, setVideos] = useState<FeedbackVideo[]>([]);
+  const [showVideoAdd, setShowVideoAdd] = useState(false);
+  const [videoForm, setVideoForm] = useState({ url: "", title: "", description: "", category: "etc" as VideoCategory });
+  const [videoFormError, setVideoFormError] = useState("");
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -62,6 +69,7 @@ function FeedbackContent() {
     setSelectedMatch(data.match);
     setCanWrite(data.can_feedback ?? false);
     setTeamFeedback(data.feedback?.team_feedback ?? "");
+    setVideos(data.feedback?.videos ?? []);
     setActiveTab(0);
     const existingQF: QuarterFeedback[] = data.feedback?.player_feedbacks ?? [];
     const sortedQuarters = (data.quarters as { session_id: string; session_name: string; players: PlayerEntry[] }[])
@@ -94,7 +102,7 @@ function FeedbackContent() {
     setSaving(true);
     await fetch("/api/feedback", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ match_id: selectedMatch.id, team_feedback: teamFeedback || null, quarter_feedbacks: quarterFeedbacks.map(q => ({ ...q, players: q.players.filter(p => p.feedback) })) }),
+      body: JSON.stringify({ match_id: selectedMatch.id, team_feedback: teamFeedback || null, quarter_feedbacks: quarterFeedbacks.map(q => ({ ...q, players: q.players.filter(p => p.feedback) })), videos }),
     });
     setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000);
   }
@@ -289,12 +297,129 @@ function FeedbackContent() {
                 )}
               </div>
             </div>
+            {/* 추천 영상 섹션 */}
+            <div className="mt-4 bg-gray-900 border border-white/5 rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="font-bold text-white flex items-center gap-2"><span>🎬</span> 추천 영상</p>
+                {canWrite && (
+                  <button
+                    onClick={() => { setShowVideoAdd(true); setVideoFormError(""); setVideoForm({ url: "", title: "", description: "", category: "etc" }); }}
+                    className="text-xs bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-lg font-semibold transition-colors"
+                  >
+                    + 영상 추가
+                  </button>
+                )}
+              </div>
+
+              {videos.length === 0 ? (
+                <p className="text-sm text-gray-600 text-center py-4">
+                  {canWrite ? "이 경기와 관련된 영상을 추천해보세요" : "추천된 영상이 없어요"}
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {videos.map((v, i) => (
+                    <div key={i} className="bg-gray-800/50 border border-white/5 rounded-xl overflow-hidden">
+                      <div
+                        className="relative aspect-video cursor-pointer group"
+                        onClick={() => setPlayingVideoId(playingVideoId === v.youtube_id + i ? null : v.youtube_id + i)}
+                      >
+                        {playingVideoId === v.youtube_id + i ? (
+                          <iframe src={ytEmbed(v.youtube_id)} className="absolute inset-0 w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                        ) : (
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={ytThumb(v.youtube_id)} alt={v.title} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
+                              <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      <div className="p-2.5">
+                        <p className="text-xs font-semibold text-white line-clamp-1">{v.title}</p>
+                        {v.description && <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-1">{v.description}</p>}
+                        <div className="flex items-center justify-between mt-1.5">
+                          <span className="text-[10px] text-gray-600">{VIDEO_CATEGORIES.find(c => c.value === v.category)?.label ?? v.category}</span>
+                          {canWrite && (
+                            <button onClick={() => setVideos(prev => prev.filter((_, idx) => idx !== i))} className="text-[10px] text-red-500/60 hover:text-red-400 transition-colors">삭제</button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {!canWrite && (
               <p className="text-center text-xs text-gray-600 mt-4">관리자·감독·코치만 피드백을 작성할 수 있어요</p>
             )}
+
           </>
         )}
       </div>
+
+      {/* 영상 추가 모달 (AppLayout 내 최상위) */}
+      {showVideoAdd && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => setShowVideoAdd(false)}>
+          <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-white text-base mb-4">🎬 영상 추가</h3>
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1.5 block">YouTube URL *</label>
+                <input type="url" value={videoForm.url} onChange={e => { setVideoForm(p => ({ ...p, url: e.target.value })); setVideoFormError(""); }}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="w-full bg-gray-800 border border-white/10 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-gray-600" autoFocus />
+                {extractYouTubeId(videoForm.url) && (
+                  <div className="mt-2 rounded-xl overflow-hidden aspect-video">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={ytThumb(extractYouTubeId(videoForm.url)!)} alt="preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1.5 block">제목 *</label>
+                <input type="text" value={videoForm.title} onChange={e => setVideoForm(p => ({ ...p, title: e.target.value }))}
+                  placeholder="예: 4-3-3 압박 전술 설명"
+                  className="w-full bg-gray-800 border border-white/10 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-gray-600" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1.5 block">카테고리</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {VIDEO_CATEGORIES.filter(c => c.value !== "all").map(c => (
+                    <button key={c.value} onClick={() => setVideoForm(p => ({ ...p, category: c.value as VideoCategory }))}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${videoForm.category === c.value ? "bg-emerald-500 text-black" : "bg-white/5 text-gray-400 hover:bg-white/10"}`}>
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1.5 block">설명 (선택)</label>
+                <input type="text" value={videoForm.description} onChange={e => setVideoForm(p => ({ ...p, description: e.target.value }))}
+                  placeholder="핵심 내용이나 추천 이유"
+                  className="w-full bg-gray-800 border border-white/10 focus:border-emerald-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none placeholder-gray-600" />
+              </div>
+              {videoFormError && <p className="text-red-400 text-xs">{videoFormError}</p>}
+              <div className="flex gap-3 mt-1">
+                <button onClick={() => {
+                  const ytId = extractYouTubeId(videoForm.url);
+                  if (!videoForm.url.trim()) { setVideoFormError("URL을 입력해주세요"); return; }
+                  if (!ytId) { setVideoFormError("올바른 YouTube URL이 아니에요"); return; }
+                  if (!videoForm.title.trim()) { setVideoFormError("제목을 입력해주세요"); return; }
+                  setVideos(prev => [...prev, { youtube_id: ytId, title: videoForm.title.trim(), description: videoForm.description.trim() || undefined, category: videoForm.category }]);
+                  setShowVideoAdd(false);
+                }} className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-2.5 rounded-xl transition-colors">
+                  추가
+                </button>
+                <button onClick={() => setShowVideoAdd(false)} className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2.5 rounded-xl transition-colors">취소</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }

@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { path: "/feedback", icon: "📝", label: "경기 피드백" },
   { path: "/stats", icon: "📊", label: "팀 통계" },
   { path: "/board", icon: "💬", label: "게시판" },
+  { path: "/videos", icon: "🎬", label: "영상 추천" },
 ];
 
 const BOTTOM_NAV = [
