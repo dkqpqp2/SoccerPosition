@@ -54,12 +54,19 @@ interface StatsModal {
 
 const inputCls = "w-full bg-gray-800 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600";
 
+const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+
 export default function MatchesPage() {
   const { status } = useSession();
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const [openMonths, setOpenMonths] = useState<Set<string>>(new Set([currentMonthKey]));
   const [date, setDate] = useState("");
   const [matchTime, setMatchTime] = useState("");
   const [matchEndTime, setMatchEndTime] = useState("");
@@ -239,8 +246,19 @@ export default function MatchesPage() {
   return (
     <AppLayout title="경기 관리">
       <div className="max-w-2xl mx-auto px-4 py-6">
-        <div className="flex justify-between items-center mb-4">
-          <p className="text-xs text-gray-600 uppercase tracking-widest">경기 {matches.length}개</p>
+        {/* 연도 선택 + 경기 추가 버튼 */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setSelectedYear(y => y - 1)}
+              className="w-8 h-8 flex items-center justify-center bg-gray-900 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white rounded-xl transition-colors text-sm"
+            >‹</button>
+            <span className="text-white font-bold text-sm px-2">{selectedYear}년</span>
+            <button
+              onClick={() => setSelectedYear(y => y + 1)}
+              className="w-8 h-8 flex items-center justify-center bg-gray-900 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white rounded-xl transition-colors text-sm"
+            >›</button>
+          </div>
           {canManage && (
             <button onClick={() => setShowForm(true)} className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2 rounded-xl text-sm transition-colors">
               + 경기 추가
@@ -302,15 +320,60 @@ export default function MatchesPage() {
 
         {loading ? (
           <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /></div>
-        ) : matches.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-5xl mb-3 opacity-30">📅</div>
-            <p className="text-gray-600">아직 경기가 없어요</p>
-          </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {matches.map(match => (
-              <div key={match.id} className="bg-gray-900 border border-white/5 rounded-2xl p-4 hover:border-white/10 transition-colors">
+          (() => {
+            // 선택 연도 경기만 필터 + 월별 그룹
+            const yearMatches = matches.filter(m => m.match_date.startsWith(String(selectedYear)));
+            const grouped: Record<string, Match[]> = {};
+            yearMatches.forEach(m => {
+              const key = m.match_date.slice(0, 7);
+              if (!grouped[key]) grouped[key] = [];
+              grouped[key].push(m);
+            });
+            // 최신 월부터 내림차순 정렬
+            const sortedKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+
+            if (sortedKeys.length === 0) return (
+              <div className="text-center py-16">
+                <div className="text-5xl mb-3 opacity-30">📅</div>
+                <p className="text-gray-600">{selectedYear}년 경기가 없어요</p>
+              </div>
+            );
+
+            return (
+              <div className="flex flex-col gap-3">
+                {sortedKeys.map(monthKey => {
+                  const [, mm] = monthKey.split("-");
+                  const monthMatches = grouped[monthKey];
+                  const isOpen = openMonths.has(monthKey);
+                  const isCurrentMonth = monthKey === currentMonthKey;
+                  return (
+                    <div key={monthKey} className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+                      {/* 월 헤더 (클릭하면 토글) */}
+                      <button
+                        className={`w-full flex items-center justify-between px-4 py-3.5 hover:bg-white/3 transition-colors ${isOpen ? "border-b border-white/5" : ""}`}
+                        onClick={() => setOpenMonths(prev => {
+                          const next = new Set(prev);
+                          if (next.has(monthKey)) next.delete(monthKey);
+                          else next.add(monthKey);
+                          return next;
+                        })}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white">{Number(mm)}월</span>
+                          {isCurrentMonth && (
+                            <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-full">이번달</span>
+                          )}
+                          <span className="text-xs text-gray-600">{monthMatches.length}경기</span>
+                        </div>
+                        <span className={`text-gray-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}>▾</span>
+                      </button>
+
+                      {/* 해당 월 경기 목록 */}
+                      {isOpen && (
+                        <div className="flex flex-col divide-y divide-white/5">
+                          {monthMatches.map((match) => (
+              <div key={match.id} className="p-4 hover:bg-white/2 transition-colors">
                 {editingId === match.id ? (
                   <div className="flex flex-col gap-3">
                     <p className="font-bold text-white text-sm">경기 수정</p>
@@ -408,7 +471,14 @@ export default function MatchesPage() {
                 )}
               </div>
             ))}
-          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()
         )}
       </div>
 
