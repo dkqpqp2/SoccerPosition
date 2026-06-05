@@ -20,6 +20,7 @@ export default function FormationsPage() {
   const [formations, setFormations] = useState<CustomFormation[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditor, setShowEditor] = useState(false);
+  const [editingFormationId, setEditingFormationId] = useState<string | null>(null); // 수정 중인 ID
   const [formationInput, setFormationInput] = useState("");
   const [slots, setSlots] = useState<PositionSlot[]>([]);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
@@ -99,11 +100,48 @@ export default function FormationsPage() {
   async function saveFormation() {
     if (!formationInput.trim()) return alert("포메이션 이름을 입력해주세요");
     if (slots.length === 0) return alert("먼저 포메이션을 생성해주세요");
-    const res = await fetch("/api/formations", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: formationInput.trim(), slots }),
-    });
-    if (res.ok) { setShowEditor(false); setFormationInput(""); setSlots([]); setSelectedSlotId(null); fetchFormations(); }
+
+    if (editingFormationId) {
+      // 수정 모드 — PUT
+      const res = await fetch(`/api/formations/${editingFormationId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: formationInput.trim(), slots }),
+      });
+      if (res.ok) { closeEditor(); fetchFormations(); }
+    } else {
+      // 신규 생성 — POST
+      const res = await fetch("/api/formations", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: formationInput.trim(), slots }),
+      });
+      if (res.ok) { closeEditor(); fetchFormations(); }
+    }
+  }
+
+  function openEditor() {
+    setShowEditor(true);
+    setEditingFormationId(null);
+    setFormationInput("");
+    setSlots([]);
+    setSelectedSlotId(null);
+    setParseError("");
+  }
+
+  function openEditorForEdit(f: CustomFormation) {
+    setShowEditor(true);
+    setEditingFormationId(f.id);
+    setFormationInput(f.name);
+    setSlots(f.slots);
+    setSelectedSlotId(null);
+    setParseError("");
+  }
+
+  function closeEditor() {
+    setShowEditor(false);
+    setEditingFormationId(null);
+    setFormationInput("");
+    setSlots([]);
+    setSelectedSlotId(null);
   }
 
   async function deleteFormation(id: string) {
@@ -121,7 +159,7 @@ export default function FormationsPage() {
           <>
             <div className="flex justify-between items-center mb-5">
               <p className="text-xs text-gray-600 uppercase tracking-widest">커스텀 포메이션 {formations.length}개</p>
-              <button onClick={() => setShowEditor(true)} className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2 rounded-xl text-sm transition-colors">
+              <button onClick={openEditor} className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2 rounded-xl text-sm transition-colors">
                 + 포메이션 만들기
               </button>
             </div>
@@ -138,11 +176,14 @@ export default function FormationsPage() {
               <div className="flex flex-col gap-2">
                 {formations.map(f => (
                   <div key={f.id} className="bg-gray-900 border border-white/5 rounded-2xl px-5 py-4 flex items-center justify-between hover:border-white/10 transition-colors">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="font-bold text-white">{f.name}</p>
                       <p className="text-xs text-gray-600 mt-0.5">{f.slots.length}명 · {f.slots.map(s => s.label).join(" - ")}</p>
                     </div>
-                    <button onClick={() => deleteFormation(f.id)} className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors">삭제</button>
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                      <button onClick={() => openEditorForEdit(f)} className="text-xs text-emerald-400 hover:text-emerald-300 px-2.5 py-1.5 rounded-lg hover:bg-emerald-500/10 transition-colors border border-emerald-500/20">수정</button>
+                      <button onClick={() => deleteFormation(f.id)} className="text-xs text-red-400 hover:text-red-300 px-2.5 py-1.5 rounded-lg hover:bg-red-500/10 transition-colors">삭제</button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -152,7 +193,9 @@ export default function FormationsPage() {
           <>
             {/* 포메이션 입력 */}
             <div className="bg-gray-900 border border-white/5 rounded-2xl p-5 mb-5">
-              <label className="text-xs text-gray-500 mb-2 block uppercase tracking-widest font-bold">포메이션 입력</label>
+              <label className="text-xs text-gray-500 mb-2 block uppercase tracking-widest font-bold">
+                {editingFormationId ? "포메이션 수정" : "포메이션 입력"}
+              </label>
               <div className="flex flex-col gap-2">
                 <input
                   type="text"
@@ -224,15 +267,16 @@ export default function FormationsPage() {
                 )}
 
                 <div className="flex gap-3">
-                  <button onClick={saveFormation} className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-black py-3 rounded-xl font-bold transition-colors">저장</button>
-                  <button onClick={() => { setShowEditor(false); setSlots([]); setFormationInput(""); setSelectedSlotId(null); }}
-                    className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-3 rounded-xl font-semibold transition-colors">취소</button>
+                  <button onClick={saveFormation} className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-black py-3 rounded-xl font-bold transition-colors">
+                    {editingFormationId ? "수정 완료" : "저장"}
+                  </button>
+                  <button onClick={closeEditor} className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-3 rounded-xl font-semibold transition-colors">취소</button>
                 </div>
               </>
             )}
 
             {slots.length === 0 && (
-              <button onClick={() => { setShowEditor(false); setFormationInput(""); }}
+              <button onClick={closeEditor}
                 className="w-full bg-white/5 hover:bg-white/10 text-gray-400 py-3 rounded-xl font-semibold transition-colors">취소</button>
             )}
           </>

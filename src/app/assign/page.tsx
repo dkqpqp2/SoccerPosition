@@ -144,6 +144,11 @@ function AssignContent() {
     setAssigned(saved.result);
     setLoadedAssignmentId(saved.id);
     setSaveSessionName(saved.session_name);
+    // 저장된 배정에 있는 팀원들을 attendingIds에 등록 (포지션 변경 팝업을 위해)
+    const assignedMemberIds = new Set(
+      Object.values(saved.result).filter(Boolean).map(m => m!.id)
+    );
+    setAttendingIds(assignedMemberIds);
     setStep("result");
   }
 
@@ -280,7 +285,18 @@ function AssignContent() {
   function handleAssignMember(memberId: string) {
     if (!popup) return;
     const member = members.find(m => m.id === memberId)!;
-    setAssigned(prev => ({ ...prev, [popup.slotId]: member }));
+    setAssigned(prev => {
+      const next = { ...prev };
+      // 이 팀원이 다른 슬롯에 배정돼 있으면 그곳을 비워서 스왑
+      for (const [slotId, m] of Object.entries(next)) {
+        if (m?.id === memberId && slotId !== popup.slotId) {
+          next[slotId] = null;
+          break;
+        }
+      }
+      next[popup.slotId] = member;
+      return next;
+    });
     setPopup(null);
   }
 
@@ -823,46 +839,63 @@ function AssignContent() {
                 <button onClick={handleRemoveMember} className="text-sm text-red-400 hover:text-red-300 font-medium">제거</button>
               </div>
             )}
-            <p className="text-sm text-gray-500 mb-3">{popup.currentMember ? "다른 팀원으로 교체:" : "배정할 팀원 선택:"}</p>
+            <p className="text-sm text-gray-500 mb-3">{popup.currentMember ? "다른 팀원으로 교체 (이미 배정된 팀원 선택 시 스왑):" : "배정할 팀원 선택:"}</p>
             <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
               {(() => {
-                const unassigned = getUnassignedMembers(assigned, popup.slotId);
-                if (unassigned.length === 0) return <p className="text-center text-gray-600 py-4 text-sm">미배정 팀원이 없어요</p>;
-                const regular = unassigned.filter(m => !m.is_mercenary);
-                const mercenary = unassigned.filter(m => m.is_mercenary);
+                // 현재 슬롯의 팀원을 제외한 전체 참가 팀원 (미배정 + 다른 슬롯에 배정된 팀원 모두 표시)
+                const allOthers = attendingMembers.filter(m => m.id !== popup.currentMember?.id);
+                if (allOthers.length === 0) return <p className="text-center text-gray-600 py-4 text-sm">교체할 팀원이 없어요</p>;
+                const regular = allOthers.filter(m => !m.is_mercenary);
+                const mercenary = allOthers.filter(m => m.is_mercenary);
+                // 각 팀원이 현재 어느 슬롯에 배정됐는지 확인
+                const memberSlotLabel = (memberId: string) => {
+                  const slotId = Object.entries(assigned).find(([sid, m]) => m?.id === memberId && sid !== popup.slotId)?.[0];
+                  if (!slotId) return null;
+                  return formation.slots.find(s => s.id === slotId)?.label ?? slotId;
+                };
                 return (
                   <>
                     {regular.length > 0 && (
                       <>
                         <p className="text-xs font-bold text-gray-600 px-1">👥 정규팀원</p>
-                        {regular.map(m => (
+                        {regular.map(m => {
+                          const currentSlot = memberSlotLabel(m.id);
+                          return (
                           <button key={m.id} onClick={() => handleAssignMember(m.id)}
                             className="flex items-center justify-between px-4 py-3 rounded-xl border border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-colors text-left">
-                            <span className="font-medium text-white">{m.name}</span>
+                            <div>
+                              <span className="font-medium text-white">{m.name}</span>
+                              {currentSlot && <span className="ml-2 text-xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full">{currentSlot}에서 스왑</span>}
+                            </div>
                             <div className="flex gap-1">
                               {m.position_1st && <span className="text-xs bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">1: {m.position_1st}</span>}
                               {m.position_2nd && <span className="text-xs bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">2: {m.position_2nd}</span>}
                             </div>
                           </button>
-                        ))}
+                          );
+                        })}
                       </>
                     )}
                     {mercenary.length > 0 && (
                       <>
                         <p className="text-xs font-bold text-amber-400 px-1 mt-1">⚡ 용병</p>
-                        {mercenary.map(m => (
+                        {mercenary.map(m => {
+                          const currentSlot = memberSlotLabel(m.id);
+                          return (
                           <button key={m.id} onClick={() => handleAssignMember(m.id)}
                             className="flex items-center justify-between px-4 py-3 rounded-xl border border-amber-500/20 hover:border-amber-400/50 hover:bg-amber-500/5 transition-colors text-left">
                             <div>
                               <span className="font-medium text-amber-300">{m.name}</span>
                               {m.is_cafe_mercenary ? <span className="ml-2 text-xs text-sky-400">☕카페</span> : m.referrer ? <span className="ml-2 text-xs text-amber-400">{m.referrer}지인</span> : null}
+                              {currentSlot && <span className="ml-2 text-xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full">{currentSlot}에서 스왑</span>}
                             </div>
                             <div className="flex gap-1">
                               {m.position_1st && <span className="text-xs bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">1: {m.position_1st}</span>}
                               {m.position_2nd && <span className="text-xs bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">2: {m.position_2nd}</span>}
                             </div>
                           </button>
-                        ))}
+                          );
+                        })}
                       </>
                     )}
                   </>
