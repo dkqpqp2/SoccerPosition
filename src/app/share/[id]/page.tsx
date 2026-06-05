@@ -227,93 +227,82 @@ export default function SharePage() {
             </div>
           </div>
 
-          {/* ── 2행: 출전 명단(정규) | 용병 + 교체 가능 ── */}
+          {/* ── 2행: 출전 명단 | 교체 가능 ── */}
           <div className="grid grid-cols-2 gap-2.5">
 
-            {/* 출전 명단 — 정규 팀원만 */}
+            {/* 출전 명단 (정규 + 용병 모두, 한 줄 통일) */}
             <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
               <div className="px-3 py-2 border-b border-white/5">
                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">출전 명단</p>
               </div>
               <div className="p-2 flex flex-col gap-1">
-                {regularStarters.length === 0 ? (
+                {regularStarters.length === 0 && mercenaryStarters.length === 0 ? (
                   <p className="text-[10px] text-gray-600 px-1 py-2 text-center">배정 없음</p>
                 ) : (
-                  regularStarters.map(slot => {
-                    const member = assigned[slot.id]!;
-                    return (
-                      <div key={slot.id} className="flex items-center gap-1.5 bg-white/5 rounded-xl px-2 py-1.5">
-                        <span className="text-[9px] font-bold text-emerald-400 w-7 shrink-0">{slot.label}</span>
-                        <span className="text-gray-300 text-[10px] font-medium truncate">{member.name}</span>
-                      </div>
-                    );
-                  })
+                  <>
+                    {regularStarters.map(slot => {
+                      const member = assigned[slot.id]!;
+                      return (
+                        <div key={slot.id} className="flex items-center gap-1.5 bg-white/5 rounded-xl px-2 py-1.5">
+                          <span className="text-[9px] font-bold text-emerald-400 w-7 shrink-0">{slot.label}</span>
+                          <span className="text-gray-300 text-[10px] font-medium truncate">{member.name}</span>
+                        </div>
+                      );
+                    })}
+                    {mercenaryStarters.length > 0 && regularStarters.length > 0 && (
+                      <div className="border-t border-amber-500/20 my-0.5" />
+                    )}
+                    {mercenaryStarters.map(slot => {
+                      const member = assigned[slot.id]!;
+                      const badge = member.is_cafe_mercenary
+                        ? <span className="text-[9px] text-sky-400 shrink-0">☕카페</span>
+                        : member.referrer
+                        ? <span className="text-[9px] text-amber-500 shrink-0">{member.referrer}지인</span>
+                        : <span className="text-[9px] text-amber-500/60 shrink-0">용병</span>;
+                      return (
+                        <div key={slot.id} className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl px-2 py-1.5">
+                          <span className="text-[9px] font-bold text-amber-400 w-7 shrink-0">{slot.label}</span>
+                          <span className="text-amber-300 text-[10px] font-medium truncate flex-1">{member.name}</span>
+                          {badge}
+                        </div>
+                      );
+                    })}
+                  </>
                 )}
               </div>
             </div>
 
-            {/* 오른쪽: 용병(출전) + 교체 가능 */}
+            {/* 교체 가능 (한 줄 통일) */}
             <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
-              <div className="px-3 py-2 border-b border-white/5 flex items-center justify-between">
-                <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">
-                  {mercenaryStarters.length > 0 ? "용병 · 교체" : "교체 가능"}
-                </p>
-                {mercenaryStarters.length > 0 && (
-                  <span className="text-[9px] text-amber-400/60">⚡{mercenaryStarters.length}</span>
-                )}
+              <div className="px-3 py-2 border-b border-white/5">
+                <p className="text-[10px] font-bold text-sky-400 uppercase tracking-widest">교체 가능</p>
               </div>
               <div className="p-2 flex flex-col gap-1">
-
-                {/* 용병 출전 */}
-                {mercenaryStarters.map(slot => {
-                  const member = assigned[slot.id]!;
-                  return (
-                    <div key={slot.id} className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl px-2 py-1.5">
-                      <span className="text-[9px] font-bold text-amber-400 w-7 shrink-0">{slot.label}</span>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-amber-300 text-[10px] font-medium truncate block">{member.name}</span>
-                        {member.is_cafe_mercenary
-                          ? <span className="text-[9px] text-sky-400">☕카페</span>
-                          : member.referrer
-                          ? <span className="text-[9px] text-amber-500">{member.referrer}지인</span>
-                          : <span className="text-[9px] text-amber-500/60">용병</span>}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* 구분선 (둘 다 있을 때) */}
-                {mercenaryStarters.length > 0 && hasAttendingData && benchMembers.length > 0 && (
-                  <div className="border-t border-sky-500/20 my-0.5" />
-                )}
-
-                {/* 교체 가능 */}
-                {!hasAttendingData && mercenaryStarters.length === 0 ? (
+                {!hasAttendingData ? (
                   <p className="text-[10px] text-gray-600 px-1 py-2 text-center leading-relaxed">
                     참가 인원을<br />설정 후 저장 시<br />표시됩니다
                   </p>
-                ) : !hasAttendingData ? null : benchMembers.length === 0 ? (
-                  mercenaryStarters.length === 0 && <p className="text-[10px] text-gray-600 px-1 py-2 text-center">교체 없음</p>
+                ) : benchMembers.length === 0 ? (
+                  <p className="text-[10px] text-gray-600 px-1 py-2 text-center">교체 없음</p>
                 ) : (
-                  benchMembers.map((m, i) => (
-                    <div key={m.id} className="flex items-center gap-1.5 bg-sky-500/10 border border-sky-500/20 rounded-xl px-2 py-1.5">
-                      <span className="text-[9px] text-sky-500/60 w-4 shrink-0">{i + 1}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sky-300 text-[10px] font-medium truncate">{m.name}</p>
-                        {(m.position_1st || m.position_2nd) && (
-                          <p className="text-[9px] text-sky-500/60 truncate">
-                            {[m.position_1st, m.position_2nd].filter(Boolean).join(" · ")}
-                          </p>
-                        )}
-                        {m.is_mercenary && <span className="text-[9px] text-amber-400">용병</span>}
+                  benchMembers.map((m, i) => {
+                    const posText = [m.position_1st, m.position_2nd].filter(Boolean).join("·");
+                    const mercBadge = m.is_mercenary
+                      ? (m.is_cafe_mercenary
+                          ? <span className="text-[9px] text-sky-400 shrink-0">☕카페</span>
+                          : m.referrer
+                          ? <span className="text-[9px] text-amber-500 shrink-0">{m.referrer}지인</span>
+                          : <span className="text-[9px] text-amber-400 shrink-0">용병</span>)
+                      : null;
+                    return (
+                      <div key={m.id} className="flex items-center gap-1.5 bg-sky-500/10 border border-sky-500/20 rounded-xl px-2 py-1.5">
+                        <span className="text-[9px] text-sky-500/60 w-4 shrink-0">{i + 1}</span>
+                        <span className={`text-[10px] font-medium truncate flex-1 ${m.is_mercenary ? "text-amber-300" : "text-sky-300"}`}>{m.name}</span>
+                        {posText && <span className="text-[9px] text-gray-500 shrink-0">{posText}</span>}
+                        {mercBadge}
                       </div>
-                    </div>
-                  ))
-                )}
-
-                {/* 용병만 있고 교체가능 없을 때 */}
-                {hasAttendingData && benchMembers.length === 0 && mercenaryStarters.length > 0 && (
-                  <p className="text-[9px] text-gray-700 px-1 py-1 text-center">교체 없음</p>
+                    );
+                  })
                 )}
               </div>
             </div>
