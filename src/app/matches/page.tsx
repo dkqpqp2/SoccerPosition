@@ -269,13 +269,16 @@ export default function MatchesPage() {
     return `${h}시${m > 0 ? ` ${m}분` : ""}`;
   }
 
-  // 최근 4개 고유 경기장 (날짜 최신순)
-  const recentLocations = Array.from(
+  // 최근 4개 고유 경기장 (날짜 최신순, 좌표 포함)
+  const recentPlaces = Array.from(
     new Map(
       [...matches]
         .filter(m => m.location)
         .sort((a, b) => b.match_date.localeCompare(a.match_date))
-        .map(m => [m.location!, m.location!])
+        .map(m => [
+          m.location!,
+          { name: m.location!, lat: m.place_lat ?? null, lng: m.place_lng ?? null },
+        ])
     ).values()
   ).slice(0, 4);
 
@@ -348,20 +351,27 @@ export default function MatchesPage() {
                   onSelect={p => { setSelectedPlace(p); setLocation(p.name); }}
                   onClear={() => { setSelectedPlace(null); setLocation(""); }}
                 />
-                {recentLocations.length > 0 && (
+                {recentPlaces.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {recentLocations.map(loc => (
+                    {recentPlaces.map(place => (
                       <button
-                        key={loc}
+                        key={place.name}
                         type="button"
-                        onClick={() => { setSelectedPlace(null); setLocation(loc); }}
+                        onClick={() => {
+                          setLocation(place.name);
+                          if (place.lat && place.lng) {
+                            setSelectedPlace({ name: place.name, lat: place.lat, lng: place.lng });
+                          } else {
+                            setSelectedPlace(null);
+                          }
+                        }}
                         className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                          location === loc
+                          location === place.name
                             ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
                             : "bg-white/5 border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300"
                         }`}
                       >
-                        📍 {loc}
+                        📍 {place.name}
                       </button>
                     ))}
                   </div>
