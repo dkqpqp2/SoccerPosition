@@ -13,12 +13,13 @@ const NAV_ITEMS = [
   { path: "/assign", icon: "🎯", label: "포지션 배정" },
   { path: "/feedback", icon: "📝", label: "경기 피드백" },
   { path: "/stats", icon: "📊", label: "팀 통계" },
+  { path: "/board", icon: "💬", label: "게시판" },
 ];
 
 const BOTTOM_NAV = [
   { path: "/dashboard", icon: "⚡", label: "홈" },
   { path: "/matches", icon: "📅", label: "경기" },
-  { path: "/assign", icon: "🎯", label: "배정" },
+  { path: "/board", icon: "💬", label: "게시판" },
   { path: "/stats", icon: "📊", label: "통계" },
   { path: "/members", icon: "👥", label: "팀원" },
 ];

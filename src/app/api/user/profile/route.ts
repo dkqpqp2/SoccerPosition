@@ -46,8 +46,22 @@ export async function GET() {
     }
   }
 
+  // 현재 팀에서 내 team_members id 조회
+  let member_id: string | null = null;
+  if (teamId && userId) {
+    const { data: memberRow } = await supabaseAdmin
+      .from("team_members")
+      .select("id")
+      .eq("team_id", teamId)
+      .eq("user_id", userId)
+      .limit(1)
+      .single();
+    member_id = memberRow?.id ?? null;
+  }
+
   return NextResponse.json({
     ...userData,
+    member_id,
     // 표시 이름: display_name이 있으면 사용, 없으면 name(카카오)
     name: userData?.display_name || userData?.name,
     kakao_name: userData?.kakao_name || userData?.name,
