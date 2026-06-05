@@ -75,6 +75,7 @@ function AssignContent() {
   const [attendingIds, setAttendingIds] = useState<Set<string>>(new Set());
   const [showAttendModal, setShowAttendModal] = useState(false);
   const [shareToast, setShareToast] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
 
   const canManage = userRole === "owner" || userRole === "manager" || userRole === "coach" || userRole === "president";
@@ -695,7 +696,24 @@ function AssignContent() {
                   </button>
                 )}
                 {loadedAssignmentId && (
-                  <KakaoShare assignmentId={loadedAssignmentId} sessionName={saveSessionName} formationName={formation.name} matchTitle={matchInfo?.title} matchDate={matchInfo?.match_date} />
+                  <div className="flex gap-2">
+                    <KakaoShare assignmentId={loadedAssignmentId} sessionName={saveSessionName} formationName={formation.name} matchTitle={matchInfo?.title} matchDate={matchInfo?.match_date} />
+                    <button
+                      onClick={async () => {
+                        const url = `${window.location.origin}/share/${loadedAssignmentId}`;
+                        try { await navigator.clipboard.writeText(url); } catch {
+                          const t = document.createElement("textarea");
+                          t.value = url; t.style.position = "fixed"; t.style.opacity = "0";
+                          document.body.appendChild(t); t.select(); document.execCommand("copy"); document.body.removeChild(t);
+                        }
+                        setLinkCopied(true);
+                        setTimeout(() => setLinkCopied(false), 2500);
+                      }}
+                      className={`shrink-0 px-4 py-3 rounded-xl font-bold text-sm transition-colors border ${linkCopied ? "bg-blue-500/20 border-blue-500/40 text-blue-400" : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-400"}`}
+                    >
+                      {linkCopied ? "✓ 복사됨" : "🔗 링크"}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
