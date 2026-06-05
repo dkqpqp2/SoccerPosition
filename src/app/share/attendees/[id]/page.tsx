@@ -99,7 +99,7 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
           </div>
 
           {/* 참가 인원 레이아웃 */}
-          <div className={`grid gap-3 mb-4 ${regularOverflow ? "grid-cols-3" : "grid-cols-2"}`}>
+          <div className={`grid gap-3 mb-4 items-start ${regularOverflow ? "grid-cols-3" : "grid-cols-2"}`}>
 
             {/* 정규 팀원 (1번째 칸) */}
             <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
@@ -112,12 +112,13 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
                     <span className="text-xs text-gray-700 w-4 shrink-0 pt-0.5">{i + 1}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-white">{m.name}</p>
-                      {(m.position_1st || m.position_2nd) && (
-                        <div className="flex gap-0.5 mt-0.5 flex-wrap">
-                          {m.position_1st && <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-1 py-0.5 rounded">{m.position_1st}</span>}
-                          {m.position_2nd && <span className="text-[10px] bg-blue-500/15 text-blue-400 px-1 py-0.5 rounded">{m.position_2nd}</span>}
-                        </div>
-                      )}
+                      <div className="flex gap-0.5 mt-0.5 flex-wrap">
+                        {m.position_1st && <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-1 py-0.5 rounded">{m.position_1st}</span>}
+                        {m.position_2nd && <span className="text-[10px] bg-blue-500/15 text-blue-400 px-1 py-0.5 rounded">{m.position_2nd}</span>}
+                        {!m.position_1st && !m.position_2nd && (
+                          <span className="text-[10px] text-gray-700">미지정</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -137,12 +138,13 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
                       <span className="text-xs text-gray-700 w-4 shrink-0 pt-0.5">{Math.ceil(regular.length / 2) + i + 1}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-white">{m.name}</p>
-                        {(m.position_1st || m.position_2nd) && (
-                          <div className="flex gap-0.5 mt-0.5 flex-wrap">
-                            {m.position_1st && <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-1 py-0.5 rounded">{m.position_1st}</span>}
-                            {m.position_2nd && <span className="text-[10px] bg-blue-500/15 text-blue-400 px-1 py-0.5 rounded">{m.position_2nd}</span>}
-                          </div>
-                        )}
+                        <div className="flex gap-0.5 mt-0.5 flex-wrap">
+                          {m.position_1st && <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-1 py-0.5 rounded">{m.position_1st}</span>}
+                          {m.position_2nd && <span className="text-[10px] bg-blue-500/15 text-blue-400 px-1 py-0.5 rounded">{m.position_2nd}</span>}
+                          {!m.position_1st && !m.position_2nd && (
+                            <span className="text-[10px] text-gray-700">미지정</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -168,12 +170,13 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
                           ? <span className="text-[10px] text-amber-500 bg-amber-500/10 px-1 py-0.5 rounded shrink-0">{m.referrer}지인</span>
                           : null}
                       </div>
-                      {(m.position_1st || m.position_2nd) && (
-                        <div className="flex gap-0.5 mt-0.5 flex-wrap">
-                          {m.position_1st && <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-1 py-0.5 rounded">{m.position_1st}</span>}
-                          {m.position_2nd && <span className="text-[10px] bg-blue-500/15 text-blue-400 px-1 py-0.5 rounded">{m.position_2nd}</span>}
-                        </div>
-                      )}
+                      <div className="flex gap-0.5 mt-0.5 flex-wrap">
+                        {m.position_1st && <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-1 py-0.5 rounded">{m.position_1st}</span>}
+                        {m.position_2nd && <span className="text-[10px] bg-blue-500/15 text-blue-400 px-1 py-0.5 rounded">{m.position_2nd}</span>}
+                        {!m.position_1st && !m.position_2nd && (
+                          <span className="text-[10px] text-gray-700">미지정</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
