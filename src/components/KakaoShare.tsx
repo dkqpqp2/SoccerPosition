@@ -47,14 +47,14 @@ export default function KakaoShare({ assignmentId }: Props) {
     <div className="relative w-full">
       <button
         onClick={share}
-        className={`w-full flex items-center justify-center gap-2 font-bold py-3 rounded-xl transition-colors ${
+        className={`w-full flex items-center justify-center gap-2 font-bold py-3 rounded-xl transition-colors whitespace-nowrap ${
           state === "copied"
             ? "bg-blue-500 text-white"
             : "bg-yellow-400 hover:bg-yellow-500 text-gray-900"
         }`}
       >
         <span className="text-lg">{state === "copied" ? "✓" : "💬"}</span>
-        {state === "copied" ? "링크 복사됨! 카카오톡에 붙여넣기" : "카카오톡으로 공유"}
+        {state === "copied" ? "링크 복사됨!" : "카카오 공유"}
       </button>
     </div>
   );

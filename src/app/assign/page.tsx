@@ -709,9 +709,9 @@ function AssignContent() {
                         setLinkCopied(true);
                         setTimeout(() => setLinkCopied(false), 2500);
                       }}
-                      className={`shrink-0 px-4 py-3 rounded-xl font-bold text-sm transition-colors border ${linkCopied ? "bg-blue-500/20 border-blue-500/40 text-blue-400" : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-400"}`}
+                      className={`shrink-0 px-4 py-3 rounded-xl font-bold text-sm transition-colors border whitespace-nowrap ${linkCopied ? "bg-blue-500/20 border-blue-500/40 text-blue-400" : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-400"}`}
                     >
-                      {linkCopied ? "✓ 복사됨" : "🔗 링크"}
+                      {linkCopied ? "✓" : "🔗"} 링크
                     </button>
                   </div>
                 )}
