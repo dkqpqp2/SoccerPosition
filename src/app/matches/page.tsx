@@ -171,9 +171,9 @@ export default function MatchesPage() {
     const membersRes = await fetch("/api/members");
     const allMembers: { id: string; name: string; is_mercenary: boolean }[] = await membersRes.json();
 
-    // 참가자 중 멤버 목록 구성
+    // 참가자 중 정규 팀원만 (용병 제외)
     const attendingIds: Set<string> = new Set(Array.isArray(member_ids) ? member_ids : []);
-    const attending = allMembers.filter(m => attendingIds.has(m.id));
+    const attending = allMembers.filter(m => attendingIds.has(m.id) && !m.is_mercenary);
 
     // 기존 저장 기록 매핑
     const savedMap: Record<string, { goals: number; assists: number }> = {};

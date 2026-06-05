@@ -6,11 +6,12 @@ import { useEffect, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 
 interface Entry {
-  member_id:    string;
-  name:         string;
-  goals:        number;
-  assists:      number;
-  games_played: number;
+  member_id:   string;
+  name:        string;
+  goals:       number;
+  assists:     number;
+  auto_games:  number;  // match_attendees 자동 (읽기전용)
+  extra_games: number;  // 미등록 추가 출전 (수동 입력)
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -23,12 +24,12 @@ export default function StatsManagePage() {
   const [year,     setYear]     = useState(CURRENT_YEAR);
   const windowYears = [baseYear, baseYear + 1, baseYear + 2];
 
-  const [entries,            setEntries]            = useState<Entry[]>([]);
-  const [registeredMatches,  setRegisteredMatches]  = useState(0);
-  const [extraMatches,       setExtraMatches]       = useState(0);
-  const [loading,            setLoading]            = useState(true);
-  const [saving,             setSaving]             = useState(false);
-  const [savedToast,         setSavedToast]         = useState(false);
+  const [entries,           setEntries]           = useState<Entry[]>([]);
+  const [registeredMatches, setRegisteredMatches] = useState(0);
+  const [extraMatches,      setExtraMatches]      = useState(0);
+  const [loading,           setLoading]           = useState(true);
+  const [saving,            setSaving]            = useState(false);
+  const [savedToast,        setSavedToast]        = useState(false);
 
   const totalMatches = registeredMatches + extraMatches;
 
@@ -56,12 +57,13 @@ export default function StatsManagePage() {
     setExtraMatches(data.extra_matches ?? 0);
     setEntries(
       (Array.isArray(data.members) ? data.members : []).map(
-        (d: { id?: string; member_id?: string; name: string; goals: number; assists: number; games_played: number }) => ({
-          member_id:    d.member_id ?? d.id ?? "",
-          name:         d.name,
-          goals:        d.goals,
-          assists:      d.assists,
-          games_played: d.games_played,
+        (d: { id?: string; member_id?: string; name: string; goals: number; assists: number; auto_games: number; extra_games: number }) => ({
+          member_id:   d.member_id ?? d.id ?? "",
+          name:        d.name,
+          goals:       d.goals,
+          assists:     d.assists,
+          auto_games:  d.auto_games  ?? 0,
+          extra_games: d.extra_games ?? 0,
         })
       )
     );
@@ -71,7 +73,7 @@ export default function StatsManagePage() {
   function switchYear(y: number) { setYear(y); fetchStats(y); }
   function shiftWindow(delta: number) { const nb = baseYear + delta; setBaseYear(nb); switchYear(nb); }
 
-  function updateEntry(memberId: string, field: keyof Omit<Entry, "member_id" | "name">, delta: number) {
+  function updateEntry(memberId: string, field: "goals" | "assists" | "extra_games", delta: number) {
     setEntries(prev => prev.map(e =>
       e.member_id === memberId ? { ...e, [field]: Math.max(0, e[field] + delta) } : e
     ));
@@ -82,7 +84,16 @@ export default function StatsManagePage() {
     await fetch("/api/player-stats", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ year, extra_matches: extraMatches, entries }),
+      body:    JSON.stringify({
+        year,
+        extra_matches: extraMatches,
+        entries: entries.map(e => ({
+          member_id:   e.member_id,
+          goals:       e.goals,
+          assists:     e.assists,
+          extra_games: e.extra_games,
+        })),
+      }),
     });
     setSaving(false);
     setSavedToast(true);
@@ -127,9 +138,10 @@ export default function StatsManagePage() {
           <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
 
             {/* 컬럼 헤더 */}
-            <div className="grid grid-cols-[1fr_96px_96px_96px] items-center px-4 py-2.5 border-b border-white/10 bg-white/3">
+            <div className="grid grid-cols-[1fr_80px_80px_80px_80px] items-center px-4 py-2.5 border-b border-white/10 bg-white/3">
               <span className="text-xs text-gray-500 font-semibold">선수</span>
-              <span className="text-xs text-gray-400 font-semibold text-center">🏃 출전</span>
+              <span className="text-xs text-gray-400 font-semibold text-center">🏃 자동</span>
+              <span className="text-xs text-amber-400 font-semibold text-center">➕ 추가</span>
               <span className="text-xs text-emerald-400 font-semibold text-center">🥅 골</span>
               <span className="text-xs text-blue-400 font-semibold text-center">🎯 어시</span>
             </div>
@@ -138,19 +150,31 @@ export default function StatsManagePage() {
             <div className="divide-y divide-white/5">
               {entries.map(entry => (
                 <div key={entry.member_id}
-                  className="grid grid-cols-[1fr_96px_96px_96px] items-center px-4 py-2">
+                  className="grid grid-cols-[1fr_80px_80px_80px_80px] items-center px-4 py-2">
                   <span className="text-sm font-medium text-white truncate pr-2">{entry.name}</span>
 
+                  {/* 자동 출전 (읽기전용) */}
+                  <div className="flex items-center justify-center">
+                    <span className={`text-sm font-black ${entry.auto_games > 0 ? "text-gray-300" : "text-gray-700"}`}>
+                      {entry.auto_games}
+                    </span>
+                  </div>
+
+                  {/* 추가 출전 (+/- 버튼) */}
                   <Counter
-                    value={entry.games_played}
-                    onChange={d => updateEntry(entry.member_id, "games_played", d)}
-                    color="gray"
+                    value={entry.extra_games}
+                    onChange={d => updateEntry(entry.member_id, "extra_games", d)}
+                    color="amber"
                   />
+
+                  {/* 골 */}
                   <Counter
                     value={entry.goals}
                     onChange={d => updateEntry(entry.member_id, "goals", d)}
                     color="emerald"
                   />
+
+                  {/* 어시 */}
                   <Counter
                     value={entry.assists}
                     onChange={d => updateEntry(entry.member_id, "assists", d)}
@@ -160,9 +184,15 @@ export default function StatsManagePage() {
               ))}
             </div>
 
-            {/* 총 경기수 */}
+            {/* 총 경기수 섹션 */}
             <div className="border-t border-white/10 px-4 py-4 bg-white/3 flex flex-col gap-2.5">
               <p className="text-xs font-semibold text-gray-400">📅 총 경기수 · 참석률 계산 기준</p>
+
+              {/* 자동 안내 */}
+              <div className="bg-white/3 border border-white/5 rounded-xl px-3 py-2">
+                <p className="text-[11px] text-gray-500 mb-1.5 font-semibold">🏃 자동 출전 수 계산 방식</p>
+                <p className="text-[11px] text-gray-600">경기 배정 페이지에서 참석 체크 시 자동 반영돼요</p>
+              </div>
 
               {/* 등록 경기 (자동) */}
               <div className="flex items-center justify-between">
@@ -196,8 +226,11 @@ export default function StatsManagePage() {
               </div>
             </div>
 
-            {/* 저장 */}
+            {/* 저장 버튼 */}
             <div className="px-4 py-4 border-t border-white/10">
+              <p className="text-[11px] text-gray-600 mb-3 text-center">
+                💡 자동 출전은 배정 페이지에서 자동 반영 · 골/어시/추가출전만 저장돼요
+              </p>
               <button onClick={save} disabled={saving}
                 className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold py-3 rounded-xl transition-colors">
                 {saving ? "저장 중..." : "💾 저장"}
@@ -220,31 +253,29 @@ export default function StatsManagePage() {
 function Counter({ value, onChange, color }: {
   value: number;
   onChange: (delta: number) => void;
-  color: "gray" | "emerald" | "blue";
+  color: "gray" | "emerald" | "blue" | "amber";
 }) {
   const numColor = {
-    gray:    value > 0 ? "text-white"        : "text-gray-700",
-    emerald: value > 0 ? "text-emerald-400"  : "text-gray-700",
-    blue:    value > 0 ? "text-blue-400"     : "text-gray-700",
+    gray:    value > 0 ? "text-white"       : "text-gray-700",
+    emerald: value > 0 ? "text-emerald-400" : "text-gray-700",
+    blue:    value > 0 ? "text-blue-400"    : "text-gray-700",
+    amber:   value > 0 ? "text-amber-400"   : "text-gray-700",
   }[color];
 
   const plusCls = {
     gray:    "bg-white/5 hover:bg-white/10 text-gray-400",
     emerald: "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400",
     blue:    "bg-blue-500/20 hover:bg-blue-500/30 text-blue-400",
+    amber:   "bg-amber-500/20 hover:bg-amber-500/30 text-amber-400",
   }[color];
 
   return (
-    <div className="flex items-center justify-center gap-1">
-      <button
-        onClick={() => onChange(-1)}
-        className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 font-bold text-sm flex items-center justify-center transition-colors"
-      >−</button>
-      <span className={`text-sm font-black w-6 text-center ${numColor}`}>{value}</span>
-      <button
-        onClick={() => onChange(1)}
-        className={`w-7 h-7 rounded-lg font-bold text-sm flex items-center justify-center transition-colors ${plusCls}`}
-      >+</button>
+    <div className="flex items-center justify-center gap-0.5">
+      <button onClick={() => onChange(-1)}
+        className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 font-bold text-sm flex items-center justify-center transition-colors">−</button>
+      <span className={`text-sm font-black w-5 text-center ${numColor}`}>{value}</span>
+      <button onClick={() => onChange(1)}
+        className={`w-6 h-6 rounded-lg font-bold text-sm flex items-center justify-center transition-colors ${plusCls}`}>+</button>
     </div>
   );
 }
