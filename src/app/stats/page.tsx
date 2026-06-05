@@ -19,19 +19,27 @@ interface PlayerStat {
 type SortKey = "goals" | "assists" | "attendance_rate" | "name";
 
 const CURRENT_YEAR = new Date().getFullYear();
+const PAGE_SIZE    = 10;
+
+const SORT_LABELS: Record<SortKey, string> = {
+  goals:           "🥅 골",
+  assists:         "🎯 어시",
+  attendance_rate: "🏃 참석률",
+  name:            "가나다",
+};
 
 export default function StatsPage() {
   const { status } = useSession();
-  const router = useRouter();
-  const [stats, setStats]     = useState<PlayerStat[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sort, setSort]       = useState<SortKey>("goals");
-  const [year, setYear]       = useState(String(CURRENT_YEAR));
-  const [userRole, setUserRole] = useState<string | null>(null);
-  // 3개 연도 윈도우의 시작 연도
-  const [baseYear, setBaseYear] = useState(CURRENT_YEAR);
+  const router     = useRouter();
 
-  // 현재 윈도우에 보여줄 3개 연도
+  const [stats,     setStats]     = useState<PlayerStat[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [sort,      setSort]      = useState<SortKey>("goals");
+  const [year,      setYear]      = useState(String(CURRENT_YEAR));
+  const [userRole,  setUserRole]  = useState<string | null>(null);
+  const [baseYear,  setBaseYear]  = useState(CURRENT_YEAR);
+  const [listPage,  setListPage]  = useState(0);
+
   const windowYears = [baseYear, baseYear + 1, baseYear + 2].map(String);
 
   useEffect(() => {
@@ -49,77 +57,58 @@ export default function StatsPage() {
     const res  = await fetch(`/api/stats?year=${y}`);
     const data = await res.json();
     setStats(Array.isArray(data) ? data : []);
+    setListPage(0);
     setLoading(false);
   }
 
-  function switchYear(y: string) {
-    setYear(y);
-    fetchStats(y);
-  }
-
+  function switchYear(y: string) { setYear(y); fetchStats(y); }
   function shiftWindow(delta: number) {
-    const newBase = baseYear + delta;
-    setBaseYear(newBase);
-    // 선택 연도도 같이 이동
-    const newYear = String(newBase);
-    setYear(newYear);
-    fetchStats(newYear);
+    const nb = baseYear + delta;
+    setBaseYear(nb);
+    const ny = String(nb);
+    setYear(ny);
+    fetchStats(ny);
   }
 
-  // 전체 정렬 (순위 계산용)
+  /* ── 정렬 ── */
   const fullSorted = [...stats].sort((a, b) =>
     sort === "name" ? a.name.localeCompare(b.name) : b[sort] - a[sort]
   );
   const rankMap = Object.fromEntries(fullSorted.map((p, i) => [p.id, i + 1]));
 
-  // 나를 맨 위로, 나머지는 정렬 순
-  const me     = stats.find(p => p.is_me);
-  const others = fullSorted.filter(p => !p.is_me);
-  const sorted = me ? [me, ...others] : others;
+  const me      = stats.find(p => p.is_me);
+  const totalMatches = stats[0]?.total_matches ?? 0;
 
-  const topScorer     = [...stats].sort((a, b) => b.goals           - a.goals)[0];
-  const topAssister   = [...stats].sort((a, b) => b.assists         - a.assists)[0];
-  const topAttendance = [...stats].sort((a, b) => b.attendance_rate - a.attendance_rate)[0];
-  const totalMatches  = stats[0]?.total_matches ?? 0;
+  /* ── TOP 3 (sort !== "name" 일 때만) ── */
+  const top3 = sort !== "name" ? fullSorted.slice(0, 3) : [];
+
+  /* ── 나머지 목록: 4위부터 + "나" 제외 (이미 위에 표시) ── */
+  const restList = (() => {
+    if (sort === "name") return fullSorted.filter(p => !p.is_me);
+    return fullSorted.slice(3).filter(p => !p.is_me);
+  })();
+
+  const totalPages  = Math.ceil(restList.length / PAGE_SIZE);
+  const pagedList   = restList.slice(listPage * PAGE_SIZE, (listPage + 1) * PAGE_SIZE);
 
   return (
     <AppLayout title="팀 통계">
       <div className="max-w-2xl mx-auto px-4 py-6">
 
-        {/* 연도 탭 + 화살표 */}
+        {/* ── 연도 탭 ── */}
         <div className="flex items-center gap-2 mb-5">
-          {/* 이전 */}
-          <button
-            onClick={() => shiftWindow(-1)}
-            className="w-8 h-8 flex items-center justify-center bg-gray-900 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white rounded-xl transition-colors shrink-0 text-sm"
-          >
-            ‹
-          </button>
-
-          {/* 연도 3개 */}
+          <button onClick={() => shiftWindow(-1)}
+            className="w-8 h-8 flex items-center justify-center bg-gray-900 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white rounded-xl transition-colors shrink-0 text-sm">‹</button>
           <div className="flex gap-1.5 flex-1 bg-gray-900 border border-white/5 rounded-xl p-1.5">
             {windowYears.map(y => (
-              <button
-                key={y}
-                onClick={() => switchYear(y)}
+              <button key={y} onClick={() => switchYear(y)}
                 className={`flex-1 text-sm font-bold py-1.5 rounded-lg transition-colors ${
-                  year === y
-                    ? "bg-emerald-500 text-black"
-                    : "text-gray-500 hover:text-white"
-                }`}
-              >
-                {y}년
-              </button>
+                  year === y ? "bg-emerald-500 text-black" : "text-gray-500 hover:text-white"
+                }`}>{y}년</button>
             ))}
           </div>
-
-          {/* 다음 */}
-          <button
-            onClick={() => shiftWindow(1)}
-            className="w-8 h-8 flex items-center justify-center bg-gray-900 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white rounded-xl transition-colors shrink-0 text-sm"
-          >
-            ›
-          </button>
+          <button onClick={() => shiftWindow(1)}
+            className="w-8 h-8 flex items-center justify-center bg-gray-900 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white rounded-xl transition-colors shrink-0 text-sm">›</button>
         </div>
 
         {loading ? (
@@ -133,93 +122,82 @@ export default function StatsPage() {
           </div>
         ) : (
           <>
-            {/* 헤더 정보 + 관리 버튼 */}
-            <div className="flex items-center justify-between mb-5">
+            {/* ── 정보바 + 관리 버튼 ── */}
+            <div className="flex items-center justify-between mb-4">
               <p className="text-xs text-gray-600">
                 {year}년 총 <span className="text-white font-semibold">{totalMatches}</span>경기
                 · 팀원 <span className="text-white font-semibold">{stats.length}</span>명
               </p>
               {canManageStats && (
-                <button
-                  onClick={() => router.push("/stats/manage")}
-                  className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors"
-                >
+                <button onClick={() => router.push("/stats/manage")}
+                  className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors">
                   ✏️ 기록 관리
                 </button>
               )}
             </div>
 
-            {/* TOP 왕 카드 */}
-            {totalMatches > 0 && (
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                <TopCard
-                  emoji="🥅"
-                  label="득점왕"
-                  name={topScorer?.goals > 0 ? topScorer.name : undefined}
-                  value={topScorer?.goals > 0 ? `${topScorer.goals}골` : undefined}
-                  color="emerald"
-                />
-                <TopCard
-                  emoji="🎯"
-                  label="도움왕"
-                  name={topAssister?.assists > 0 ? topAssister.name : undefined}
-                  value={topAssister?.assists > 0 ? `${topAssister.assists}도움` : undefined}
-                  color="blue"
-                />
-                <TopCard
-                  emoji="🏃"
-                  label="출석왕"
-                  name={topAttendance?.attendance_rate > 0 ? topAttendance.name : undefined}
-                  value={topAttendance?.attendance_rate > 0 ? `${topAttendance.attendance_rate}%` : undefined}
-                  color="amber"
-                />
-              </div>
-            )}
-
-            {/* 정렬 탭 */}
-            <div className="flex gap-1.5 mb-4 bg-gray-900 border border-white/5 rounded-xl p-1.5">
-              {(["goals", "assists", "attendance_rate", "name"] as SortKey[]).map(key => {
-                const labels: Record<SortKey, string> = {
-                  goals:           "🥅 골",
-                  assists:         "🎯 어시",
-                  attendance_rate: "🏃 참석률",
-                  name:            "가나다",
-                };
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setSort(key)}
-                    className={`flex-1 text-xs font-semibold py-1.5 rounded-lg transition-colors ${
-                      sort === key
-                        ? "bg-white/10 text-white"
-                        : "text-gray-600 hover:text-gray-400"
-                    }`}
-                  >
-                    {labels[key]}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* 경기 없을 때 */}
-            {totalMatches === 0 && (
-              <div className="text-center py-10">
-                <div className="text-4xl mb-2 opacity-20">📅</div>
-                <p className="text-gray-600 text-sm">{year}년 경기 기록이 없어요</p>
-              </div>
-            )}
-
-            {/* 선수 카드 목록 */}
-            <div className="flex flex-col gap-2">
-              {sorted.map(p => (
-                <PlayerCard
-                  key={p.id}
-                  player={p}
-                  rank={sort !== "name" ? rankMap[p.id] : null}
-                  sortKey={sort}
-                />
+            {/* ── 정렬 탭 ── */}
+            <div className="flex gap-1.5 mb-5 bg-gray-900 border border-white/5 rounded-xl p-1.5">
+              {(Object.keys(SORT_LABELS) as SortKey[]).map(key => (
+                <button key={key} onClick={() => { setSort(key); setListPage(0); }}
+                  className={`flex-1 text-xs font-semibold py-1.5 rounded-lg transition-colors ${
+                    sort === key ? "bg-white/10 text-white" : "text-gray-600 hover:text-gray-400"
+                  }`}>
+                  {SORT_LABELS[key]}
+                </button>
               ))}
             </div>
+
+            {/* ── 나 카드 ── */}
+            {me && (
+              <div className="mb-5">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-widest mb-2">내 기록</p>
+                <MyCard player={me} rank={sort !== "name" ? rankMap[me.id] : null} sortKey={sort} totalPlayers={stats.length} />
+              </div>
+            )}
+
+            {/* ── TOP 3 포디엄 ── */}
+            {sort !== "name" && top3.length > 0 && (
+              <div className="mb-5">
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-widest mb-2">TOP 3</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {top3.map((p, i) => (
+                    <PodiumCard key={p.id} player={p} rank={i + 1} sortKey={sort} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── 나머지 컴팩트 목록 ── */}
+            {restList.length > 0 && (
+              <div>
+                <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-widest mb-2">
+                  {sort !== "name" ? "전체 순위" : "팀원 목록"}
+                </p>
+                <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+                  <div className="divide-y divide-white/5">
+                    {pagedList.map(p => (
+                      <CompactRow key={p.id} player={p} rank={sort !== "name" ? rankMap[p.id] : null} sortKey={sort} />
+                    ))}
+                  </div>
+
+                  {/* 페이지네이션 */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-white/5">
+                      <button onClick={() => setListPage(p => Math.max(0, p - 1))} disabled={listPage === 0}
+                        className="text-sm px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white disabled:opacity-30 transition-colors">
+                        ‹ 이전
+                      </button>
+                      <span className="text-xs text-gray-600">{listPage + 1} / {totalPages}</span>
+                      <button onClick={() => setListPage(p => Math.min(totalPages - 1, p + 1))} disabled={listPage === totalPages - 1}
+                        className="text-sm px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white disabled:opacity-30 transition-colors">
+                        다음 ›
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -227,76 +205,53 @@ export default function StatsPage() {
   );
 }
 
-/* ────────────────────── 서브 컴포넌트 ────────────────────── */
-
-function TopCard({
-  emoji, label, name, value, color,
-}: {
-  emoji: string; label: string;
-  name?: string; value?: string;
-  color: "emerald" | "blue" | "amber";
-}) {
-  const ring = { emerald: "bg-emerald-500/10 border-emerald-500/20", blue: "bg-blue-500/10 border-blue-500/20", amber: "bg-amber-500/10 border-amber-500/20" }[color];
-  const text = { emerald: "text-emerald-400", blue: "text-blue-400", amber: "text-amber-400" }[color];
-  return (
-    <div className={`rounded-2xl border p-3 text-center flex flex-col items-center gap-1 ${ring}`}>
-      <span className="text-2xl">{emoji}</span>
-      <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide">{label}</p>
-      {name ? (
-        <>
-          <p className="text-sm font-bold text-white leading-tight truncate w-full text-center">{name}</p>
-          <p className={`text-xs font-black ${text}`}>{value}</p>
-        </>
-      ) : (
-        <p className="text-xs text-gray-700">기록 없음</p>
-      )}
-    </div>
-  );
-}
-
-function PlayerCard({ player, rank, sortKey }: {
-  player: PlayerStat; rank: number | null; sortKey: SortKey;
+/* ═══════════════════════════════════════
+   내 카드 (상단 고정, 풀 사이즈)
+═══════════════════════════════════════ */
+function MyCard({ player, rank, sortKey, totalPlayers }: {
+  player: PlayerStat; rank: number | null; sortKey: SortKey; totalPlayers: number;
 }) {
   const rate     = player.attendance_rate;
   const barColor = rate >= 80 ? "bg-emerald-500" : rate >= 50 ? "bg-amber-400" : "bg-red-500";
+  const rankMedal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
 
   return (
-    <div className={`border rounded-2xl px-4 py-3.5 transition-colors ${
-      player.is_me
-        ? "bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/30"
-        : "bg-gray-900 border-white/5 hover:border-white/10"
-    }`}>
-      <div className="flex items-center gap-3">
+    <div className="bg-emerald-500/5 border-2 border-emerald-500/30 rounded-2xl px-4 py-4">
+      <div className="flex items-center gap-3 mb-3">
+        {/* 순위 */}
         {rank !== null && (
-          <span className={`text-sm font-black w-5 shrink-0 text-center ${
-            rank === 1 ? "text-yellow-400" : rank === 2 ? "text-gray-400" : rank === 3 ? "text-amber-700" : "text-gray-700"
-          }`}>
-            {rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank}
-          </span>
+          <div className="shrink-0 text-center w-8">
+            {rankMedal ? (
+              <span className="text-2xl">{rankMedal}</span>
+            ) : (
+              <span className="text-lg font-black text-gray-500">{rank}</span>
+            )}
+          </div>
         )}
 
-        <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <p className="font-bold text-white text-sm truncate">{player.name}</p>
-          {player.is_me && (
-            <span className="shrink-0 text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-full">나</span>
+        {/* 이름 + 나 뱃지 */}
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <p className="font-black text-white text-base truncate">{player.name}</p>
+          <span className="shrink-0 text-[10px] font-bold bg-emerald-500 text-black px-2 py-0.5 rounded-full">나</span>
+          {rank !== null && (
+            <span className="text-[11px] text-gray-500 shrink-0">{rank}/{totalPlayers}위</span>
           )}
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <StatBadge emoji="🥅" value={player.goals}   unit="골"    active={sortKey === "goals"}   color="emerald" />
-          <StatBadge emoji="🎯" value={player.assists} unit="도움" active={sortKey === "assists"} color="blue"    />
+        {/* 스탯 뱃지 */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <StatBadge emoji="🥅" value={player.goals}   unit="골"  active={sortKey === "goals"}   color="emerald" size="lg" />
+          <StatBadge emoji="🎯" value={player.assists} unit="도움" active={sortKey === "assists"} color="blue"    size="lg" />
         </div>
       </div>
 
       {/* 참석률 바 */}
-      <div className="mt-3">
+      <div>
         <div className="flex items-center justify-between mb-1.5">
-          <span className={`text-[11px] font-semibold ${sortKey === "attendance_rate" ? "text-amber-400" : "text-gray-600"}`}>
-            🏃 참석률
-          </span>
+          <span className={`text-xs font-semibold ${sortKey === "attendance_rate" ? "text-amber-400" : "text-gray-500"}`}>🏃 참석률</span>
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] text-gray-600">{player.games_played}/{player.total_matches}경기</span>
-            <span className={`text-xs font-black ${
+            <span className={`text-sm font-black ${
               player.total_matches === 0 ? "text-gray-700" :
               rate >= 80 ? "text-emerald-400" : rate >= 50 ? "text-amber-400" : "text-red-400"
             }`}>
@@ -304,7 +259,7 @@ function PlayerCard({ player, rank, sortKey }: {
             </span>
           </div>
         </div>
-        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
           <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${rate}%` }} />
         </div>
       </div>
@@ -312,15 +267,106 @@ function PlayerCard({ player, rank, sortKey }: {
   );
 }
 
-function StatBadge({ emoji, value, unit, active, color }: {
-  emoji: string; value: number; unit: string; active: boolean; color: "emerald" | "blue";
+/* ═══════════════════════════════════════
+   포디엄 카드 (TOP 3)
+═══════════════════════════════════════ */
+const PODIUM_STYLES = [
+  { border: "border-yellow-400/40",  bg: "bg-yellow-400/5",  medal: "🥇", nameColor: "text-yellow-300", label: "1위" },
+  { border: "border-gray-400/40",    bg: "bg-gray-400/5",    medal: "🥈", nameColor: "text-gray-300",   label: "2위" },
+  { border: "border-amber-700/40",   bg: "bg-amber-700/5",   medal: "🥉", nameColor: "text-amber-600",  label: "3위" },
+];
+
+function PodiumCard({ player, rank, sortKey }: {
+  player: PlayerStat; rank: number; sortKey: SortKey;
+}) {
+  const s    = PODIUM_STYLES[rank - 1];
+  const rate = player.attendance_rate;
+
+  const mainValue = sortKey === "goals"           ? `${player.goals}골`
+                  : sortKey === "assists"         ? `${player.assists}도움`
+                  : sortKey === "attendance_rate" ? `${rate}%`
+                  : "";
+
+  const barColor = rate >= 80 ? "bg-emerald-500" : rate >= 50 ? "bg-amber-400" : "bg-red-500";
+
+  return (
+    <div className={`rounded-2xl border ${s.border} ${s.bg} p-3 flex flex-col items-center gap-1.5`}>
+      <span className="text-2xl">{s.medal}</span>
+      <p className={`text-xs font-black truncate w-full text-center ${s.nameColor}`}>
+        {player.name}
+        {player.is_me && <span className="ml-1 text-[9px] bg-emerald-500/30 text-emerald-400 px-1 py-0.5 rounded-full">나</span>}
+      </p>
+      {mainValue && (
+        <p className="text-base font-black text-white">{mainValue}</p>
+      )}
+      {/* 참석률 미니 바 */}
+      <div className="w-full mt-0.5">
+        <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+          <div className={`h-full rounded-full ${barColor}`} style={{ width: `${rate}%` }} />
+        </div>
+        <p className="text-[10px] text-gray-600 text-center mt-0.5">{player.games_played}/{player.total_matches}경기</p>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════
+   컴팩트 행 (4위 이하)
+═══════════════════════════════════════ */
+function CompactRow({ player, rank, sortKey }: {
+  player: PlayerStat; rank: number | null; sortKey: SortKey;
+}) {
+  const rate     = player.attendance_rate;
+  const barColor = rate >= 80 ? "bg-emerald-500" : rate >= 50 ? "bg-amber-400" : "bg-red-500";
+
+  return (
+    <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/3 transition-colors">
+      {/* 순위 */}
+      <span className="text-xs text-gray-600 w-5 text-center shrink-0">{rank ?? "·"}</span>
+
+      {/* 이름 */}
+      <p className="flex-1 text-sm font-semibold text-white truncate min-w-0">{player.name}</p>
+
+      {/* 스탯 */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <StatBadge emoji="🥅" value={player.goals}   unit="골"  active={sortKey === "goals"}   color="emerald" size="sm" />
+        <StatBadge emoji="🎯" value={player.assists} unit="도움" active={sortKey === "assists"} color="blue"    size="sm" />
+      </div>
+
+      {/* 참석률 */}
+      <div className="w-16 shrink-0">
+        <div className="flex items-center justify-between mb-0.5">
+          <span className={`text-[10px] font-bold ${
+            player.total_matches === 0 ? "text-gray-700" :
+            rate >= 80 ? "text-emerald-400" : rate >= 50 ? "text-amber-400" : "text-red-400"
+          }`}>
+            {player.total_matches === 0 ? "–" : `${rate}%`}
+          </span>
+        </div>
+        <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+          <div className={`h-full rounded-full ${barColor}`} style={{ width: `${rate}%` }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════
+   공통 스탯 뱃지
+═══════════════════════════════════════ */
+function StatBadge({ emoji, value, unit, active, color, size = "sm" }: {
+  emoji: string; value: number; unit: string;
+  active: boolean; color: "emerald" | "blue";
+  size?: "sm" | "lg";
 }) {
   const cls = {
     emerald: active ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-white/5 text-gray-500 border-white/5",
     blue:    active ? "bg-blue-500/20    text-blue-400    border-blue-500/30"    : "bg-white/5 text-gray-500 border-white/5",
   }[color];
   return (
-    <div className={`flex items-center gap-1 px-2.5 py-1 rounded-xl border text-xs font-bold ${cls}`}>
+    <div className={`flex items-center gap-0.5 border rounded-lg font-bold ${cls} ${
+      size === "lg" ? "px-2.5 py-1 text-xs" : "px-1.5 py-0.5 text-[11px]"
+    }`}>
       <span>{emoji}</span><span>{value}{unit}</span>
     </div>
   );
