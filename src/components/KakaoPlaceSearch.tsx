@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { loadKakaoSDK } from "@/lib/kakao";
+import { useState } from "react";
 
 export interface SelectedPlace {
   name: string;
@@ -9,7 +8,7 @@ export interface SelectedPlace {
   lng: number;
 }
 
-interface KakaoPlace {
+interface KakaoDocument {
   place_name: string;
   address_name: string;
   road_address_name?: string;
@@ -18,43 +17,49 @@ interface KakaoPlace {
 }
 
 interface Props {
-  /** 이미 선택된 장소. null이면 검색 UI 표시. */
   selected: SelectedPlace | null;
   onSelect: (place: SelectedPlace) => void;
   onClear: () => void;
 }
 
 export default function KakaoPlaceSearch({ selected, onSelect, onClear }: Props) {
-  const [query,    setQuery]    = useState("");
-  const [results,  setResults]  = useState<KakaoPlace[]>([]);
-  const [loading,  setLoading]  = useState(false);
-  const [ready,    setReady]    = useState(false);
-  const [error,    setError]    = useState("");
+  const [query,   setQuery]   = useState("");
+  const [results, setResults] = useState<KakaoDocument[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState("");
 
-  useEffect(() => {
-    loadKakaoSDK().then(() => setReady(true));
-  }, []);
+  async function search() {
+    const q = query.trim();
+    if (!q) return;
 
-  function search() {
-    if (!ready || !query.trim()) return;
     setLoading(true);
     setError("");
     setResults([]);
-    const ps = new window.kakao.maps.services.Places();
-    ps.keywordSearch(query.trim(), (data: KakaoPlace[], status: string) => {
-      setLoading(false);
-      if (status === window.kakao.maps.services.Status.OK) {
-        setResults(data.slice(0, 5));
-      } else if (status === window.kakao.maps.services.Status.ZERO_RESULT) {
+
+    try {
+      const res = await fetch(`/api/kakao/places?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError("검색 오류: " + (data.error ?? res.status));
+        return;
+      }
+
+      const docs: KakaoDocument[] = data.documents ?? [];
+      if (docs.length === 0) {
         setError("검색 결과가 없어요. 다른 키워드로 시도해보세요.");
       } else {
-        setError("검색 중 오류가 발생했어요.");
+        setResults(docs);
       }
-    });
+    } catch {
+      setError("네트워크 오류가 발생했어요.");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function pick(place: KakaoPlace) {
-    onSelect({ name: place.place_name, lat: parseFloat(place.y), lng: parseFloat(place.x) });
+  function pick(doc: KakaoDocument) {
+    onSelect({ name: doc.place_name, lat: parseFloat(doc.y), lng: parseFloat(doc.x) });
     setResults([]);
     setQuery("");
   }
@@ -92,32 +97,31 @@ export default function KakaoPlaceSearch({ selected, onSelect, onClear }: Props)
         <button
           type="button"
           onClick={search}
-          disabled={!ready || loading}
-          className="shrink-0 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/20 px-3 py-2 rounded-lg text-sm font-semibold disabled:opacity-40 transition-colors min-w-[52px]"
+          disabled={loading}
+          className="shrink-0 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/20 px-3 py-2 rounded-lg text-sm font-semibold disabled:opacity-40 transition-colors min-w-[52px] flex items-center justify-center"
         >
-          {loading ? <span className="inline-block w-4 h-4 border border-emerald-400 border-t-transparent rounded-full animate-spin" /> : "검색"}
+          {loading
+            ? <span className="inline-block w-4 h-4 border border-emerald-400 border-t-transparent rounded-full animate-spin" />
+            : "검색"}
         </button>
       </div>
 
-      {!ready && (
-        <p className="text-[11px] text-gray-600 mt-1">카카오맵 초기화 중...</p>
-      )}
       {error && (
         <p className="text-xs text-amber-400 mt-1.5">{error}</p>
       )}
 
       {results.length > 0 && (
         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-gray-800 border border-white/10 rounded-xl overflow-hidden shadow-2xl">
-          {results.map((place, i) => (
+          {results.map((doc, i) => (
             <button
               key={i}
               type="button"
-              onClick={() => pick(place)}
+              onClick={() => pick(doc)}
               className="w-full text-left px-4 py-3 hover:bg-white/10 active:bg-white/15 transition-colors border-b border-white/5 last:border-0"
             >
-              <p className="text-sm font-medium text-white">{place.place_name}</p>
+              <p className="text-sm font-medium text-white">{doc.place_name}</p>
               <p className="text-xs text-gray-500 mt-0.5 truncate">
-                {place.road_address_name || place.address_name}
+                {doc.road_address_name || doc.address_name}
               </p>
             </button>
           ))}

@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import KakaoPlaceSearch, { type SelectedPlace } from "@/components/KakaoPlaceSearch";
 import KakaoMapModal from "@/components/KakaoMapModal";
-import { loadKakaoSDK } from "@/lib/kakao";
+import { loadKakaoSDK } from "@/lib/kakao"; // 지도 모달용
 
 function TimePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [h, m] = value ? value.split(":") : ["", ""];
