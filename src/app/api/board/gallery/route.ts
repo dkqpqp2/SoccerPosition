@@ -4,6 +4,10 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUserAndTeam } from "@/lib/team";
 
+// 큰 이미지 처리를 위해 body size 제한 해제
+export const config = { api: { bodyParser: false } };
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -59,7 +63,10 @@ export async function POST(req: NextRequest) {
     .from("gallery")
     .upload(path, buf, { contentType: file.type, upsert: false });
 
-  if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+  if (upErr) {
+    console.error("[gallery upload] storage error:", upErr);
+    return NextResponse.json({ error: upErr.message }, { status: 500 });
+  }
 
   const { data: urlData } = supabaseAdmin.storage.from("gallery").getPublicUrl(upload.path);
 
