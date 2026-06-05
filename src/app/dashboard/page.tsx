@@ -169,7 +169,7 @@ export default function Dashboard() {
     if (aRes.ok) {
       const data: Assignment[] = await aRes.json();
       setAssignments(
-        [...data].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        [...data].sort((a, b) => a.session_name.localeCompare(b.session_name, "ko"))
       );
     }
 
