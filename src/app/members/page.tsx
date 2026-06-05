@@ -81,11 +81,6 @@ export default function MembersPage() {
     setEditId(member.id); setShowForm(true);
   }
 
-  function openAdd() {
-    setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: false, is_cafe_mercenary: false, referrer: "" });
-    setEditId(null); setShowForm(true);
-  }
-
   const regularMembers = members.filter(m => !m.is_mercenary);
   const mercenaryMembers = members.filter(m => m.is_mercenary);
   const allDisplayed = tab === "regular" ? regularMembers : mercenaryMembers;
@@ -94,11 +89,20 @@ export default function MembersPage() {
 
   return (
     <AppLayout title="팀원 관리">
-      <div className="flex justify-end px-4 pt-4">
+      <div className="flex justify-end gap-2 px-4 pt-4">
         {canManage && (
-          <button onClick={openAdd} className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-3 py-1.5 rounded-xl text-sm transition-colors">
-            + 추가
-          </button>
+          <>
+            <button
+              onClick={() => { setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: false, is_cafe_mercenary: false, referrer: "" }); setEditId(null); setShowForm(true); }}
+              className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-3 py-1.5 rounded-xl text-sm transition-colors">
+              + 정규팀원
+            </button>
+            <button
+              onClick={() => { setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: true, is_cafe_mercenary: false, referrer: "" }); setEditId(null); setShowForm(true); }}
+              className="bg-amber-500 hover:bg-amber-400 text-black font-bold px-3 py-1.5 rounded-xl text-sm transition-colors">
+              + 용병
+            </button>
+          </>
         )}
       </div>
 
@@ -121,14 +125,15 @@ export default function MembersPage() {
           <div className="text-center py-16 text-gray-600">
             <div className="text-5xl mb-3 opacity-30">{tab === "regular" ? "👥" : "⚡"}</div>
             <p>{tab === "regular" ? "정규 팀원이 없어요" : "용병이 없어요"}</p>
-            {canManage && <button onClick={openAdd} className="mt-4 text-sm text-emerald-400 font-bold hover:text-emerald-300">+ 추가하기</button>}
+            {canManage && <button onClick={() => { setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: tab === "mercenary", is_cafe_mercenary: false, referrer: "" }); setEditId(null); setShowForm(true); }} className="mt-4 text-sm text-emerald-400 font-bold hover:text-emerald-300">+ 추가하기</button>}
           </div>
         ) : (
           <>
             <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
               {displayedMembers.map((member, idx) => (
                 <MemberRow key={member.id} member={member} isLast={idx === displayedMembers.length - 1}
-                  onEdit={handleEdit} onDelete={handleDelete} isMercenary={member.is_mercenary} canManage={canManage} />
+                  onEdit={handleEdit} onDelete={handleDelete} isMercenary={member.is_mercenary}
+                  canManage={canManage} onDetail={id => router.push(`/members/${id}`)} />
               ))}
             </div>
 
@@ -234,8 +239,9 @@ export default function MembersPage() {
   );
 }
 
-function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canManage = false }: {
-  member: Member; isLast: boolean; onEdit: (m: Member) => void; onDelete: (id: string) => void; canManage?: boolean; isMercenary?: boolean;
+function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canManage = false, onDetail }: {
+  member: Member; isLast: boolean; onEdit: (m: Member) => void; onDelete: (id: string) => void;
+  canManage?: boolean; isMercenary?: boolean; onDetail?: (id: string) => void;
 }) {
   const age = member.birth_year ? new Date().getFullYear() - member.birth_year : null;
 
@@ -243,9 +249,14 @@ function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canM
     <div className={`px-4 py-3 ${!isLast ? "border-b border-white/5" : ""}`}>
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className={`text-sm font-semibold ${isMercenary ? "text-amber-300" : "text-white"}`}>
+          <button
+            onClick={() => !isMercenary && onDetail?.(member.id)}
+            className={`text-sm font-semibold transition-colors ${
+              isMercenary ? "text-amber-300 cursor-default" : "text-white hover:text-emerald-400"
+            }`}
+          >
             {member.name}{isMercenary && <span className="ml-1 text-xs">⚡</span>}
-          </span>
+          </button>
           {!isMercenary && (
             age
               ? <span className="text-xs text-gray-500 bg-white/5 px-1.5 py-0.5 rounded-full">만 {age}세</span>
@@ -258,12 +269,20 @@ function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canM
             <span className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">{member.referrer}지인</span>
           )}
         </div>
-        {canManage && (
-          <div className="flex gap-1 shrink-0">
-            <button onClick={() => onEdit(member)} className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded-lg hover:bg-blue-500/10 transition-colors">수정</button>
-            <button onClick={() => onDelete(member.id)} className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors">삭제</button>
-          </div>
-        )}
+        <div className="flex gap-1 shrink-0">
+          {!isMercenary && (
+            <button onClick={() => onDetail?.(member.id)}
+              className="text-xs text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded-lg hover:bg-emerald-500/10 transition-colors font-semibold">
+              📝
+            </button>
+          )}
+          {canManage && (
+            <>
+              <button onClick={() => onEdit(member)} className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded-lg hover:bg-blue-500/10 transition-colors">수정</button>
+              <button onClick={() => onDelete(member.id)} className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors">삭제</button>
+            </>
+          )}
+        </div>
       </div>
       <div className="flex gap-1.5 flex-wrap">
         {member.position_1st ? (
