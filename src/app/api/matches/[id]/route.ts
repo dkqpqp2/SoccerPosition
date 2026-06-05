@@ -17,11 +17,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const { id } = await params;
-  const { match_date, match_time, match_end_time, location, title, uniform_info } = await req.json();
+  const { match_date, match_time, match_end_time, location, title, uniform_info, place_lat, place_lng } = await req.json();
 
   const { data, error } = await supabaseAdmin
     .from("matches")
-    .update({ match_date, match_time: match_time || null, match_end_time: match_end_time || null, location: location || null, title: title || null, uniform_info: uniform_info || null })
+    .update({ match_date, match_time: match_time || null, match_end_time: match_end_time || null, location: location || null, title: title || null, uniform_info: uniform_info || null, place_lat: place_lat ?? null, place_lng: place_lng ?? null })
     .eq("id", id)
     .eq("team_id", teamId)
     .select()

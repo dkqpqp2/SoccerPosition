@@ -4,6 +4,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AppLayout from "@/components/AppLayout";
+import KakaoPlaceSearch, { type SelectedPlace } from "@/components/KakaoPlaceSearch";
+import KakaoMapModal from "@/components/KakaoMapModal";
 
 function TimePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [h, m] = value ? value.split(":") : ["", ""];
@@ -35,6 +37,8 @@ interface Match {
   match_time: string | null;
   match_end_time: string | null;
   location: string | null;
+  place_lat: number | null;
+  place_lng: number | null;
   title: string | null;
   uniform_info?: string | null;
   position_assignments: { id: string; session_name: string; created_at: string }[];
@@ -50,6 +54,12 @@ interface StatEntry {
 interface StatsModal {
   matchId: string;
   matchTitle: string;
+}
+
+interface MapModal {
+  name: string;
+  lat: number;
+  lng: number;
 }
 
 const inputCls = "w-full bg-gray-800 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600";
@@ -81,11 +91,18 @@ export default function MatchesPage() {
   const [statsModal, setStatsModal] = useState<StatsModal | null>(null);
   const [statsEntries, setStatsEntries] = useState<StatEntry[]>([]);
   const [statsSaving, setStatsSaving] = useState(false);
+  const [mapModal, setMapModal] = useState<MapModal | null>(null);
+
+  // 추가 폼 장소 선택
+  const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDate, setEditDate] = useState("");
   const [editTime, setEditTime] = useState("");
   const [editEndTime, setEditEndTime] = useState("");
   const [editLocation, setEditLocation] = useState("");
+  const [editPlaceLat, setEditPlaceLat] = useState<number | null>(null);
+  const [editPlaceLng, setEditPlaceLng] = useState<number | null>(null);
   const [editOpponent, setEditOpponent] = useState("");
   const [editIsScrimmage, setEditIsScrimmage] = useState(false);
   const [editTeamA, setEditTeamA] = useState("");
@@ -124,14 +141,25 @@ export default function MatchesPage() {
     let title: string | null = null;
     if (isScrimmage) title = teamA && teamB ? `${teamA} vs ${teamB}` : teamA || teamB || "자체전";
     else title = opponent ? `${teamName} vs ${opponent}` : null;
+    const locationName = selectedPlace?.name || location || null;
     const res = await fetch("/api/matches", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ match_date: date, match_time: matchTime || null, match_end_time: matchEndTime || null, location: location || null, title, uniform_info: uniformInfo || null }),
+      body: JSON.stringify({
+        match_date: date,
+        match_time: matchTime || null,
+        match_end_time: matchEndTime || null,
+        location: locationName,
+        title,
+        uniform_info: uniformInfo || null,
+        place_lat:  selectedPlace?.lat  ?? null,
+        place_lng:  selectedPlace?.lng  ?? null,
+      }),
     });
     if (res.ok) {
       setShowForm(false);
       setDate(""); setMatchTime(""); setMatchEndTime(""); setLocation(""); setUniformInfo("");
       setOpponent(""); setTeamA(""); setTeamB(""); setIsScrimmage(false);
+      setSelectedPlace(null);
       fetchMatches();
     }
   }
@@ -139,6 +167,7 @@ export default function MatchesPage() {
   function startEdit(match: Match) {
     setEditingId(match.id); setEditDate(match.match_date); setEditTime(match.match_time ?? "");
     setEditEndTime(match.match_end_time ?? ""); setEditLocation(match.location ?? "");
+    setEditPlaceLat(match.place_lat ?? null); setEditPlaceLng(match.place_lng ?? null);
     setEditUniformInfo(match.uniform_info ?? "");
     const title = match.title ?? "";
     const parts = title.split(" vs ");
@@ -153,7 +182,16 @@ export default function MatchesPage() {
     else title = editOpponent ? `${teamName} vs ${editOpponent}` : null;
     await fetch(`/api/matches/${id}`, {
       method: "PUT", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ match_date: editDate, match_time: editTime || null, match_end_time: editEndTime || null, location: editLocation || null, title, uniform_info: editUniformInfo || null }),
+      body: JSON.stringify({
+        match_date: editDate,
+        match_time: editTime || null,
+        match_end_time: editEndTime || null,
+        location: editLocation || null,
+        title,
+        uniform_info: editUniformInfo || null,
+        place_lat: editPlaceLat,
+        place_lng: editPlaceLng,
+      }),
     });
     setEditingId(null); fetchMatches();
   }
@@ -281,8 +319,12 @@ export default function MatchesPage() {
                 <div className="flex-1"><label className="text-xs text-gray-500 mb-1 block">종료 시간</label><TimePicker value={matchEndTime} onChange={setMatchEndTime} /></div>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">경기 장소</label>
-                <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="예: 수원 황구지천구장" className={inputCls} />
+                <label className="text-xs text-gray-500 mb-1 block">경기 장소 <span className="text-emerald-500/70">(카카오맵 검색)</span></label>
+                <KakaoPlaceSearch
+                  selected={selectedPlace}
+                  onSelect={p => { setSelectedPlace(p); setLocation(p.name); }}
+                  onClear={() => { setSelectedPlace(null); setLocation(""); }}
+                />
               </div>
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">복장 정보</label>
@@ -383,7 +425,14 @@ export default function MatchesPage() {
                       <div className="pb-2 text-gray-600 text-sm">~</div>
                       <div className="flex-1"><label className="text-xs text-gray-500 mb-1 block">종료</label><TimePicker value={editEndTime} onChange={setEditEndTime} /></div>
                     </div>
-                    <div><label className="text-xs text-gray-500 mb-1 block">경기 장소</label><input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="예: 수원 황구지천구장" className={inputCls} /></div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">경기 장소 <span className="text-emerald-500/70">(카카오맵 검색)</span></label>
+                      <KakaoPlaceSearch
+                        selected={editPlaceLat && editPlaceLng ? { name: editLocation, lat: editPlaceLat, lng: editPlaceLng } : null}
+                        onSelect={p => { setEditLocation(p.name); setEditPlaceLat(p.lat); setEditPlaceLng(p.lng); }}
+                        onClear={() => { setEditLocation(""); setEditPlaceLat(null); setEditPlaceLng(null); }}
+                      />
+                    </div>
                     <div><label className="text-xs text-gray-500 mb-1 block">복장 정보</label><input type="text" value={editUniformInfo} onChange={e => setEditUniformInfo(e.target.value)} placeholder="예: 검빨하계" className={inputCls} /></div>
                     <Toggle on={editIsScrimmage} onToggle={() => setEditIsScrimmage(!editIsScrimmage)} label="자체전" sub="우리끼리 팀 나눠서 하는 경기" />
                     {!editIsScrimmage ? (
@@ -421,7 +470,19 @@ export default function MatchesPage() {
                           </p>
                         )}
                         {match.title && <p className="text-sm text-gray-400 mt-0.5">{match.title}</p>}
-                        {match.location && <p className="text-xs text-gray-600 mt-0.5">📍 {match.location}</p>}
+                        {match.location && (
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <p className="text-xs text-gray-600">📍 {match.location}</p>
+                            {match.place_lat && match.place_lng && (
+                              <button
+                                onClick={() => setMapModal({ name: match.location!, lat: match.place_lat!, lng: match.place_lng! })}
+                                className="text-[10px] font-bold text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 px-1.5 py-0.5 rounded-full transition-colors"
+                              >
+                                지도보기
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                       {/* 기록 버튼 — 우측 상단 */}
                       {canInputStats && (
@@ -481,6 +542,11 @@ export default function MatchesPage() {
           })()
         )}
       </div>
+
+      {/* 🗺️ 카카오맵 모달 */}
+      {mapModal && (
+        <KakaoMapModal place={mapModal} onClose={() => setMapModal(null)} />
+      )}
 
       {/* ⚽ 골/어시 기록 모달 */}
       {statsModal && (
