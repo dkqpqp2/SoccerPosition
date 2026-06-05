@@ -113,12 +113,28 @@ export default function Dashboard() {
   const dragStartX = useRef<number>(0);
   // stale closure 방지용 ref — 항상 최신 trackIdx 값
   const trackIdxRef = useRef<number>(1);
+  // 캐러셀 실제 너비 (ResizeObserver로 추적)
+  const [carouselWidth, setCarouselWidth] = useState(0);
 
   // trackIdx + ref 동시 업데이트 헬퍼
   function updateTrackIdx(val: number) {
     trackIdxRef.current = val;
     setTrackIdx(val);
   }
+
+  // 캐러셀 실제 너비를 ResizeObserver로 추적 (다른 페이지 갔다 와도 정확히 재계산)
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      const w = entries[0]?.contentRect.width;
+      if (w && w > 0) setCarouselWidth(w);
+    });
+    ro.observe(el);
+    // 초기값 즉시 설정
+    if (el.clientWidth > 0) setCarouselWidth(el.clientWidth);
+    return () => ro.disconnect();
+  }, [carouselRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -510,7 +526,7 @@ export default function Dashboard() {
                       >
                         {(() => {
                           const GAP = 12;
-                          const cw = carouselRef.current?.clientWidth ?? 320;
+                          const cw = carouselWidth > 0 ? carouselWidth : 320;
                           const cardW = Math.floor(cw * 0.7);
                           const peek = (cw - cardW) / 2;
                           // cloned: [마지막클론, 0, 1, ..., n-1, 첫번째클론]
