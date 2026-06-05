@@ -91,7 +91,7 @@ export default function KakaoPlaceSearch({ selected, onSelect, onClear }: Props)
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); search(); } }}
-          placeholder="경기장 이름으로 검색 (예: 황구지천)"
+          placeholder="경기장 이름으로 검색 (예: 여기산공원 축구장)"
           className="flex-1 bg-gray-800 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600"
         />
         <button
