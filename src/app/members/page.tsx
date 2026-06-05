@@ -27,15 +27,28 @@ interface FormData {
   referrer: string;
 }
 
+interface EvalCard {
+  id: string;
+  name: string;
+  position_1st: string | null;
+  position_2nd: string | null;
+  strengths: string;
+  weaknesses: string;
+  notes: string;
+  updated_at: string | null;
+}
+
 export default function MembersPage() {
   const { status } = useSession();
   const router = useRouter();
-  const [members, setMembers] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
+  const [members,   setMembers]   = useState<Member[]>([]);
+  const [evals,     setEvals]     = useState<EvalCard[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [evalLoading, setEvalLoading] = useState(false);
+  const [showForm,  setShowForm]  = useState(false);
+  const [editId,    setEditId]    = useState<string | null>(null);
   const [form, setForm] = useState<FormData>({ name: "", position_1st: "", position_2nd: "", is_mercenary: false, is_cafe_mercenary: false, referrer: "" });
-  const [tab, setTab] = useState<"regular" | "mercenary">("regular");
+  const [tab,  setTab]  = useState<"regular" | "mercenary" | "eval">("regular");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -45,6 +58,11 @@ export default function MembersPage() {
     if (status === "unauthenticated") router.push("/");
     if (status === "authenticated") { fetchMembers(); fetchUserRole(); }
   }, [status]);
+
+  // 평가 탭 선택 시 데이터 로드
+  useEffect(() => {
+    if (tab === "eval") fetchEvals();
+  }, [tab]);
 
   async function fetchUserRole() {
     const res = await fetch("/api/user/profile");
@@ -57,6 +75,14 @@ export default function MembersPage() {
     const data = await res.json();
     setMembers(Array.isArray(data) ? data : []);
     setLoading(false);
+  }
+
+  async function fetchEvals() {
+    setEvalLoading(true);
+    const res = await fetch("/api/members/evaluations");
+    const data = await res.json();
+    setEvals(Array.isArray(data) ? data : []);
+    setEvalLoading(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -81,16 +107,17 @@ export default function MembersPage() {
     setEditId(member.id); setShowForm(true);
   }
 
-  const regularMembers = members.filter(m => !m.is_mercenary);
+  const regularMembers   = members.filter(m => !m.is_mercenary);
   const mercenaryMembers = members.filter(m => m.is_mercenary);
-  const allDisplayed = tab === "regular" ? regularMembers : mercenaryMembers;
-  const totalPages = Math.ceil(allDisplayed.length / PAGE_SIZE);
+  const allDisplayed     = tab === "regular" ? regularMembers : mercenaryMembers;
+  const totalPages       = Math.ceil(allDisplayed.length / PAGE_SIZE);
   const displayedMembers = allDisplayed.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <AppLayout title="팀원 관리">
+      {/* 상단 버튼 */}
       <div className="flex justify-end gap-2 px-4 pt-4">
-        {canManage && (
+        {canManage && tab !== "eval" && (
           <>
             <button
               onClick={() => { setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: false, is_cafe_mercenary: false, referrer: "" }); setEditId(null); setShowForm(true); }}
@@ -116,10 +143,40 @@ export default function MembersPage() {
           className={`flex-1 py-3 text-sm font-bold transition-colors ${tab === "mercenary" ? "text-amber-400 border-b-2 border-amber-400" : "text-gray-600 hover:text-gray-400"}`}>
           ⚡ 용병 <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${tab === "mercenary" ? "bg-amber-500/20 text-amber-400" : "bg-white/5 text-gray-600"}`}>{mercenaryMembers.length}</span>
         </button>
+        <button onClick={() => setTab("eval")}
+          className={`flex-1 py-3 text-sm font-bold transition-colors ${tab === "eval" ? "text-purple-400 border-b-2 border-purple-400" : "text-gray-600 hover:text-gray-400"}`}>
+          📝 평가
+        </button>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-4 flex flex-col" style={{ minHeight: "calc(100vh - 140px)" }}>
-        {loading ? (
+
+        {/* ── 평가 탭 ── */}
+        {tab === "eval" ? (
+          evalLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : evals.length === 0 ? (
+            <div className="text-center py-16 text-gray-600">
+              <div className="text-5xl mb-3 opacity-30">📝</div>
+              <p>팀원이 없어요</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {evals.map(ev => (
+                <EvalCard
+                  key={ev.id}
+                  ev={ev}
+                  canEdit={canManage}
+                  onEdit={() => router.push(`/members/${ev.id}`)}
+                />
+              ))}
+            </div>
+          )
+
+        /* ── 정규/용병 탭 ── */
+        ) : loading ? (
           <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /></div>
         ) : displayedMembers.length === 0 ? (
           <div className="text-center py-16 text-gray-600">
@@ -239,6 +296,83 @@ export default function MembersPage() {
   );
 }
 
+/* ── 평가 카드 (한눈에 보기) ── */
+function EvalCard({ ev, canEdit, onEdit }: {
+  ev: EvalCard; canEdit: boolean; onEdit: () => void;
+}) {
+  const hasContent = ev.strengths || ev.weaknesses || ev.notes;
+
+  return (
+    <div className={`bg-gray-900 border rounded-2xl p-4 transition-colors ${
+      hasContent ? "border-white/10" : "border-white/5 opacity-60"
+    }`}>
+      {/* 헤더 */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-sm">⚽</div>
+          <div>
+            <p className="font-bold text-white text-sm">{ev.name}</p>
+            <div className="flex gap-1 mt-0.5">
+              {ev.position_1st && (
+                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded-full">{ev.position_1st}</span>
+              )}
+              {ev.position_2nd && (
+                <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded-full">{ev.position_2nd}</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {ev.updated_at && (
+            <span className="text-[10px] text-gray-600">
+              {new Date(ev.updated_at).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })}
+            </span>
+          )}
+          {canEdit && (
+            <button onClick={onEdit}
+              className="text-xs text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 px-2.5 py-1 rounded-lg transition-colors font-semibold">
+              수정
+            </button>
+          )}
+        </div>
+      </div>
+
+      {hasContent ? (
+        <div className="space-y-2">
+          {ev.strengths && (
+            <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl px-3 py-2.5">
+              <p className="text-[11px] font-bold text-emerald-400 mb-1">✅ 장점</p>
+              <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{ev.strengths}</p>
+            </div>
+          )}
+          {ev.weaknesses && (
+            <div className="bg-red-500/5 border border-red-500/10 rounded-xl px-3 py-2.5">
+              <p className="text-[11px] font-bold text-red-400 mb-1">⚠️ 단점 / 개선점</p>
+              <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{ev.weaknesses}</p>
+            </div>
+          )}
+          {ev.notes && (
+            <div className="bg-white/3 border border-white/5 rounded-xl px-3 py-2.5">
+              <p className="text-[11px] font-bold text-gray-500 mb-1">🗒️ 메모</p>
+              <p className="text-sm text-gray-400 whitespace-pre-wrap leading-relaxed">{ev.notes}</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="text-center py-3">
+          <p className="text-xs text-gray-700">아직 작성된 평가가 없어요</p>
+          {canEdit && (
+            <button onClick={onEdit} className="mt-1.5 text-xs text-purple-400 hover:text-purple-300 font-semibold">
+              + 평가 작성하기
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── 팀원 행 ── */
 function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canManage = false, onDetail }: {
   member: Member; isLast: boolean; onEdit: (m: Member) => void; onDelete: (id: string) => void;
   canManage?: boolean; isMercenary?: boolean; onDetail?: (id: string) => void;
