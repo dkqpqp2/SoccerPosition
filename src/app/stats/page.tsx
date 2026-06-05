@@ -61,6 +61,14 @@ export default function StatsPage() {
     setLoading(false);
   }
 
+  // "나"가 포함된 페이지로 자동 이동
+  useEffect(() => {
+    if (!me || !stats.length) return;
+    const list = sort === "name" ? fullSorted : fullSorted.slice(3);
+    const idx = list.findIndex(p => p.is_me);
+    if (idx >= 0) setListPage(Math.floor(idx / PAGE_SIZE));
+  }, [stats, sort]);
+
   function switchYear(y: string) { setYear(y); fetchStats(y); }
   function shiftWindow(delta: number) {
     const nb = baseYear + delta;
@@ -82,14 +90,14 @@ export default function StatsPage() {
   /* ── TOP 3 (sort !== "name" 일 때만) ── */
   const top3 = sort !== "name" ? fullSorted.slice(0, 3) : [];
 
-  /* ── 나머지 목록: 4위부터 + "나" 제외 (이미 위에 표시) ── */
-  const restList = (() => {
-    if (sort === "name") return fullSorted.filter(p => !p.is_me);
-    return fullSorted.slice(3).filter(p => !p.is_me);
-  })();
+  /* ── 전체 순위 목록: "나"도 올바른 순위 위치에 포함 ── */
+  const restList = sort === "name" ? fullSorted : fullSorted.slice(3);
 
   const totalPages  = Math.ceil(restList.length / PAGE_SIZE);
   const pagedList   = restList.slice(listPage * PAGE_SIZE, (listPage + 1) * PAGE_SIZE);
+
+  /* "나"가 있는 페이지로 자동 이동 (sort/stats 변경 시) */
+  const myRestIdx = me ? restList.findIndex(p => p.is_me) : -1;
 
   return (
     <AppLayout title="팀 통계">
@@ -318,14 +326,22 @@ function CompactRow({ player, rank, sortKey }: {
 }) {
   const rate     = player.attendance_rate;
   const barColor = rate >= 80 ? "bg-emerald-500" : rate >= 50 ? "bg-amber-400" : "bg-red-500";
+  const isMe     = player.is_me;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/3 transition-colors">
+    <div className={`flex items-center gap-3 px-4 py-2.5 transition-colors ${
+      isMe ? "bg-emerald-500/8 border-l-2 border-emerald-500" : "hover:bg-white/3"
+    }`}>
       {/* 순위 */}
-      <span className="text-xs text-gray-600 w-5 text-center shrink-0">{rank ?? "·"}</span>
+      <span className={`text-xs w-5 text-center shrink-0 font-bold ${isMe ? "text-emerald-400" : "text-gray-600"}`}>
+        {rank ?? "·"}
+      </span>
 
-      {/* 이름 */}
-      <p className="flex-1 text-sm font-semibold text-white truncate min-w-0">{player.name}</p>
+      {/* 이름 + 나 뱃지 */}
+      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+        <p className={`text-sm font-semibold truncate ${isMe ? "text-emerald-300" : "text-white"}`}>{player.name}</p>
+        {isMe && <span className="shrink-0 text-[10px] font-bold bg-emerald-500 text-black px-1.5 py-0.5 rounded-full">나</span>}
+      </div>
 
       {/* 스탯 */}
       <div className="flex items-center gap-1.5 shrink-0">

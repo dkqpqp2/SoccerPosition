@@ -108,12 +108,16 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
               </div>
               <div className="divide-y divide-white/5">
                 {regular1.map((m, i) => (
-                  <div key={m.id} className="flex items-center px-3 py-2.5 gap-2">
-                    <span className="text-xs text-gray-700 w-4 shrink-0">{i + 1}</span>
-                    <span className="flex-1 text-sm font-semibold text-white truncate">{m.name}</span>
-                    <div className="flex gap-0.5 shrink-0">
-                      {m.position_1st && <span className="text-xs bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded-full">{m.position_1st}</span>}
-                      {m.position_2nd && <span className="text-xs bg-blue-500/15 text-blue-400 px-1.5 py-0.5 rounded-full">{m.position_2nd}</span>}
+                  <div key={m.id} className="flex items-start px-3 py-2 gap-1.5">
+                    <span className="text-xs text-gray-700 w-4 shrink-0 pt-0.5">{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white">{m.name}</p>
+                      {(m.position_1st || m.position_2nd) && (
+                        <div className="flex gap-0.5 mt-0.5 flex-wrap">
+                          {m.position_1st && <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-1 py-0.5 rounded">{m.position_1st}</span>}
+                          {m.position_2nd && <span className="text-[10px] bg-blue-500/15 text-blue-400 px-1 py-0.5 rounded">{m.position_2nd}</span>}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -129,12 +133,16 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
                 </div>
                 <div className="divide-y divide-white/5">
                   {regular2.map((m, i) => (
-                    <div key={m.id} className="flex items-center px-3 py-2.5 gap-2">
-                      <span className="text-xs text-gray-700 w-4 shrink-0">{Math.ceil(regular.length / 2) + i + 1}</span>
-                      <span className="flex-1 text-sm font-semibold text-white truncate">{m.name}</span>
-                      <div className="flex gap-0.5 shrink-0">
-                        {m.position_1st && <span className="text-xs bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded-full">{m.position_1st}</span>}
-                        {m.position_2nd && <span className="text-xs bg-blue-500/15 text-blue-400 px-1.5 py-0.5 rounded-full">{m.position_2nd}</span>}
+                    <div key={m.id} className="flex items-start px-3 py-2 gap-1.5">
+                      <span className="text-xs text-gray-700 w-4 shrink-0 pt-0.5">{Math.ceil(regular.length / 2) + i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white">{m.name}</p>
+                        {(m.position_1st || m.position_2nd) && (
+                          <div className="flex gap-0.5 mt-0.5 flex-wrap">
+                            {m.position_1st && <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-1 py-0.5 rounded">{m.position_1st}</span>}
+                            {m.position_2nd && <span className="text-[10px] bg-blue-500/15 text-blue-400 px-1 py-0.5 rounded">{m.position_2nd}</span>}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -149,19 +157,23 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
               </div>
               <div className="divide-y divide-white/5">
                 {mercenary.map((m, i) => (
-                  <div key={m.id} className="flex items-center px-3 py-2.5 gap-2">
-                    <span className="text-xs text-gray-700 w-4 shrink-0">{i + 1}</span>
+                  <div key={m.id} className="flex items-start px-3 py-2 gap-1.5">
+                    <span className="text-xs text-gray-700 w-4 shrink-0 pt-0.5">{i + 1}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-amber-300 truncate">{m.name}</p>
-                      {m.is_cafe_mercenary
-                        ? <span className="text-xs text-sky-400">☕카페</span>
-                        : m.referrer
-                        ? <span className="text-xs text-amber-500">{m.referrer}지인</span>
-                        : null}
-                    </div>
-                    <div className="flex gap-0.5 shrink-0">
-                      {m.position_1st && <span className="text-xs bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded-full">{m.position_1st}</span>}
-                      {m.position_2nd && <span className="text-xs bg-blue-500/15 text-blue-400 px-1.5 py-0.5 rounded-full">{m.position_2nd}</span>}
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <p className="text-sm font-semibold text-amber-300">{m.name}</p>
+                        {m.is_cafe_mercenary
+                          ? <span className="text-[10px] text-sky-400 bg-sky-500/10 px-1 py-0.5 rounded shrink-0">☕카페</span>
+                          : m.referrer
+                          ? <span className="text-[10px] text-amber-500 bg-amber-500/10 px-1 py-0.5 rounded shrink-0">{m.referrer}지인</span>
+                          : null}
+                      </div>
+                      {(m.position_1st || m.position_2nd) && (
+                        <div className="flex gap-0.5 mt-0.5 flex-wrap">
+                          {m.position_1st && <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-1 py-0.5 rounded">{m.position_1st}</span>}
+                          {m.position_2nd && <span className="text-[10px] bg-blue-500/15 text-blue-400 px-1 py-0.5 rounded">{m.position_2nd}</span>}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
