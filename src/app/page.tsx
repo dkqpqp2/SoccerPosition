@@ -37,6 +37,24 @@ const FEATURES = [
     color: "rose",
   },
   {
+    icon: "💰",
+    title: "회비 관리",
+    desc: "납부 현황·지출 내역을 투명하게 공개. 총무가 일괄 납부 처리, 벌금·찬조금도 기록.",
+    color: "lime",
+  },
+  {
+    icon: "🗳️",
+    title: "팀 투표",
+    desc: "경기 일정, 유니폼 결정 등 팀 의견이 필요할 때. 팀원 누구나 앱에서 바로 투표 참여.",
+    color: "indigo",
+  },
+  {
+    icon: "🤝",
+    title: "팀 매칭",
+    desc: "연습경기 상대 팀을 앱에서 찾아보세요. 지역·날짜별 매칭 신청 및 수락.",
+    color: "orange",
+  },
+  {
     icon: "🎬",
     title: "영상 추천",
     desc: "팀원 누구나 유용한 YouTube 영상 추천. 전술, 포지션, 훈련 카테고리별 라이브러리.",
@@ -45,7 +63,7 @@ const FEATURES = [
   {
     icon: "💬",
     title: "팀 게시판",
-    desc: "공지, 자유글, 투표 등 팀 전용 커뮤니티. 팀원들과 소통을 한 곳에서.",
+    desc: "공지, 자유글 등 팀 전용 커뮤니티. 팀원들과 소통을 한 곳에서.",
     color: "cyan",
   },
   {
@@ -106,6 +124,9 @@ export default function Home() {
     pink: "bg-pink-500/10 text-pink-400 border-pink-500/20",
     cyan: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
     teal: "bg-teal-500/10 text-teal-400 border-teal-500/20",
+    lime: "bg-lime-500/10 text-lime-400 border-lime-500/20",
+    indigo: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    orange: "bg-orange-500/10 text-orange-400 border-orange-500/20",
   };
 
   return (
@@ -164,16 +185,24 @@ export default function Home() {
             { icon: "📝", label: "경기 피드백" },
             { icon: "📊", label: "팀 통계" },
             { icon: "🟩", label: "포메이션" },
+            { icon: "💰", label: "회비 관리", highlight: true },
+            { icon: "🗳️", label: "팀 투표", highlight: true },
+            { icon: "🤝", label: "팀 매칭", highlight: true },
             { icon: "🎬", label: "영상 추천" },
             { icon: "💬", label: "팀 게시판" },
             { icon: "🔗", label: "간편 공유" },
           ].map((item, i) => (
             <div
               key={i}
-              className="bg-gray-900 border border-white/5 rounded-2xl p-3 flex flex-col items-center gap-1.5 hover:border-emerald-500/20 hover:bg-gray-800/50 transition-all"
+              className={`border rounded-2xl p-3 flex flex-col items-center gap-1.5 transition-all ${
+                item.highlight
+                  ? "bg-emerald-500/5 border-emerald-500/20 hover:bg-emerald-500/10"
+                  : "bg-gray-900 border-white/5 hover:border-emerald-500/20 hover:bg-gray-800/50"
+              }`}
             >
               <span className="text-2xl">{item.icon}</span>
-              <span className="text-xs text-gray-500 font-medium">{item.label}</span>
+              <span className={`text-xs font-medium ${item.highlight ? "text-emerald-400" : "text-gray-500"}`}>{item.label}</span>
+              {item.highlight && <span className="text-[9px] text-emerald-500/70 font-semibold">NEW</span>}
             </div>
           ))}
         </div>
@@ -314,6 +343,63 @@ export default function Home() {
                   ))}
                 </ul>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 신규 기능 하이라이트 ── */}
+      <section className="py-20 px-5 border-t border-white/5">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+              ✨ 새로 추가된 기능
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black">더 강력해진 팀 운영</h2>
+            <p className="text-gray-500 text-sm mt-2">회비, 투표, 팀 매칭까지 한 앱에서</p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-5">
+            {/* 회비 관리 */}
+            <div className="bg-gray-900 border border-lime-500/15 rounded-2xl p-6 hover:border-lime-500/30 transition-all group">
+              <div className="w-11 h-11 rounded-xl bg-lime-500/10 border border-lime-500/20 flex items-center justify-center text-xl mb-4">💰</div>
+              <h3 className="font-bold text-white text-base mb-2 group-hover:text-lime-400 transition-colors">회비 관리</h3>
+              <p className="text-xs text-gray-500 leading-relaxed mb-4">납부 현황을 한눈에, 지출 내역은 투명하게. 총무가 손쉽게 관리하고 팀원 모두가 확인할 수 있어요.</p>
+              <ul className="space-y-1.5">
+                {["일괄 납부 처리로 빠른 체크", "부상자·취준생 맞춤 금액 설정", "벌금·찬조금 기타 수입 기록", "잔액 현황 자동 계산"].map((t, i) => (
+                  <li key={i} className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <span className="text-lime-500 shrink-0">✓</span>{t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* 팀 투표 */}
+            <div className="bg-gray-900 border border-indigo-500/15 rounded-2xl p-6 hover:border-indigo-500/30 transition-all group">
+              <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-xl mb-4">🗳️</div>
+              <h3 className="font-bold text-white text-base mb-2 group-hover:text-indigo-400 transition-colors">팀 투표</h3>
+              <p className="text-xs text-gray-500 leading-relaxed mb-4">경기 일정, 유니폼 색상, 훈련 방식… 팀 결정이 필요할 때 투표로 빠르게 의견을 모아보세요.</p>
+              <ul className="space-y-1.5">
+                {["관리자가 투표 항목 직접 생성", "팀원 누구나 앱에서 바로 참여", "실시간 투표 현황 확인", "마감일 설정으로 깔끔한 결론"].map((t, i) => (
+                  <li key={i} className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <span className="text-indigo-500 shrink-0">✓</span>{t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* 팀 매칭 */}
+            <div className="bg-gray-900 border border-orange-500/15 rounded-2xl p-6 hover:border-orange-500/30 transition-all group">
+              <div className="w-11 h-11 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-xl mb-4">🤝</div>
+              <h3 className="font-bold text-white text-base mb-2 group-hover:text-orange-400 transition-colors">팀 매칭</h3>
+              <p className="text-xs text-gray-500 leading-relaxed mb-4">연습경기 상대를 찾고 있나요? 지역과 날짜를 설정하고 원하는 팀에 매칭 신청을 보내보세요.</p>
+              <ul className="space-y-1.5">
+                {["지역·날짜별 매칭 공고 등록", "다른 팀에 매칭 신청 전송", "신청 수락·거절로 일정 확정", "매칭 이력 관리"].map((t, i) => (
+                  <li key={i} className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <span className="text-orange-500 shrink-0">✓</span>{t}
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
