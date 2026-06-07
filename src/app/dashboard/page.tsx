@@ -38,6 +38,7 @@ interface Match {
   title: string;
   match_date: string;
   match_time: string | null;
+  match_end_time: string | null;
   location: string | null;
 }
 
@@ -171,13 +172,22 @@ export default function Dashboard() {
     const matches: (Match & { position_assignments: Assignment[] })[] = await res.json();
     if (!matches.length) { setFeedbackLoaded(true); return; }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
 
+    // 경기 종료 시간이 아직 안 지난 경기 중 가장 가까운 것
     const upcoming = matches
-      .filter(m => new Date(m.match_date) >= today)
-      .sort((a, b) => new Date(a.match_date).getTime() - new Date(b.match_date).getTime())[0]
-      ?? matches[0];
+      .filter(m => {
+        const [y, mo, d] = m.match_date.split("-").map(Number);
+        if (m.match_end_time) {
+          const [h, min] = m.match_end_time.split(":").map(Number);
+          return now < new Date(y, mo - 1, d, h, min, 0);
+        } else {
+          // 종료 시간 없으면 경기 날짜 자정까지
+          return now <= new Date(y, mo - 1, d, 23, 59, 59);
+        }
+      })
+      .sort((a, b) => a.match_date.localeCompare(b.match_date))[0]
+      ?? matches.sort((a, b) => b.match_date.localeCompare(a.match_date))[0]; // 없으면 가장 최근 과거 경기
 
     setUpcomingMatch(upcoming);
     setActiveQuarter(0);
@@ -191,10 +201,18 @@ export default function Dashboard() {
       );
     }
 
-    // 가장 최근 과거 경기의 피드백
+    // 가장 최근 종료된 경기의 피드백
     const pastMatch = matches
-      .filter(m => new Date(m.match_date) < today)
-      .sort((a, b) => new Date(b.match_date).getTime() - new Date(a.match_date).getTime())[0];
+      .filter(m => {
+        const [y, mo, d] = m.match_date.split("-").map(Number);
+        if (m.match_end_time) {
+          const [h, min] = m.match_end_time.split(":").map(Number);
+          return now >= new Date(y, mo - 1, d, h, min, 0);
+        } else {
+          return now > new Date(y, mo - 1, d, 23, 59, 59);
+        }
+      })
+      .sort((a, b) => b.match_date.localeCompare(a.match_date))[0];
 
     if (pastMatch) {
       setRecentFeedbackMatch(pastMatch);
@@ -272,14 +290,16 @@ export default function Dashboard() {
   }
 
   function formatDate(dateStr: string) {
-    const d = new Date(dateStr);
+    // UTC 파싱 오류 방지: 로컬 시간으로 파싱
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const d = new Date(year, month - 1, day);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const diff = Math.ceil((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const diff = Math.round((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     return {
       label: diff > 0 ? `D-${diff}` : diff === 0 ? "오늘" : `D+${Math.abs(diff)}`,
       isUpcoming: diff >= 0,
-      formatted: `${d.getMonth() + 1}월 ${d.getDate()}일 (${["일","월","화","수","목","금","토"][d.getDay()]})`,
+      formatted: `${month}월 ${day}일 (${["일","월","화","수","목","금","토"][d.getDay()]})`,
     };
   }
 
