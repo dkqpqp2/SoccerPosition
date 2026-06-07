@@ -1,0 +1,130 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase";
+import { getUserAndTeam, getUserRole, canManageDues } from "@/lib/team";
+
+function getMonthRange(month: string) {
+  const [year, mon] = month.split("-").map(Number);
+  const startDate = `${year}-${String(mon).padStart(2, "0")}-01`;
+  const next = new Date(year, mon, 1);
+  const endDate = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-01`;
+  return { startDate, endDate, year, mon };
+}
+
+const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+
+// POST - 납부 처리 (dues 자동 생성 포함)
+export async function POST(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { userId, teamId } = await getUserAndTeam(session.user.id);
+  if (!userId || !teamId) return NextResponse.json({ error: "Team not found" }, { status: 404 });
+
+  const role = await getUserRole(userId, teamId);
+  if (!canManageDues(role)) return NextResponse.json({ error: "관리자 또는 총무만 처리할 수 있습니다" }, { status: 403 });
+
+  const { month, user_id: targetUserId } = await req.json();
+  if (!month || !targetUserId) return NextResponse.json({ error: "month, user_id 필요" }, { status: 400 });
+
+  const { startDate, endDate, year, mon } = getMonthRange(month);
+
+  // 이 달의 dues 찾기 (없으면 자동 생성)
+  const { data: existing } = await supabaseAdmin
+    .from("dues")
+    .select("id, amount")
+    .eq("team_id", teamId)
+    .gte("due_date", startDate)
+    .lt("due_date", endDate)
+    .maybeSingle();
+
+  let dueId: string;
+  let dueAmount: number;
+
+  if (existing) {
+    dueId = existing.id;
+    dueAmount = existing.amount;
+  } else {
+    // 기본 금액 조회 후 자동 생성
+    const { data: settings } = await supabaseAdmin
+      .from("dues_settings")
+      .select("default_amount")
+      .eq("team_id", teamId)
+      .maybeSingle();
+    const defaultAmount = settings?.default_amount ?? 0;
+
+    const { data: newDue, error: dueErr } = await supabaseAdmin
+      .from("dues")
+      .insert({
+        team_id: teamId,
+        title: `${year}년 ${MONTH_NAMES[mon - 1]} 회비`,
+        amount: defaultAmount,
+        due_date: startDate,
+        status: "active",
+        created_by: userId,
+      })
+      .select()
+      .single();
+
+    if (dueErr || !newDue) return NextResponse.json({ error: "dues 생성 실패" }, { status: 500 });
+    dueId = newDue.id;
+    dueAmount = defaultAmount;
+  }
+
+  // 이 멤버의 실제 납부 금액 (개인 설정 > 기본 금액)
+  const { data: memberSetting } = await supabaseAdmin
+    .from("team_member_dues_settings")
+    .select("custom_amount")
+    .eq("team_id", teamId)
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+
+  const amount = memberSetting?.custom_amount ?? dueAmount;
+
+  const { error } = await supabaseAdmin
+    .from("dues_payments")
+    .upsert(
+      { dues_id: dueId, user_id: targetUserId, amount, recorded_by: userId },
+      { onConflict: "dues_id,user_id" }
+    );
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ success: true });
+}
+
+// DELETE - 납부 취소
+export async function DELETE(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { userId, teamId } = await getUserAndTeam(session.user.id);
+  if (!userId || !teamId) return NextResponse.json({ error: "Team not found" }, { status: 404 });
+
+  const role = await getUserRole(userId, teamId);
+  if (!canManageDues(role)) return NextResponse.json({ error: "관리자 또는 총무만 처리할 수 있습니다" }, { status: 403 });
+
+  const { month, user_id: targetUserId } = await req.json();
+  if (!month || !targetUserId) return NextResponse.json({ error: "month, user_id 필요" }, { status: 400 });
+
+  const { startDate, endDate } = getMonthRange(month);
+
+  const { data: due } = await supabaseAdmin
+    .from("dues")
+    .select("id")
+    .eq("team_id", teamId)
+    .gte("due_date", startDate)
+    .lt("due_date", endDate)
+    .maybeSingle();
+
+  if (!due) return NextResponse.json({ success: true }); // 이미 없음
+
+  const { error } = await supabaseAdmin
+    .from("dues_payments")
+    .delete()
+    .eq("dues_id", due.id)
+    .eq("user_id", targetUserId);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ success: true });
+}

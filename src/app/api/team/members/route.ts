@@ -18,7 +18,7 @@ export async function PUT(req: NextRequest) {
   }
 
   const { target_user_id, new_role } = await req.json() as { target_user_id: string; new_role: string };
-  if (!["manager", "coach", "president", "member"].includes(new_role)) {
+  if (!["manager", "coach", "president", "member", "treasurer"].includes(new_role)) {
     return NextResponse.json({ error: "유효하지 않은 역할이에요." }, { status: 400 });
   }
   if (target_user_id === userId) {

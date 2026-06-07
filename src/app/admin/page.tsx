@@ -46,6 +46,213 @@ function StatCard({
   );
 }
 
+// ────────────────────────────────────────────────────────────
+//  Play Store 출시 로드맵
+// ────────────────────────────────────────────────────────────
+type StepStatus = "done" | "progress" | "wait";
+
+interface RoadmapStep {
+  icon: string;
+  title: string;
+  desc: string;
+  status: StepStatus;
+  detail?: string;
+}
+
+const ROADMAP_STEPS: RoadmapStep[] = [
+  {
+    icon: "🏦",
+    title: "Google Play 개발자 계정 생성",
+    desc: "$25 등록비 결제 완료",
+    status: "done",
+    detail: "개발자명: SportsPositionManagement",
+  },
+  {
+    icon: "🪪",
+    title: "Google 신원 인증 (D-ID)",
+    desc: "Google이 신원 서류 검토 중 (수일 소요)",
+    status: "progress",
+    detail: "승인되면 이메일로 알림 옴 · 완료 후 전화번호 인증 가능",
+  },
+  {
+    icon: "📱",
+    title: "전화번호 인증",
+    desc: "신원 인증 완료 후 진행",
+    status: "wait",
+    detail: "Play Console 계정 설정 → 연락처 인증",
+  },
+  {
+    icon: "🤖",
+    title: "Android Studio 설치",
+    desc: "Android 빌드 도구 설치 완료",
+    status: "done",
+    detail: "버전: Android Studio Quail 1 | 2026.1.1",
+  },
+  {
+    icon: "⚡",
+    title: "Capacitor 설정",
+    desc: "Next.js → Android 앱 래핑 완료",
+    status: "done",
+    detail: "appId: com.spm.soccerposition · 라이브 URL 연결 방식",
+  },
+  {
+    icon: "🔨",
+    title: "AAB(앱 번들) 빌드",
+    desc: "Android Studio에서 Release 빌드 생성",
+    status: "wait",
+    detail: "Build → Generate Signed Bundle → AAB 선택 → keystore 생성",
+  },
+  {
+    icon: "🔑",
+    title: "앱 서명 키(Keystore) 생성",
+    desc: "릴리즈 서명용 키 생성 및 안전한 곳에 백업",
+    status: "wait",
+    detail: "⚠️ keystore 분실 시 앱 업데이트 불가 — 반드시 백업!",
+  },
+  {
+    icon: "📋",
+    title: "Play Console 앱 등록",
+    desc: "새 앱 만들기 → 앱 이름·카테고리·언어 설정",
+    status: "wait",
+    detail: "앱 이름: SPM - 팀 포지션 관리 / 카테고리: 스포츠",
+  },
+  {
+    icon: "🖼️",
+    title: "스토어 등록 정보 작성",
+    desc: "설명·스크린샷·아이콘·피처드 이미지 업로드",
+    status: "wait",
+    detail: "스크린샷 2장 이상 필수 · 아이콘 512×512px · 피처드 1024×500px",
+  },
+  {
+    icon: "🧪",
+    title: "내부 테스트 트랙 출시",
+    desc: "본인 계정으로 먼저 테스트",
+    status: "wait",
+    detail: "내부 테스터 추가 → 링크로 설치 → 기능 확인",
+  },
+  {
+    icon: "📝",
+    title: "개인정보처리방침 등록",
+    desc: "URL 형태로 제출 필수 (없으면 출시 불가)",
+    status: "wait",
+    detail: "Vercel에 /privacy 페이지 만들거나 notion 페이지로 대체 가능",
+  },
+  {
+    icon: "🚀",
+    title: "프로덕션 출시 신청",
+    desc: "Google 심사 → 승인 → Play Store 공개",
+    status: "wait",
+    detail: "심사 기간: 보통 1~3일 · 첫 출시는 최대 7일 소요",
+  },
+];
+
+const statusConfig: Record<StepStatus, { badge: string; badgeClass: string; borderClass: string; iconBg: string }> = {
+  done:     { badge: "완료",      badgeClass: "bg-emerald-500/20 text-emerald-400",  borderClass: "border-emerald-500/30", iconBg: "bg-emerald-500/15" },
+  progress: { badge: "진행 중",   badgeClass: "bg-amber-500/20 text-amber-400",      borderClass: "border-amber-500/40",   iconBg: "bg-amber-500/15"   },
+  wait:     { badge: "대기",      badgeClass: "bg-gray-700/60 text-gray-500",        borderClass: "border-white/5",        iconBg: "bg-white/5"        },
+};
+
+function PlayStoreRoadmap() {
+  const [open, setOpen] = useState(true);
+  const done     = ROADMAP_STEPS.filter(s => s.status === "done").length;
+  const total    = ROADMAP_STEPS.length;
+  const progress = Math.round((done / total) * 100);
+
+  return (
+    <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+      {/* 헤더 */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-6 py-5 hover:bg-white/3 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">🏪</span>
+          <div className="text-left">
+            <h3 className="font-bold text-white text-base">Google Play Store 출시 로드맵</h3>
+            <p className="text-gray-500 text-xs mt-0.5">{done} / {total} 완료</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* 프로그레스 바 */}
+          <div className="hidden sm:flex items-center gap-2">
+            <div className="w-32 h-2 bg-gray-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full transition-all"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <span className="text-xs text-emerald-400 font-bold w-8">{progress}%</span>
+          </div>
+          <span className="text-gray-500 text-sm">{open ? "▲" : "▼"}</span>
+        </div>
+      </button>
+
+      {/* 스텝 목록 */}
+      {open && (
+        <div className="px-6 pb-6 space-y-3">
+          {/* 모바일 프로그레스 */}
+          <div className="flex sm:hidden items-center gap-2 mb-4">
+            <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${progress}%` }} />
+            </div>
+            <span className="text-xs text-emerald-400 font-bold">{progress}%</span>
+          </div>
+
+          {ROADMAP_STEPS.map((step, i) => {
+            const cfg = statusConfig[step.status];
+            return (
+              <div
+                key={i}
+                className={`flex gap-4 rounded-xl border p-4 ${cfg.borderClass} ${
+                  step.status === "done" ? "opacity-70" : step.status === "progress" ? "bg-amber-500/5" : "bg-white/2"
+                }`}
+              >
+                {/* 아이콘 + 번호 */}
+                <div className="flex flex-col items-center gap-1 shrink-0">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${cfg.iconBg}`}>
+                    {step.icon}
+                  </div>
+                  <span className="text-[10px] text-gray-600 font-mono">{String(i + 1).padStart(2, "0")}</span>
+                </div>
+
+                {/* 내용 */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className={`font-bold text-sm ${step.status === "wait" ? "text-gray-400" : "text-white"}`}>
+                      {step.title}
+                    </p>
+                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${cfg.badgeClass}`}>
+                      {cfg.badge}
+                    </span>
+                  </div>
+                  <p className="text-gray-500 text-xs mt-0.5">{step.desc}</p>
+                  {step.detail && (
+                    <p className={`text-[11px] mt-1.5 leading-relaxed ${
+                      step.status === "progress" ? "text-amber-400/80" :
+                      step.status === "done" ? "text-emerald-400/60" : "text-gray-600"
+                    }`}>
+                      {step.detail}
+                    </p>
+                  )}
+                </div>
+
+                {/* 상태 아이콘 */}
+                <div className="shrink-0 self-start mt-1">
+                  {step.status === "done"     && <span className="text-emerald-400 text-lg">✓</span>}
+                  {step.status === "progress" && <span className="text-amber-400 text-lg animate-pulse">●</span>}
+                  {step.status === "wait"     && <span className="text-gray-700 text-lg">○</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────
+
 export default function AdminPage() {
   const [password, setPassword]   = useState("");
   const [authed,   setAuthed]     = useState(false);
@@ -147,6 +354,9 @@ export default function AdminPage() {
             </span>
           </div>
         )}
+
+        {/* ── Play Store 출시 로드맵 ── */}
+        <PlayStoreRoadmap />
 
         {/* Vercel Analytics 안내 */}
         <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">

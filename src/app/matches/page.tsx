@@ -6,30 +6,7 @@ import { useEffect, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import KakaoPlaceSearch, { type SelectedPlace } from "@/components/KakaoPlaceSearch";
 import KakaoMapModal from "@/components/KakaoMapModal";
-
-function TimePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [h, m] = value ? value.split(":") : ["", ""];
-  function update(newH: string, newM: string) {
-    if (!newH && !newM) { onChange(""); return; }
-    onChange(`${newH.padStart(2, "0")}:${(newM || "00").padStart(2, "0")}`);
-  }
-  const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
-  const minutes = ["00", "10", "20", "30", "40", "50"];
-  const sel = "bg-gray-800 border border-white/10 text-white rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
-  return (
-    <div className="flex items-center gap-1">
-      <select value={h || ""} onChange={e => update(e.target.value, m || "00")} className={`flex-1 ${sel}`}>
-        <option value="">시</option>
-        {hours.map(hh => <option key={hh} value={hh}>{hh}시</option>)}
-      </select>
-      <span className="text-gray-600 text-sm">:</span>
-      <select value={m || ""} onChange={e => update(h || "00", e.target.value)} className={`flex-1 ${sel}`}>
-        <option value="">분</option>
-        {minutes.map(mm => <option key={mm} value={mm}>{mm}분</option>)}
-      </select>
-    </div>
-  );
-}
+import TimeSelect from "@/components/TimeSelect";
 
 interface Match {
   id: string;
@@ -340,9 +317,9 @@ export default function MatchesPage() {
                 <input type="date" value={date} onChange={e => setDate(e.target.value)} className={inputCls} required />
               </div>
               <div className="flex gap-2 items-end">
-                <div className="flex-1"><label className="text-xs text-gray-500 mb-1 block">시작 시간</label><TimePicker value={matchTime} onChange={setMatchTime} /></div>
+                <div className="flex-1"><label className="text-xs text-gray-500 mb-1 block">시작 시간</label><TimeSelect value={matchTime} onChange={setMatchTime} /></div>
                 <div className="pb-2 text-gray-600 text-sm">~</div>
-                <div className="flex-1"><label className="text-xs text-gray-500 mb-1 block">종료 시간</label><TimePicker value={matchEndTime} onChange={setMatchEndTime} /></div>
+                <div className="flex-1"><label className="text-xs text-gray-500 mb-1 block">종료 시간</label><TimeSelect value={matchEndTime} onChange={setMatchEndTime} /></div>
               </div>
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">경기 장소 <span className="text-emerald-500/70">(카카오맵 검색)</span></label>
@@ -490,9 +467,9 @@ export default function MatchesPage() {
                     <p className="font-bold text-white text-sm">경기 수정</p>
                     <div><label className="text-xs text-gray-500 mb-1 block">경기 날짜</label><input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} className={inputCls} /></div>
                     <div className="flex gap-2 items-end">
-                      <div className="flex-1"><label className="text-xs text-gray-500 mb-1 block">시작</label><TimePicker value={editTime} onChange={setEditTime} /></div>
+                      <div className="flex-1"><label className="text-xs text-gray-500 mb-1 block">시작</label><TimeSelect value={editTime} onChange={setEditTime} /></div>
                       <div className="pb-2 text-gray-600 text-sm">~</div>
-                      <div className="flex-1"><label className="text-xs text-gray-500 mb-1 block">종료</label><TimePicker value={editEndTime} onChange={setEditEndTime} /></div>
+                      <div className="flex-1"><label className="text-xs text-gray-500 mb-1 block">종료</label><TimeSelect value={editEndTime} onChange={setEditEndTime} /></div>
                     </div>
                     <div>
                       <label className="text-xs text-gray-500 mb-1 block">경기 장소 <span className="text-emerald-500/70">(카카오맵 검색)</span></label>

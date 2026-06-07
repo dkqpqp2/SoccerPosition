@@ -38,10 +38,10 @@ export default function SpmLogo({ size = "md", showText = true, clickable = fals
         />
         {/* S·P·M 텍스트 */}
         <span
-          className="relative font-black tracking-tighter text-white"
+          className="relative font-black text-white"
           style={{
             fontSize: iconSize * 0.38,
-            letterSpacing: "-1px",
+            letterSpacing: "0px",
             textShadow: "0 1px 2px rgba(0,0,0,0.3)",
           }}
         >

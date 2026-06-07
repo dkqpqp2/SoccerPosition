@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { FORMATIONS, Formation, PositionSlot } from "@/lib/formations";
 import CaptureButton from "@/components/CaptureButton";
 
@@ -27,6 +27,7 @@ interface AssignmentData {
 
 export default function SharePage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [data, setData] = useState<AssignmentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -88,6 +89,21 @@ export default function SharePage() {
 
   return (
     <div className="min-h-screen bg-gray-950">
+      {/* 상단 홈 버튼 */}
+      <div className="max-w-2xl mx-auto px-3 pt-4 flex items-center gap-2">
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors bg-gray-900 border border-white/5 px-3 py-1.5 rounded-xl"
+        >
+          ← 홈으로
+        </button>
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors bg-gray-900 border border-white/5 px-3 py-1.5 rounded-xl"
+        >
+          ↩ 이전으로
+        </button>
+      </div>
       <div className="max-w-2xl mx-auto px-3 py-6">
 
         {/* ── 캡쳐 영역 시작 ── */}

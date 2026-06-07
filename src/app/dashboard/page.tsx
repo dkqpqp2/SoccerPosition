@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 
-type TeamRole = "owner" | "manager" | "coach" | "president" | "member";
+type TeamRole = "owner" | "manager" | "coach" | "president" | "member" | "treasurer";
 
 interface TeamMember {
   role: TeamRole;
@@ -70,6 +70,7 @@ const ROLE_LABEL: Record<TeamRole, string> = {
   coach: "코치",
   president: "회장",
   member: "팀원",
+  treasurer: "총무",
 };
 
 const ROLE_COLOR: Record<TeamRole, string> = {
@@ -78,6 +79,7 @@ const ROLE_COLOR: Record<TeamRole, string> = {
   coach: "bg-purple-500/20 text-purple-400 border border-purple-500/30",
   president: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30",
   member: "bg-white/10 text-gray-400 border border-white/10",
+  treasurer: "bg-teal-500/20 text-teal-400 border border-teal-500/30",
 };
 
 export default function Dashboard() {
@@ -208,12 +210,19 @@ export default function Dashboard() {
   async function switchTeam(teamId: string) {
     if (switching) return;
     setSwitching(true);
+    // 이전 팀 데이터 즉시 초기화
+    setUpcomingMatch(null);
+    setAssignments([]);
+    setRecentFeedbackMatch(null);
+    setRecentFeedback(null);
+    setFeedbackLoaded(false);
+    setMercenaryIds(new Set());
     await fetch("/api/team/switch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ team_id: teamId }),
     });
-    await Promise.all([fetchTeam(), fetchMyTeams(), fetchMatchData()]);
+    await Promise.all([fetchTeam(), fetchMyTeams(), fetchMatchData(), fetchMembers()]);
     setShowMembers(false);
     setShowInvite(false);
     setSwitching(false);
@@ -767,6 +776,7 @@ export default function Dashboard() {
                               <option value="manager">감독</option>
                               <option value="coach">코치</option>
                               <option value="president">회장</option>
+                              <option value="treasurer">총무</option>
                               <option value="member">팀원</option>
                             </select>
                             <button

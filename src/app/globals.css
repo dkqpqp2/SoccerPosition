@@ -40,3 +40,8 @@ body {
 .animate-slide-in-right {
   animation: slideInRight 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
+
+/* 하단 탭바 스크롤바 숨김 */
+nav .overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}

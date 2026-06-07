@@ -74,6 +74,17 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
 
   return (
     <div className="min-h-screen bg-gray-950">
+      {/* 상단 홈 버튼 */}
+      <div className="max-w-2xl mx-auto px-4 pt-4 flex items-center gap-2">
+        <a href="/dashboard"
+          className="text-xs text-gray-500 hover:text-white transition-colors bg-gray-900 border border-white/5 px-3 py-1.5 rounded-xl">
+          ← 홈으로
+        </a>
+        <a href="/matches"
+          className="text-xs text-gray-500 hover:text-white transition-colors bg-gray-900 border border-white/5 px-3 py-1.5 rounded-xl">
+          ↩ 경기 관리
+        </a>
+      </div>
       <div className="max-w-2xl mx-auto px-4 py-6">
         <div id="capture-area" className="bg-gray-950 p-4 rounded-2xl">
 

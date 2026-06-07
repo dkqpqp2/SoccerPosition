@@ -65,5 +65,49 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // ── 배정된 팀원들에게 알림 전송 ──
+  try {
+    // result: Record<slotId, { id: memberId, name: string, ... } | null>
+    const assignedMemberIds: string[] = Object.values(result ?? {})
+      .filter(Boolean)
+      .map((m: any) => m.id);
+
+    if (assignedMemberIds.length > 0) {
+      // 경기 날짜 조회 (match_id 있을 때)
+      let matchLabel = session_name;
+      if (match_id) {
+        const { data: match } = await supabaseAdmin
+          .from("matches").select("match_date, title").eq("id", match_id).single();
+        if (match?.match_date) {
+          const d = new Date(match.match_date);
+          matchLabel = `${d.getMonth() + 1}월 ${d.getDate()}일 경기`;
+        }
+      }
+
+      // 해당 멤버들의 user_id 조회 (로그인 계정 있는 팀원만)
+      const { data: members } = await supabaseAdmin
+        .from("team_members")
+        .select("id, user_id, name")
+        .in("id", assignedMemberIds)
+        .not("user_id", "is", null);
+
+      if (members && members.length > 0) {
+        const notifications = members.map((m: any) => ({
+          user_id: m.user_id,
+          type: "position_assigned",
+          title: "포지션 배정 알림 ⚽",
+          body: `${matchLabel} [${session_name}]에 배정되셨습니다. 포지션을 확인해보세요!`,
+          link: `/share/${data.id}`,
+          is_read: false,
+        }));
+        await supabaseAdmin.from("notifications").insert(notifications);
+      }
+    }
+  } catch (e) {
+    // 알림 실패해도 저장은 성공
+    console.error("notification error:", e);
+  }
+
   return NextResponse.json(data);
 }
