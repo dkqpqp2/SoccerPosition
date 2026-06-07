@@ -5,6 +5,16 @@ import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import SpmLogo from "@/components/SpmLogo";
 
+export interface HelpItem {
+  icon: string;
+  title: string;
+  desc: string;
+}
+
+export interface HelpContent {
+  items: HelpItem[];
+}
+
 const NAV_ITEMS = [
   { path: "/dashboard", icon: "⚡", label: "홈" },
   { path: "/members", icon: "👥", label: "팀원 관리" },
@@ -22,11 +32,12 @@ const NAV_ITEMS = [
 
 // 모바일 하단은 NAV_ITEMS 전체를 가로 스크롤로 표시
 
-export default function AppLayout({ children, title }: { children: React.ReactNode; title?: string }) {
+export default function AppLayout({ children, title, helpContent }: { children: React.ReactNode; title?: string; helpContent?: HelpContent }) {
   const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [teamName, setTeamName] = useState("우리팀");
   const [avgAge, setAvgAge] = useState<number | null>(null);
   const [pendingMatches, setPendingMatches] = useState(0);
@@ -180,16 +191,28 @@ export default function AppLayout({ children, title }: { children: React.ReactNo
             </div>
             {title && <h1 className="text-sm font-bold text-white">{title}</h1>}
           </div>
-          <button
-            onClick={() => router.push("/mypage")}
-            className="md:hidden"
-          >
-            {session?.user?.image ? (
-              <img src={session.user.image} alt="" className="w-7 h-7 rounded-full ring-1 ring-emerald-400/30" />
-            ) : (
-              <span className="text-sm">👤</span>
+          <div className="flex items-center gap-2">
+            {/* 도움말 버튼 */}
+            {helpContent && (
+              <button
+                onClick={() => setShowHelp(true)}
+                className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-gray-500 hover:text-white text-xs font-black flex items-center justify-center transition-colors"
+                title="사용법"
+              >
+                ?
+              </button>
             )}
-          </button>
+            <button
+              onClick={() => router.push("/mypage")}
+              className="md:hidden"
+            >
+              {session?.user?.image ? (
+                <img src={session.user.image} alt="" className="w-7 h-7 rounded-full ring-1 ring-emerald-400/30" />
+              ) : (
+                <span className="text-sm">👤</span>
+              )}
+            </button>
+          </div>
         </header>
 
         {/* 페이지 콘텐츠 */}
@@ -197,6 +220,48 @@ export default function AppLayout({ children, title }: { children: React.ReactNo
           {children}
         </main>
       </div>
+
+      {/* ── 도움말 모달 ── */}
+      {showHelp && helpContent && (
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4"
+          onClick={() => setShowHelp(false)}
+        >
+          <div
+            className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* 헤더 */}
+            <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base">💡</span>
+                <h3 className="font-bold text-white text-sm">{title} 사용법</h3>
+              </div>
+              <button onClick={() => setShowHelp(false)} className="text-gray-500 hover:text-white text-xl font-bold leading-none">✕</button>
+            </div>
+            {/* 항목 목록 */}
+            <div className="px-5 py-4 flex flex-col gap-3 max-h-[70vh] overflow-y-auto">
+              {helpContent.items.map((item, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <span className="text-xl shrink-0 mt-0.5">{item.icon}</span>
+                  <div>
+                    <p className="text-sm font-bold text-white">{item.title}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="px-5 pb-4">
+              <button
+                onClick={() => setShowHelp(false)}
+                className="w-full bg-white/5 hover:bg-white/10 text-gray-400 font-semibold py-2.5 rounded-xl text-sm transition-colors"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── 하단 탭바 (모바일 only) – 가로 스크롤 ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-white/5 z-50">

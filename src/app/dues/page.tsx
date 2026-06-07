@@ -444,7 +444,13 @@ export default function DuesPage() {
   };
 
   return (
-    <AppLayout title="💰 회비 관리">
+    <AppLayout title="💰 회비 관리" helpContent={{ items: [
+      { icon: "💵", title: "월별 회비 설정", desc: "상단 설정 버튼으로 월별 회비 금액을 지정해요. 팀원별로 납부 여부를 관리할 수 있어요." },
+      { icon: "✅", title: "납부 완료 처리", desc: "각 팀원의 납부 버튼을 눌러 납부 완료로 변경해요. 일괄 납부로 여러 명을 한 번에 처리할 수도 있어요." },
+      { icon: "☑️", title: "일괄 납부", desc: "☑ 일괄 납부 버튼 → 팀원 선택 → 납부완료 ✓ 버튼으로 여러 명을 한 번에 처리해요." },
+      { icon: "💸", title: "기타 수입/지출", desc: "수입·지출 탭에서 벌금·찬조금 등 기타 수입과 지출을 기록할 수 있어요." },
+      { icon: "📊", title: "잔액 현황", desc: "잔액 탭에서 총 수납·기타 수입·지출·잔액을 한눈에 볼 수 있어요." },
+    ]}}>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
 
         {/* 기본 회비 설정 카드 */}

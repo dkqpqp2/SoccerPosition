@@ -123,7 +123,12 @@ function FeedbackContent() {
   const totalPages = Math.ceil(matches.length / PAGE_SIZE);
 
   return (
-    <AppLayout title="경기 피드백">
+    <AppLayout title="경기 피드백" helpContent={{ items: [
+      { icon: "📝", title: "팀 피드백", desc: "관리자가 경기 전체에 대한 피드백을 작성해요. 모든 팀원이 볼 수 있어요." },
+      { icon: "👤", title: "개인 피드백", desc: "관리자가 선수별 개인 피드백을 작성해요. 해당 선수 본인만 볼 수 있어요." },
+      { icon: "📅", title: "경기 선택", desc: "상단에서 경기를 선택해 해당 경기의 피드백을 작성하거나 확인해요." },
+      { icon: "🏠", title: "홈에서 확인", desc: "홈 화면 하단에서 가장 최근 경기의 피드백을 바로 확인할 수 있어요." },
+    ]}}>
       {shareToast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gray-800 border border-white/10 text-white px-5 py-3 rounded-2xl shadow-lg text-sm font-semibold">
           {shareToast}

@@ -120,7 +120,12 @@ export default function StatsPage() {
   const myRestIdx = me ? restList.findIndex(p => p.is_me) : -1;
 
   return (
-    <AppLayout title="팀 통계">
+    <AppLayout title="팀 통계" helpContent={{ items: [
+      { icon: "📊", title: "개인 통계", desc: "팀원별 경기 수·골·어시스트를 확인해요. 경기관리에서 입력한 기록이 자동으로 반영돼요." },
+      { icon: "🏆", title: "팀 전적", desc: "전체 승·무·패와 골득실, 상대팀별 전적을 확인할 수 있어요." },
+      { icon: "✏️", title: "기록 수정", desc: "관리자는 수정 버튼으로 경기관리에 없는 경기의 추가 골·어시스트를 직접 입력할 수 있어요." },
+      { icon: "📅", title: "연도 필터", desc: "상단 연도 선택으로 해당 연도 통계만 볼 수 있어요." },
+    ]}}>
       <div className="max-w-2xl mx-auto px-4 py-6">
 
         {/* ── 연도 탭 ── */}

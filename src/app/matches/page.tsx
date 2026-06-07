@@ -324,7 +324,13 @@ export default function MatchesPage() {
   );
 
   return (
-    <AppLayout title="경기 관리">
+    <AppLayout title="경기 관리" helpContent={{ items: [
+      { icon: "📅", title: "경기 추가", desc: "+ 경기 추가 버튼으로 날짜·시간·장소·상대팀을 등록해요. 카카오맵으로 장소를 검색할 수 있어요." },
+      { icon: "🎯", title: "포지션 배정", desc: "배정하기 → 버튼으로 해당 경기의 팀원 포지션을 쿼터별로 배정해요." },
+      { icon: "⚽", title: "골/어시 기록", desc: "경기 종료 후 기록 버튼이 나타나요. 참가 선수별 골·어시스트를 입력하면 팀 통계에 자동 반영돼요." },
+      { icon: "🏆", title: "경기 결과", desc: "경기 종료 후 결과 버튼으로 스코어를 입력해요. 팀 통계 → 팀 전적 탭에서 확인할 수 있어요." },
+      { icon: "📝", title: "피드백", desc: "피드백 버튼으로 경기 후 팀원·개인 피드백을 작성하고 공유해요." },
+    ]}}>
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* 연도 선택 + 경기 추가 버튼 */}
         <div className="flex items-center justify-between mb-5">

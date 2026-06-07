@@ -242,7 +242,12 @@ export default function VotesPage() {
   }
 
   return (
-    <AppLayout title="투표">
+    <AppLayout title="투표" helpContent={{ items: [
+      { icon: "📝", title: "투표 만들기", desc: "관리자는 + 투표 만들기 버튼으로 새 투표를 생성해요. 제목·항목·기간을 설정할 수 있어요." },
+      { icon: "🗳️", title: "투표 참여", desc: "진행 중인 투표에서 항목을 선택해 투표할 수 있어요. 마감 전까지 변경 가능해요." },
+      { icon: "📊", title: "결과 확인", desc: "마감된 투표는 결과를 바 차트로 확인할 수 있어요." },
+      { icon: "🔒", title: "비공개 투표", desc: "익명 투표로 설정하면 누가 무엇에 투표했는지 공개되지 않아요." },
+    ]}}>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
 
         {/* 헤더 */}

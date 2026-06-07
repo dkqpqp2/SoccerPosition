@@ -369,7 +369,13 @@ function AssignContent() {
   const mercenaryIds = new Set(members.filter(m => m.is_mercenary).map(m => m.id));
 
   return (
-    <AppLayout title={matchInfo ? `포지션 배정 · ${new Date(matchInfo.match_date).toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" })}` : "포지션 배정"}>
+    <AppLayout title={matchInfo ? `포지션 배정 · ${new Date(matchInfo.match_date).toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" })}` : "포지션 배정"} helpContent={{ items: [
+      { icon: "👥", title: "참가자 선택", desc: "왼쪽 팀원 목록에서 이번 경기에 참가하는 선수를 선택해요." },
+      { icon: "🎯", title: "포지션 배정", desc: "선수를 드래그하거나 포지션 슬롯을 클릭해 배정해요. 선호 포지션이 자동으로 추천돼요." },
+      { icon: "⚡", title: "자동 배정", desc: "자동 배정 버튼을 누르면 선호 포지션 기반으로 AI가 최적 배치를 추천해요." },
+      { icon: "📋", title: "쿼터 관리", desc: "쿼터를 추가해 전반·후반·쿼터별로 다른 배정을 저장할 수 있어요." },
+      { icon: "🔗", title: "공유", desc: "저장 후 공유 링크를 팀원들에게 보내면 배정 결과를 확인할 수 있어요." },
+    ]}}>
 
       {/* 상단 서브바 */}
       <div className="flex items-center px-4 py-2 border-b border-white/5 bg-gray-900/60 backdrop-blur-sm sticky top-0 z-10 gap-3">

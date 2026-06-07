@@ -114,7 +114,13 @@ export default function MembersPage() {
   const displayedMembers = allDisplayed.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
-    <AppLayout title="팀원 관리">
+    <AppLayout title="팀원 관리" helpContent={{ items: [
+      { icon: "👤", title: "팀원 추가", desc: "+ 정규팀원 버튼으로 새 팀원을 등록해요. 이름·포지션·나이를 입력할 수 있어요." },
+      { icon: "⚡", title: "용병 추가", desc: "+ 용병 버튼으로 단기 참가자를 등록해요. 정규 통계에 포함되지 않아요." },
+      { icon: "🎯", title: "선호 포지션", desc: "각 팀원에게 1순위·2순위 포지션을 설정하면 포지션 배정 시 자동으로 반영돼요." },
+      { icon: "📋", title: "평가 탭", desc: "관리자는 팀원별 능력치와 메모를 기록할 수 있어요. 팀원 본인만 볼 수 있어요." },
+      { icon: "📊", title: "팀원 통계", desc: "팀 통계 페이지에서 각 팀원의 골·어시스트 기록을 확인할 수 있어요." },
+    ]}}>
       {/* 상단 버튼 */}
       <div className="flex justify-end gap-2 px-4 pt-4">
         {canManage && tab !== "eval" && (
