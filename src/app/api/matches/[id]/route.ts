@@ -31,6 +31,35 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   return NextResponse.json(data);
 }
 
+/** PATCH /api/matches/[id] — 스코어만 업데이트 */
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { userId, teamId } = await getUserAndTeam(session.user.id);
+  if (!userId || !teamId) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  const role = await getUserRole(userId, teamId);
+  if (!canManage(role)) return NextResponse.json({ error: "권한 없음" }, { status: 403 });
+
+  const { id } = await params;
+  const { score_us, score_them } = await req.json();
+
+  const { data, error } = await supabaseAdmin
+    .from("matches")
+    .update({
+      score_us:   score_us   ?? null,
+      score_them: score_them ?? null,
+    })
+    .eq("id", id)
+    .eq("team_id", teamId)
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(data);
+}
+
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

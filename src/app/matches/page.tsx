@@ -18,7 +18,16 @@ interface Match {
   place_lng: number | null;
   title: string | null;
   uniform_info?: string | null;
+  score_us: number | null;
+  score_them: number | null;
   position_assignments: { id: string; session_name: string; created_at: string }[];
+}
+
+interface ScoreModal {
+  matchId: string;
+  matchTitle: string;
+  scoreUs: number;
+  scoreThem: number;
 }
 
 interface StatEntry {
@@ -69,6 +78,8 @@ export default function MatchesPage() {
   const [statsEntries, setStatsEntries] = useState<StatEntry[]>([]);
   const [statsSaving, setStatsSaving] = useState(false);
   const [mapModal, setMapModal] = useState<MapModal | null>(null);
+  const [scoreModal, setScoreModal] = useState<ScoreModal | null>(null);
+  const [scoreSaving, setScoreSaving] = useState(false);
 
   // 추가 폼 장소 선택
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
@@ -228,6 +239,19 @@ export default function MatchesPage() {
         ? { ...e, [field]: Math.max(0, e[field] + delta) }
         : e
     ));
+  }
+
+  async function saveScore() {
+    if (!scoreModal) return;
+    setScoreSaving(true);
+    await fetch(`/api/matches/${scoreModal.matchId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ score_us: scoreModal.scoreUs, score_them: scoreModal.scoreThem }),
+    });
+    setScoreSaving(false);
+    setScoreModal(null);
+    fetchMatches();
   }
 
   async function deleteMatch(id: string) {
@@ -516,6 +540,24 @@ export default function MatchesPage() {
                           </p>
                         )}
                         {match.title && <p className="text-sm text-gray-400 mt-0.5">{match.title}</p>}
+                        {/* 스코어 배지 */}
+                        {match.score_us !== null && match.score_them !== null && (() => {
+                          const isW = match.score_us > match.score_them;
+                          const isD = match.score_us === match.score_them;
+                          const style = isW
+                            ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
+                            : isD
+                              ? "bg-yellow-500/15 border-yellow-500/30 text-yellow-300"
+                              : "bg-red-500/15 border-red-500/30 text-red-300";
+                          const label = isW ? "승" : isD ? "무" : "패";
+                          return (
+                            <div className={`inline-flex items-center gap-1.5 mt-1 px-2.5 py-0.5 rounded-full border text-xs font-bold ${style}`}>
+                              <span>{label}</span>
+                              <span className="text-white/70">|</span>
+                              <span>{match.score_us} - {match.score_them}</span>
+                            </div>
+                          );
+                        })()}
                         {match.location && (
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             <p className="text-xs text-gray-600">📍 {match.location}</p>
@@ -530,15 +572,30 @@ export default function MatchesPage() {
                           </div>
                         )}
                       </div>
-                      {/* 기록 버튼 — 우측 상단 */}
-                      {canInputStats && (
-                        <button
-                          onClick={() => openStatsModal(match)}
-                          className="shrink-0 flex items-center gap-1 bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 border border-white/10 text-gray-400 hover:text-emerald-400 text-xs font-semibold px-2.5 py-1.5 rounded-xl transition-colors"
-                        >
-                          ⚽ 기록
-                        </button>
-                      )}
+                      {/* 버튼 그룹 — 우측 상단 */}
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        {canInputStats && (
+                          <button
+                            onClick={() => openStatsModal(match)}
+                            className="flex items-center gap-1 bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 border border-white/10 text-gray-400 hover:text-emerald-400 text-xs font-semibold px-2.5 py-1.5 rounded-xl transition-colors"
+                          >
+                            ⚽ 기록
+                          </button>
+                        )}
+                        {canInputStats && (
+                          <button
+                            onClick={() => setScoreModal({
+                              matchId: match.id,
+                              matchTitle: match.title ?? formatDate(match.match_date),
+                              scoreUs: match.score_us ?? 0,
+                              scoreThem: match.score_them ?? 0,
+                            })}
+                            className="flex items-center gap-1 bg-white/5 hover:bg-blue-500/10 hover:border-blue-500/30 border border-white/10 text-gray-400 hover:text-blue-400 text-xs font-semibold px-2.5 py-1.5 rounded-xl transition-colors"
+                          >
+                            🏆 결과
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div className="flex gap-1.5 mt-2.5 flex-wrap">
                       {match.position_assignments?.length > 0 ? (
@@ -667,6 +724,81 @@ export default function MatchesPage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+      {/* 🏆 스코어 입력 모달 */}
+      {scoreModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => setScoreModal(null)}>
+          <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-xs" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-white text-base">🏆 경기 결과</h3>
+                <p className="text-xs text-gray-500 mt-0.5 truncate max-w-[180px]">{scoreModal.matchTitle}</p>
+              </div>
+              <button onClick={() => setScoreModal(null)} className="text-gray-500 hover:text-white text-xl font-bold">✕</button>
+            </div>
+
+            <div className="px-5 py-6">
+              {/* 스코어 입력 */}
+              <div className="flex items-center justify-center gap-4">
+                {/* 우리팀 */}
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-xs text-emerald-400 font-bold">{teamName}</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setScoreModal(p => p && ({ ...p, scoreUs: Math.max(0, p.scoreUs - 1) }))}
+                      className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 font-bold text-lg flex items-center justify-center transition-colors"
+                    >−</button>
+                    <span className="text-4xl font-black text-white w-10 text-center">{scoreModal.scoreUs}</span>
+                    <button
+                      onClick={() => setScoreModal(p => p && ({ ...p, scoreUs: p.scoreUs + 1 }))}
+                      className="w-9 h-9 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-bold text-lg flex items-center justify-center transition-colors"
+                    >+</button>
+                  </div>
+                </div>
+
+                {/* 구분자 */}
+                <div className="flex flex-col items-center gap-2 pt-5">
+                  <span className="text-2xl font-black text-gray-600">:</span>
+                </div>
+
+                {/* 상대팀 */}
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-xs text-gray-400 font-bold">상대팀</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setScoreModal(p => p && ({ ...p, scoreThem: Math.max(0, p.scoreThem - 1) }))}
+                      className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 font-bold text-lg flex items-center justify-center transition-colors"
+                    >−</button>
+                    <span className="text-4xl font-black text-white w-10 text-center">{scoreModal.scoreThem}</span>
+                    <button
+                      onClick={() => setScoreModal(p => p && ({ ...p, scoreThem: p.scoreThem + 1 }))}
+                      className="w-9 h-9 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold text-lg flex items-center justify-center transition-colors"
+                    >+</button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 결과 미리보기 */}
+              {(() => {
+                const isW = scoreModal.scoreUs > scoreModal.scoreThem;
+                const isD = scoreModal.scoreUs === scoreModal.scoreThem;
+                const label = isW ? "🏆 승리" : isD ? "🤝 무승부" : "😞 패배";
+                const style = isW ? "text-emerald-400" : isD ? "text-yellow-400" : "text-red-400";
+                return <p className={`text-center text-sm font-black mt-4 ${style}`}>{label}</p>;
+              })()}
+            </div>
+
+            <div className="px-5 pb-5">
+              <button
+                onClick={saveScore}
+                disabled={scoreSaving}
+                className="w-full bg-blue-500 hover:bg-blue-400 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
+              >
+                {scoreSaving ? "저장 중..." : "결과 저장"}
+              </button>
+            </div>
           </div>
         </div>
       )}
