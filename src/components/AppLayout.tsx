@@ -196,10 +196,11 @@ export default function AppLayout({ children, title, helpContent }: { children: 
             {helpContent && (
               <button
                 onClick={() => setShowHelp(true)}
-                className="w-8 h-8 rounded-full bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-500/50 hover:border-emerald-400 text-emerald-400 hover:text-emerald-300 text-sm font-black flex items-center justify-center transition-colors shadow-sm shadow-emerald-500/20"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 hover:border-emerald-400/60 transition-colors group"
                 title="사용법"
               >
-                ?
+                <span className="w-4 h-4 rounded-full bg-emerald-500/30 text-emerald-400 text-[11px] font-black flex items-center justify-center leading-none">?</span>
+                <span className="text-[11px] font-semibold text-gray-500 group-hover:text-gray-400 transition-colors">사용법</span>
               </button>
             )}
             <button
