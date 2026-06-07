@@ -699,7 +699,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            {!recentFeedback || (!recentFeedback.team_feedback && !(recentFeedback.player_feedbacks?.length)) ? (
+            {!recentFeedback || (!recentFeedback.team_feedback?.trim() && !recentFeedback.player_feedbacks?.some(p => p.feedback?.trim())) ? (
               <div className="flex flex-col items-center gap-2 py-5">
                 <span className="text-3xl opacity-30">💬</span>
                 <p className="text-xs text-gray-600">아직 피드백이 없습니다</p>
@@ -720,17 +720,17 @@ export default function Dashboard() {
                     <p className="text-xs text-gray-300 leading-relaxed line-clamp-2">{recentFeedback.team_feedback}</p>
                   </div>
                 )}
-                {recentFeedback.player_feedbacks?.length > 0 && (
+                {recentFeedback.player_feedbacks?.filter(p => p.feedback?.trim()).length > 0 && (
                   <div className="flex flex-col gap-1.5">
-                    {recentFeedback.player_feedbacks.slice(0, 3).map((p, i) => (
+                    {recentFeedback.player_feedbacks.filter(p => p.feedback?.trim()).slice(0, 3).map((p, i) => (
                       <div key={i} className="flex items-start gap-2 bg-white/3 rounded-xl px-3 py-2 border border-white/5">
                         <span className="text-xs font-bold text-white shrink-0 min-w-[48px] truncate">{p.name}</span>
                         <span className="text-[10px] text-gray-400 leading-relaxed line-clamp-1">— {p.feedback}</span>
                       </div>
                     ))}
-                    {recentFeedback.player_feedbacks.length > 3 && (
+                    {recentFeedback.player_feedbacks.filter(p => p.feedback?.trim()).length > 3 && (
                       <p className="text-[10px] text-gray-600 text-center pt-1">
-                        외 {recentFeedback.player_feedbacks.length - 3}명 더보기
+                        외 {recentFeedback.player_feedbacks.filter(p => p.feedback?.trim()).length - 3}명 더보기
                       </p>
                     )}
                   </div>
