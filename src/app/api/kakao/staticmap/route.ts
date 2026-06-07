@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const lng = req.nextUrl.searchParams.get("lng");
   if (!lat || !lng) return new NextResponse("Missing lat/lng", { status: 400 });
 
-  const key = process.env.KAKAO_REST_API_KEY;
+  const key = process.env.KAKAO_REST_API_KEY ?? process.env.KAKAO_CLIENT_ID;
   if (!key) return new NextResponse("No API key", { status: 500 });
 
   // Kakao Static Map API: center는 경도,위도 / markers는 위도,경도

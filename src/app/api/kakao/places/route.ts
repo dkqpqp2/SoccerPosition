@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ documents: [] });
   }
 
-  const key = process.env.KAKAO_REST_API_KEY;
+  const key = process.env.KAKAO_REST_API_KEY ?? process.env.KAKAO_CLIENT_ID;
   if (!key) {
     return NextResponse.json({ error: "KAKAO_REST_API_KEY not set" }, { status: 500 });
   }
