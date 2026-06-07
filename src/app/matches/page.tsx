@@ -270,6 +270,21 @@ export default function MatchesPage() {
     return `${h}시${m > 0 ? ` ${m}분` : ""}`;
   }
 
+  /** 경기 종료 시간이 지났는지 확인 */
+  function isMatchEnded(match: Match): boolean {
+    const now = new Date();
+    const [year, month, day] = match.match_date.split("-").map(Number);
+    if (match.match_end_time) {
+      const [h, m] = match.match_end_time.split(":").map(Number);
+      const endDateTime = new Date(year, month - 1, day, h, m, 0);
+      return now >= endDateTime;
+    } else {
+      // 종료 시간 없으면 경기 날짜 자정 이후
+      const matchDay = new Date(year, month - 1, day, 23, 59, 59);
+      return now > matchDay;
+    }
+  }
+
   // 최근 4개 고유 경기장 (날짜 최신순, 좌표 포함)
   const recentPlaces = Array.from(
     new Map(
@@ -572,17 +587,15 @@ export default function MatchesPage() {
                           </div>
                         )}
                       </div>
-                      {/* 버튼 그룹 — 우측 상단 */}
-                      <div className="flex flex-col items-end gap-1.5 shrink-0">
-                        {canInputStats && (
+                      {/* 버튼 그룹 — 우측 상단 (경기 종료 후에만 표시) */}
+                      {canInputStats && isMatchEnded(match) && (
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
                           <button
                             onClick={() => openStatsModal(match)}
-                            className="flex items-center gap-1 bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 border border-white/10 text-gray-400 hover:text-emerald-400 text-xs font-semibold px-2.5 py-1.5 rounded-xl transition-colors"
+                            className="w-16 flex items-center justify-center gap-1 bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 border border-white/10 text-gray-400 hover:text-emerald-400 text-xs font-semibold px-2.5 py-1.5 rounded-xl transition-colors"
                           >
                             ⚽ 기록
                           </button>
-                        )}
-                        {canInputStats && (
                           <button
                             onClick={() => setScoreModal({
                               matchId: match.id,
@@ -590,12 +603,12 @@ export default function MatchesPage() {
                               scoreUs: match.score_us ?? 0,
                               scoreThem: match.score_them ?? 0,
                             })}
-                            className="flex items-center gap-1 bg-white/5 hover:bg-blue-500/10 hover:border-blue-500/30 border border-white/10 text-gray-400 hover:text-blue-400 text-xs font-semibold px-2.5 py-1.5 rounded-xl transition-colors"
+                            className="w-16 flex items-center justify-center gap-1 bg-white/5 hover:bg-blue-500/10 hover:border-blue-500/30 border border-white/10 text-gray-400 hover:text-blue-400 text-xs font-semibold px-2.5 py-1.5 rounded-xl transition-colors"
                           >
                             🏆 결과
                           </button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-1.5 mt-2.5 flex-wrap">
                       {match.position_assignments?.length > 0 ? (
