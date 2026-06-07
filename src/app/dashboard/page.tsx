@@ -240,6 +240,8 @@ export default function Dashboard() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ team_id: teamId }),
     });
+    // 사이드바에 팀 전환 알림 (AppLayout이 프로필 재요청)
+    window.dispatchEvent(new Event("teamSwitch"));
     await Promise.all([fetchTeam(), fetchMyTeams(), fetchMatchData(), fetchMembers()]);
     setShowMembers(false);
     setShowInvite(false);

@@ -48,12 +48,12 @@ export default function AppLayout({ children, title, helpContent }: { children: 
   // 포메이션·포지션 배정은 관리자급(owner/manager/coach/president)에게만 표시
   const canManageNav = userRole === "owner" || userRole === "manager" || userRole === "coach" || userRole === "president";
 
-  useEffect(() => {
+  function fetchSidebarData() {
     fetch("/api/user/profile").then(r => r.json()).then(d => {
       if (d.team_name) setTeamName(d.team_name);
-      if (d.avg_age) setAvgAge(d.avg_age);
-      if (d.is_owner) setIsOwner(true);
-      if (d.role) setUserRole(d.role);
+      if (d.avg_age !== undefined) setAvgAge(d.avg_age ?? null);
+      setIsOwner(!!d.is_owner);
+      setUserRole(d.role ?? null);
     }).catch(() => {});
     fetch("/api/matching/requests").then(r => r.json()).then((data: { status: string }[]) => {
       if (Array.isArray(data)) setPendingMatches(data.filter(r => r.status === "pending").length);
@@ -61,7 +61,17 @@ export default function AppLayout({ children, title, helpContent }: { children: 
     fetch("/api/notifications").then(r => r.json()).then((data: { is_read: boolean }[]) => {
       if (Array.isArray(data)) setUnreadNotifications(data.filter(n => !n.is_read).length);
     }).catch(() => {});
+  }
+
+  useEffect(() => {
+    fetchSidebarData();
   }, [pathname]);
+
+  // 팀 전환 시 즉시 사이드바 갱신
+  useEffect(() => {
+    window.addEventListener("teamSwitch", fetchSidebarData);
+    return () => window.removeEventListener("teamSwitch", fetchSidebarData);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
