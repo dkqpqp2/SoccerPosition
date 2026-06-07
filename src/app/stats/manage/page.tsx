@@ -6,12 +6,14 @@ import { useEffect, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 
 interface Entry {
-  member_id:   string;
-  name:        string;
-  goals:       number;
-  assists:     number;
-  auto_games:  number;  // match_attendees 자동 (읽기전용)
-  extra_games: number;  // 미등록 추가 출전 (수동 입력)
+  member_id:     string;
+  name:          string;
+  auto_goals:    number;  // match_stats 자동 집계 (읽기전용)
+  auto_assists:  number;  // match_stats 자동 집계 (읽기전용)
+  extra_goals:   number;  // 미등록 경기 추가 골 (수동 입력)
+  extra_assists: number;  // 미등록 경기 추가 어시 (수동 입력)
+  auto_games:    number;  // match_attendees 자동 (읽기전용)
+  extra_games:   number;  // 미등록 추가 출전 (수동 입력)
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -57,13 +59,15 @@ export default function StatsManagePage() {
     setExtraMatches(data.extra_matches ?? 0);
     setEntries(
       (Array.isArray(data.members) ? data.members : []).map(
-        (d: { id?: string; member_id?: string; name: string; goals: number; assists: number; auto_games: number; extra_games: number }) => ({
-          member_id:   d.member_id ?? d.id ?? "",
-          name:        d.name,
-          goals:       d.goals,
-          assists:     d.assists,
-          auto_games:  d.auto_games  ?? 0,
-          extra_games: d.extra_games ?? 0,
+        (d: { id?: string; member_id?: string; name: string; auto_goals: number; auto_assists: number; extra_goals: number; extra_assists: number; auto_games: number; extra_games: number }) => ({
+          member_id:     d.member_id ?? d.id ?? "",
+          name:          d.name,
+          auto_goals:    d.auto_goals    ?? 0,
+          auto_assists:  d.auto_assists  ?? 0,
+          extra_goals:   d.extra_goals   ?? 0,
+          extra_assists: d.extra_assists ?? 0,
+          auto_games:    d.auto_games    ?? 0,
+          extra_games:   d.extra_games   ?? 0,
         })
       )
     );
@@ -73,7 +77,7 @@ export default function StatsManagePage() {
   function switchYear(y: number) { setYear(y); fetchStats(y); }
   function shiftWindow(delta: number) { const nb = baseYear + delta; setBaseYear(nb); switchYear(nb); }
 
-  function updateEntry(memberId: string, field: "goals" | "assists" | "extra_games", delta: number) {
+  function updateEntry(memberId: string, field: "extra_goals" | "extra_assists" | "extra_games", delta: number) {
     setEntries(prev => prev.map(e =>
       e.member_id === memberId ? { ...e, [field]: Math.max(0, e[field] + delta) } : e
     ));
@@ -89,8 +93,8 @@ export default function StatsManagePage() {
         extra_matches: extraMatches,
         entries: entries.map(e => ({
           member_id:   e.member_id,
-          goals:       e.goals,
-          assists:     e.assists,
+          goals:       e.extra_goals,    // player_stats에는 추가분만 저장
+          assists:     e.extra_assists,
           extra_games: e.extra_games,
         })),
       }),
@@ -137,11 +141,20 @@ export default function StatsManagePage() {
         ) : (
           <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
 
+            {/* 안내 배너 */}
+            <div className="px-4 py-3 bg-emerald-500/5 border-b border-emerald-500/10 flex items-start gap-2">
+              <span className="text-emerald-400 shrink-0 mt-0.5">💡</span>
+              <p className="text-[11px] text-emerald-300/70 leading-relaxed">
+                <span className="font-bold text-emerald-400">골·어시는 경기관리에서 자동 집계</span>됩니다.
+                여기서는 앱에 등록되지 않은 경기의 추가 기록만 입력하세요.
+              </p>
+            </div>
+
             {/* 컬럼 헤더 */}
-            <div className="grid grid-cols-[1fr_80px_80px_80px_80px] items-center px-4 py-2.5 border-b border-white/10 bg-white/3">
+            <div className="grid grid-cols-[1fr_60px_80px_100px_100px] items-center px-4 py-2.5 border-b border-white/10 bg-white/3">
               <span className="text-xs text-gray-500 font-semibold">선수</span>
               <span className="text-xs text-gray-400 font-semibold text-center">🏃 자동</span>
-              <span className="text-xs text-amber-400 font-semibold text-center">➕ 추가</span>
+              <span className="text-xs text-amber-400 font-semibold text-center">➕ 추가출전</span>
               <span className="text-xs text-emerald-400 font-semibold text-center">🥅 골</span>
               <span className="text-xs text-blue-400 font-semibold text-center">🎯 어시</span>
             </div>
@@ -150,7 +163,7 @@ export default function StatsManagePage() {
             <div className="divide-y divide-white/5">
               {entries.map(entry => (
                 <div key={entry.member_id}
-                  className="grid grid-cols-[1fr_80px_80px_80px_80px] items-center px-4 py-2">
+                  className="grid grid-cols-[1fr_60px_80px_100px_100px] items-center px-4 py-2.5">
                   <span className="text-sm font-medium text-white truncate pr-2">{entry.name}</span>
 
                   {/* 자동 출전 (읽기전용) */}
@@ -167,19 +180,39 @@ export default function StatsManagePage() {
                     color="amber"
                   />
 
-                  {/* 골 */}
-                  <Counter
-                    value={entry.goals}
-                    onChange={d => updateEntry(entry.member_id, "goals", d)}
-                    color="emerald"
-                  />
+                  {/* 골: 자동(읽기전용) + 추가(수동) */}
+                  <div className="flex flex-col items-center gap-0.5">
+                    {entry.auto_goals > 0 && (
+                      <span className="text-[10px] text-emerald-500/60 font-semibold">자동 {entry.auto_goals}골</span>
+                    )}
+                    <div className="flex items-center gap-0.5">
+                      <Counter
+                        value={entry.extra_goals}
+                        onChange={d => updateEntry(entry.member_id, "extra_goals", d)}
+                        color="emerald"
+                      />
+                    </div>
+                    {entry.extra_goals > 0 && (
+                      <span className="text-[10px] text-gray-600">추가</span>
+                    )}
+                  </div>
 
-                  {/* 어시 */}
-                  <Counter
-                    value={entry.assists}
-                    onChange={d => updateEntry(entry.member_id, "assists", d)}
-                    color="blue"
-                  />
+                  {/* 어시: 자동(읽기전용) + 추가(수동) */}
+                  <div className="flex flex-col items-center gap-0.5">
+                    {entry.auto_assists > 0 && (
+                      <span className="text-[10px] text-blue-500/60 font-semibold">자동 {entry.auto_assists}도움</span>
+                    )}
+                    <div className="flex items-center gap-0.5">
+                      <Counter
+                        value={entry.extra_assists}
+                        onChange={d => updateEntry(entry.member_id, "extra_assists", d)}
+                        color="blue"
+                      />
+                    </div>
+                    {entry.extra_assists > 0 && (
+                      <span className="text-[10px] text-gray-600">추가</span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -229,7 +262,7 @@ export default function StatsManagePage() {
             {/* 저장 버튼 */}
             <div className="px-4 py-4 border-t border-white/10">
               <p className="text-[11px] text-gray-600 mb-3 text-center">
-                💡 자동 출전은 배정 페이지에서 자동 반영 · 골/어시/추가출전만 저장돼요
+                💡 골·어시는 경기관리에서 자동 반영 · 미등록 경기 추가분과 추가출전만 저장돼요
               </p>
               <button onClick={save} disabled={saving}
                 className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold py-3 rounded-xl transition-colors">

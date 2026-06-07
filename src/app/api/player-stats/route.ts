@@ -62,7 +62,22 @@ export async function GET(req: NextRequest) {
   const extra = yearStats?.total_matches ?? 0;
   const total = registered + extra;
 
-  // 선수별 골/어시/추가출전
+  // match_stats에서 골/어시 자동 집계
+  const autoGoalsMap: Record<string, number> = {};
+  const autoAssistsMap: Record<string, number> = {};
+  if (matchIds.length > 0) {
+    const { data: matchStatsData } = await supabaseAdmin
+      .from("match_stats")
+      .select("member_id, goals, assists")
+      .eq("team_id", teamId)
+      .in("match_id", matchIds);
+    (matchStatsData ?? []).forEach(s => {
+      autoGoalsMap[s.member_id]   = (autoGoalsMap[s.member_id]   ?? 0) + s.goals;
+      autoAssistsMap[s.member_id] = (autoAssistsMap[s.member_id] ?? 0) + s.assists;
+    });
+  }
+
+  // 선수별 추가 골/어시 + 추가출전 (미등록 경기용)
   const { data: statsData } = await supabaseAdmin
     .from("player_stats")
     .select("member_id, goals, assists, games_played")
@@ -83,17 +98,25 @@ export async function GET(req: NextRequest) {
     extra_matches:      extra,
     total_matches:      total,
     members: members.map(m => {
-      const autoGames  = autoCountMap[m.id]  ?? 0;
-      const extraGames = statsMap[m.id]?.extra_games ?? 0;
-      const totalGames = autoGames + extraGames;
+      const autoGames    = autoCountMap[m.id]   ?? 0;
+      const extraGames   = statsMap[m.id]?.extra_games ?? 0;
+      const totalGames   = autoGames + extraGames;
+      const autoGoals    = autoGoalsMap[m.id]   ?? 0;
+      const autoAssists  = autoAssistsMap[m.id] ?? 0;
+      const extraGoals   = statsMap[m.id]?.goals   ?? 0;
+      const extraAssists = statsMap[m.id]?.assists  ?? 0;
       return {
-        id:           m.id,
-        name:         m.name,
-        goals:        statsMap[m.id]?.goals   ?? 0,
-        assists:      statsMap[m.id]?.assists  ?? 0,
-        auto_games:   autoGames,
-        extra_games:  extraGames,
-        games_played: totalGames,
+        id:             m.id,
+        name:           m.name,
+        auto_goals:     autoGoals,
+        auto_assists:   autoAssists,
+        extra_goals:    extraGoals,
+        extra_assists:  extraAssists,
+        goals:          autoGoals + extraGoals,
+        assists:        autoAssists + extraAssists,
+        auto_games:     autoGames,
+        extra_games:    extraGames,
+        games_played:   totalGames,
         attendance_rate: total > 0 ? Math.round((totalGames / total) * 100) : 0,
       };
     }),

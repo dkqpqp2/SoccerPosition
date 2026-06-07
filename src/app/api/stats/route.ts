@@ -71,7 +71,22 @@ export async function GET(req: NextRequest) {
   const extraMatchCount      = yearStats?.total_matches ?? 0;
   const totalMatchCount      = registeredMatchCount + extraMatchCount;
 
-  // player_stats (goals, assists, games_played=추가출전)
+  // match_stats에서 골/어시 자동 집계 (경기관리에서 입력된 것)
+  const autoGoalsMap: Record<string, number> = {};
+  const autoAssistsMap: Record<string, number> = {};
+  if (matchIds.length > 0) {
+    const { data: matchStatsData } = await supabaseAdmin
+      .from("match_stats")
+      .select("member_id, goals, assists")
+      .eq("team_id", teamId)
+      .in("match_id", matchIds);
+    (matchStatsData ?? []).forEach(s => {
+      autoGoalsMap[s.member_id]   = (autoGoalsMap[s.member_id]   ?? 0) + s.goals;
+      autoAssistsMap[s.member_id] = (autoAssistsMap[s.member_id] ?? 0) + s.assists;
+    });
+  }
+
+  // player_stats (extra_goals, extra_assists, games_played=추가출전)
   const { data: statsData } = await supabaseAdmin
     .from("player_stats")
     .select("member_id, goals, assists, games_played")
@@ -81,23 +96,27 @@ export async function GET(req: NextRequest) {
   const statsMap: Record<string, { goals: number; assists: number; extra_games: number }> = {};
   (statsData ?? []).forEach(s => {
     statsMap[s.member_id] = {
-      goals:       s.goals,
-      assists:     s.assists,
+      goals:       s.goals,   // 미등록 경기 추가 골
+      assists:     s.assists, // 미등록 경기 추가 어시
       extra_games: s.games_played,
     };
   });
 
   return NextResponse.json(
     members.map(m => {
-      const autoGames  = autoCountMap[m.id]  ?? 0;
-      const extraGames = statsMap[m.id]?.extra_games ?? 0;
-      const totalGames = autoGames + extraGames;
+      const autoGames   = autoCountMap[m.id]    ?? 0;
+      const extraGames  = statsMap[m.id]?.extra_games ?? 0;
+      const totalGames  = autoGames + extraGames;
+      const autoGoals   = autoGoalsMap[m.id]    ?? 0;
+      const autoAssists = autoAssistsMap[m.id]  ?? 0;
+      const extraGoals   = statsMap[m.id]?.goals   ?? 0;
+      const extraAssists = statsMap[m.id]?.assists  ?? 0;
       return {
         id:              m.id,
         name:            m.name,
         is_me:           m.id === myMemberId,
-        goals:           statsMap[m.id]?.goals   ?? 0,
-        assists:         statsMap[m.id]?.assists  ?? 0,
+        goals:           autoGoals + extraGoals,
+        assists:         autoAssists + extraAssists,
         games_played:    totalGames,
         auto_games:      autoGames,
         extra_games:     extraGames,
