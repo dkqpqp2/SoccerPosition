@@ -18,9 +18,9 @@ export interface HelpContent {
 const NAV_ITEMS = [
   { path: "/dashboard", icon: "⚡", label: "홈" },
   { path: "/members", icon: "👥", label: "팀원 관리" },
-  { path: "/formations", icon: "🟩", label: "포메이션" },
+  { path: "/formations", icon: "🟩", label: "포메이션", managerOnly: true },
   { path: "/matches", icon: "📅", label: "경기 관리" },
-  { path: "/assign", icon: "🎯", label: "포지션 배정" },
+  { path: "/assign", icon: "🎯", label: "포지션 배정", managerOnly: true },
   { path: "/feedback", icon: "📝", label: "경기 피드백" },
   { path: "/votes", icon: "🗳️", label: "투표" },
   { path: "/dues", icon: "💰", label: "회비 관리" },
@@ -43,12 +43,17 @@ export default function AppLayout({ children, title, helpContent }: { children: 
   const [pendingMatches, setPendingMatches] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [isOwner, setIsOwner] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // 포메이션·포지션 배정은 관리자급(owner/manager/coach/president)에게만 표시
+  const canManageNav = userRole === "owner" || userRole === "manager" || userRole === "coach" || userRole === "president";
 
   useEffect(() => {
     fetch("/api/user/profile").then(r => r.json()).then(d => {
       if (d.team_name) setTeamName(d.team_name);
       if (d.avg_age) setAvgAge(d.avg_age);
       if (d.is_owner) setIsOwner(true);
+      if (d.role) setUserRole(d.role);
     }).catch(() => {});
     fetch("/api/matching/requests").then(r => r.json()).then((data: { status: string }[]) => {
       if (Array.isArray(data)) setPendingMatches(data.filter(r => r.status === "pending").length);
@@ -89,7 +94,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
 
         {/* 네비게이션 */}
         <nav className="flex-1 py-3 overflow-y-auto">
-          {NAV_ITEMS.map(item => {
+          {NAV_ITEMS.filter(item => !item.managerOnly || canManageNav).map(item => {
             const active = pathname === item.path || (item.path !== "/dashboard" && pathname.startsWith(item.path));
             const locked = item.adminOnly && !isOwner;
             return (
@@ -270,7 +275,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
           className="flex overflow-x-auto"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
-          {NAV_ITEMS.map(item => {
+          {NAV_ITEMS.filter(item => !item.managerOnly || canManageNav).map(item => {
             const active = pathname === item.path || (item.path !== "/dashboard" && pathname.startsWith(item.path));
             const locked = item.adminOnly && !isOwner;
             const showBadge = item.path === "/matching" && !locked && pendingMatches > 0;
