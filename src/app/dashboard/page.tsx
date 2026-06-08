@@ -471,7 +471,7 @@ export default function Dashboard() {
                     <div className="flex -space-x-1.5">
                       {team.members.slice(0, 5).map((m, i) =>
                         m.users?.image ? (
-                          <img key={i} src={m.users.image.replace(/^http:\/\//, 'https://')} alt={m.users.name} className="w-5 h-5 rounded-full ring-1 ring-gray-900" />
+                          <img key={i} src={m.users.image.replace(/^http:\/\//, 'https://')} alt={m.users.name} referrerPolicy="no-referrer" className="w-5 h-5 rounded-full ring-1 ring-gray-900" onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
                         ) : (
                           <div key={i} className="w-5 h-5 rounded-full ring-1 ring-gray-900 bg-emerald-500/20 flex items-center justify-center text-[9px]">👤</div>
                         )
@@ -778,7 +778,7 @@ export default function Dashboard() {
                         {/* 번호 */}
                         <span className="text-xs text-gray-700 w-5 shrink-0 text-right">{memberPage * PAGE_SIZE + idx + 1}</span>
                         {m.users?.image ? (
-                          <img src={m.users.image.replace(/^http:\/\//, 'https://')} alt="" className="w-9 h-9 rounded-full shrink-0" />
+                          <img src={m.users.image.replace(/^http:\/\//, 'https://')} alt="" referrerPolicy="no-referrer" className="w-9 h-9 rounded-full shrink-0" onError={e => { const t = e.target as HTMLImageElement; t.style.display='none'; t.parentElement!.innerHTML='<div class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-sm shrink-0">👤</div>'; }} />
                         ) : (
                           <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-sm shrink-0">👤</div>
                         )}
