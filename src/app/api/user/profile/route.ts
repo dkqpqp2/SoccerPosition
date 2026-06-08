@@ -69,6 +69,7 @@ export async function GET() {
     position_1st: userData?.position_1st ?? null,
     position_2nd: userData?.position_2nd ?? null,
     birth_year: userData?.birth_year ?? null,
+    team_id: teamId ?? null,
     team_name: teamData?.name ?? "우리팀",
     team_color: teamData?.color ?? "#16a34a",
     invite_code: teamData?.invite_code ?? null,
