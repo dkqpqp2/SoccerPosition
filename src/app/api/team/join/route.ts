@@ -87,25 +87,52 @@ export async function POST(req: NextRequest) {
     .eq("id", userId)
     .single();
 
-  if (userData?.name) {
-    // display_name 우선, 없으면 카카오 닉네임
-    const displayName = userData.display_name || userData.name;
+  const displayName = userData?.display_name || userData?.name || "이름 미설정";
 
-    // user_id로 중복 체크 (name이 같아도 별개의 사람일 수 있음)
-    const { data: existingMember } = await supabaseAdmin
+  // 이미 이 team에 user_id로 등록된 멤버가 있는지 확인
+  const { data: existingMember } = await supabaseAdmin
+    .from("team_members")
+    .select("id, user_id")
+    .eq("team_id", team.id)
+    .eq("user_id", userId)
+    .is("left_at", null)
+    .maybeSingle();
+
+  if (!existingMember) {
+    // 같은 이름의 임의추가 멤버가 있으면 자동 연결
+    const { data: manualMatch } = await supabaseAdmin
       .from("team_members")
-      .select("id, user_id")
+      .select("id")
       .eq("team_id", team.id)
-      .eq("user_id", userId)
-      .single();
+      .eq("name", displayName)
+      .is("user_id", null)
+      .is("left_at", null)
+      .maybeSingle();
 
-    if (!existingMember) {
+    if (manualMatch) {
+      // 납부 기록 이전: member_id → user_id
+      await supabaseAdmin
+        .from("dues_payments")
+        .update({ user_id: userId, member_id: null })
+        .eq("member_id", manualMatch.id);
+
+      // 임의 추가 멤버에 user_id 연결
+      await supabaseAdmin
+        .from("team_members")
+        .update({
+          user_id: userId,
+          position_1st: userData?.position_1st ?? null,
+          position_2nd: userData?.position_2nd ?? null,
+        })
+        .eq("id", manualMatch.id);
+    } else {
+      // 임의추가 멤버 없으면 새로 추가
       await supabaseAdmin.from("team_members").insert({
         user_id: userId,
         team_id: team.id,
         name: displayName,
-        position_1st: userData.position_1st ?? null,
-        position_2nd: userData.position_2nd ?? null,
+        position_1st: userData?.position_1st ?? null,
+        position_2nd: userData?.position_2nd ?? null,
         is_mercenary: false,
         is_cafe_mercenary: false,
       });
