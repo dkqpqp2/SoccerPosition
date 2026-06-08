@@ -519,9 +519,11 @@ export default function DuesPage() {
                 </button>
                 <button onClick={() => setEditingDefault(false)} className="px-3 py-2.5 text-gray-500 hover:text-white text-sm">취소</button>
               </div>
-              <p className="text-[11px] text-amber-400/80 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
-                ⚠️ 변경 시 <span className="font-bold">다음 달부터</span> 적용돼요. 이미 납부 처리된 이번 달은 취소 후 다시 납부해야 새 금액이 반영돼요.
-              </p>
+              {defaultAmount > 0 && (
+                <p className="text-[11px] text-amber-400/80 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
+                  ⚠️ 변경 시 <span className="font-bold">다음 달부터</span> 적용돼요. 이미 납부 처리된 이번 달은 취소 후 다시 납부해야 새 금액이 반영돼요.
+                </p>
+              )}
             </div>
           ) : (
             <p className={`text-3xl font-black mt-1 ${defaultAmount > 0 ? "text-white" : "text-gray-700"}`}>
