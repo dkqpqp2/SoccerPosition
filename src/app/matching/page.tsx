@@ -99,6 +99,8 @@ export default function MatchingPage() {
   // 매칭 신청
   const [requests, setRequests] = useState<MatchRequest[]>([]);
   const [myTeamId, setMyTeamId] = useState<string | null>(null);
+  const [myTeamName, setMyTeamName] = useState<string | null>(null);
+  const [showTeamNameWarning, setShowTeamNameWarning] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<MatchRequest | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [receivedPage, setReceivedPage] = useState(5);
@@ -127,10 +129,11 @@ export default function MatchingPage() {
   }, [status]);
 
   async function fetchMyTeamId() {
-    const res = await fetch("/api/matching/profile");
+    const res = await fetch("/api/matching/myteam");
     if (res.ok) {
       const data = await res.json();
       if (data?.team_id) setMyTeamId(data.team_id);
+      if (data?.team_name) setMyTeamName(data.team_name);
     }
   }
 
@@ -290,7 +293,8 @@ export default function MatchingPage() {
   const PAGE = 5;
   const pendingReceived = requests.filter(r => r.to_team_id === myTeamId && r.status === "pending").length;
   const filteredTeams   = teams.filter(t =>
-    teamSearch.trim() === "" || t.teams.name.toLowerCase().includes(teamSearch.toLowerCase())
+    t.teams.name !== "우리팀" &&
+    (teamSearch.trim() === "" || t.teams.name.toLowerCase().includes(teamSearch.toLowerCase()))
   );
   const myListings   = listings.filter(l => l.team_id === myTeamId);
   const openListings = listings.filter(l => l.team_id !== myTeamId && l.status === "open");
@@ -403,7 +407,7 @@ export default function MatchingPage() {
                         </div>
                       )}
                     </div>
-                    <button onClick={() => setSelected(team)}
+                    <button onClick={() => myTeamName === "우리팀" ? setShowTeamNameWarning(true) : setSelected(team)}
                       className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl text-sm transition-colors">
                       매칭 신청하기
                     </button>
@@ -424,7 +428,7 @@ export default function MatchingPage() {
         {tab === "listings" && (
           <div className="flex flex-col gap-4">
             {/* 등록 버튼 */}
-            <button onClick={() => setShowListingForm(true)}
+            <button onClick={() => myTeamName === "우리팀" ? setShowTeamNameWarning(true) : setShowListingForm(true)}
               className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
               <span>+</span> 매칭 등록하기
             </button>
@@ -472,7 +476,7 @@ export default function MatchingPage() {
                       onClose={closeListing}
                       onReopen={reopenListing}
                       onDelete={deleteListing}
-                      onApply={setApplyListing}
+                      onApply={(l) => myTeamName === "우리팀" ? setShowTeamNameWarning(true) : setApplyListing(l)}
                     />
                   ))}
                 </div>
@@ -706,6 +710,29 @@ export default function MatchingPage() {
               <button onClick={sendListingRequest} disabled={applyingListing}
                 className="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-sm transition-colors disabled:opacity-50">
                 {applyingListing ? "신청 중..." : "신청하기"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 팀 이름 경고 모달 ── */}
+      {showTeamNameWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-sm p-6 flex flex-col gap-4">
+            <div className="text-center">
+              <p className="text-4xl mb-3">⚠️</p>
+              <h3 className="font-bold text-white text-lg mb-1">팀 이름을 먼저 설정해주세요</h3>
+              <p className="text-gray-400 text-sm">현재 팀 이름이 <span className="text-amber-400 font-bold">"우리팀"</span>으로 설정되어 있어요.<br/>매칭 기능을 이용하려면 팀 이름을 변경해주세요.</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setShowTeamNameWarning(false)}
+                className="flex-1 py-3 rounded-xl border border-white/10 text-gray-400 font-bold text-sm hover:bg-white/5 transition-colors">
+                닫기
+              </button>
+              <button onClick={() => { setShowTeamNameWarning(false); router.push("/mypage"); }}
+                className="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-sm transition-colors">
+                팀 설정하러 가기
               </button>
             </div>
           </div>
