@@ -11,6 +11,7 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user }) {
+      try {
       const { data: existing } = await supabaseAdmin
         .from("users")
         .select("id")
@@ -92,6 +93,10 @@ export const authOptions: NextAuthOptions = {
         }
       }
       return true;
+      } catch (error) {
+        console.error("SignIn callback error:", error);
+        return true; // 에러가 나도 로그인은 허용
+      }
     },
     async session({ session, token }) {
       if (session.user) {
@@ -101,4 +106,24 @@ export const authOptions: NextAuthOptions = {
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
+  cookies: {
+    pkceCodeVerifier: {
+      name: "next-auth.pkce.code_verifier",
+      options: {
+        httpOnly: true,
+        sameSite: "none",
+        path: "/",
+        secure: true,
+      },
+    },
+    state: {
+      name: "next-auth.state",
+      options: {
+        httpOnly: true,
+        sameSite: "none",
+        path: "/",
+        secure: true,
+      },
+    },
+  },
 };
