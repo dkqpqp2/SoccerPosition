@@ -33,6 +33,12 @@ export async function POST(req: Request) {
     .from("dues_settings")
     .upsert({ team_id: teamId, default_amount: 0 }, { onConflict: "team_id" });
 
+  // 1-1. 팀원 개인 custom_amount 설정도 초기화
+  await supabaseAdmin
+    .from("team_member_dues_settings")
+    .update({ custom_amount: null })
+    .eq("team_id", teamId);
+
   // 2. 해당 월 dues 기록 조회
   const { data: due } = await supabaseAdmin
     .from("dues")
