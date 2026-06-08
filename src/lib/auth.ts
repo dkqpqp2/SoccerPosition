@@ -98,9 +98,24 @@ export const authOptions: NextAuthOptions = {
         return true; // 에러가 나도 로그인은 허용
       }
     },
+    async jwt({ token, user, account, profile }) {
+      if (account && profile) {
+        // Kakao 로그인 시 프로필 사진 토큰에 저장
+        const kakaoProfile = profile as any;
+        token.picture =
+          kakaoProfile?.kakao_account?.profile?.profile_image_url ||
+          kakaoProfile?.properties?.profile_image ||
+          token.picture;
+      }
+      return token;
+    },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub!;
+        // 프로필 사진 명시적으로 전달
+        if (token.picture) {
+          session.user.image = token.picture as string;
+        }
       }
       return session;
     },
