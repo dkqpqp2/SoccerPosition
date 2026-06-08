@@ -185,6 +185,8 @@ export default function DuesPage() {
   const [editingDefault, setEditingDefault] = useState(false);
   const [defaultInput, setDefaultInput] = useState("");
   const [defaultSaving, setDefaultSaving] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   // 초기 잔액 설정
   const [editingInitial, setEditingInitial] = useState(false);
@@ -229,6 +231,18 @@ export default function DuesPage() {
       .then(d => { if (d.role === "owner" || d.role === "treasurer") setCanManage(true); })
       .catch(() => {});
   }, []);
+
+  // 기본 회비 초기화
+  const resetDues = async () => {
+    setResetting(true);
+    await fetch("/api/dues/reset", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ month }),
+    });
+    setResetting(false);
+    setShowResetConfirm(false);
+    load();
+  };
 
   // 기본 회비 저장
   const saveDefault = async () => {
@@ -461,10 +475,18 @@ export default function DuesPage() {
               <p className="text-[10px] text-gray-600 mt-0.5">한 번 설정하면 매달 자동 적용</p>
             </div>
             {canManage && !editingDefault && (
-              <button onClick={() => { setDefaultInput(String(defaultAmount || "")); setEditingDefault(true); }}
-                className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold">
-                {defaultAmount > 0 ? "수정" : "설정하기"}
-              </button>
+              <div className="flex items-center gap-3">
+                <button onClick={() => { setDefaultInput(String(defaultAmount || "")); setEditingDefault(true); }}
+                  className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold">
+                  {defaultAmount > 0 ? "수정" : "설정하기"}
+                </button>
+                {defaultAmount > 0 && (
+                  <button onClick={() => setShowResetConfirm(true)}
+                    className="text-xs text-red-400 hover:text-red-300 font-semibold">
+                    초기화
+                  </button>
+                )}
+              </div>
             )}
           </div>
           {editingDefault ? (
@@ -935,6 +957,32 @@ export default function DuesPage() {
               <button onClick={createExpense} disabled={expSaving || !expForm.title || !expForm.amount || !expForm.used_at}
                 className="w-full py-3 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-40 text-white text-sm font-bold transition-colors">
                 {expSaving ? "저장 중..." : "지출 내역 추가"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 초기화 확인 모달 */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-sm p-6 flex flex-col gap-4">
+            <div className="text-center">
+              <p className="text-4xl mb-3">⚠️</p>
+              <h3 className="font-bold text-white text-lg mb-1">회비 초기화</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                기본 회비가 <span className="text-white font-bold">0원</span>으로 초기화되고,<br />
+                <span className="text-red-400 font-bold">{month}</span> 납부 기록이 <span className="text-red-400 font-bold">전체 삭제</span>돼요.<br />
+                <span className="text-gray-500 text-xs mt-1 block">이 작업은 되돌릴 수 없어요.</span>
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setShowResetConfirm(false)}
+                className="flex-1 py-3 rounded-xl border border-white/10 text-gray-400 font-bold text-sm hover:bg-white/5 transition-colors">
+                취소
+              </button>
+              <button onClick={resetDues} disabled={resetting}
+                className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-sm transition-colors disabled:opacity-50">
+                {resetting ? "초기화 중..." : "초기화"}
               </button>
             </div>
           </div>
