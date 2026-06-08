@@ -141,13 +141,33 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
-    if (status === "authenticated") {
+    if (status !== "authenticated") return;
+
+    fetchTeam();
+    fetchMyTeams();
+    fetchMatchData();
+    fetchMembers();
+
+    // 30초마다 팀원 수 자동 갱신
+    const interval = setInterval(() => {
       fetchTeam();
       fetchMyTeams();
-      fetchMatchData();
-      fetchMembers();
-    }
-  }, [status]);
+    }, 30_000);
+
+    // 탭 전환 후 돌아오면 즉시 갱신
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchTeam();
+        fetchMyTeams();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchMembers() {
     const res = await fetch("/api/members");
@@ -158,6 +178,11 @@ export default function Dashboard() {
 
   async function fetchTeam() {
     const res = await fetch("/api/team");
+    if (res.status === 403) {
+      // 강퇴/탈퇴된 경우 → 페이지 새로고침으로 내 팀으로 전환
+      window.location.reload();
+      return;
+    }
     if (res.ok) setTeam(await res.json());
   }
 
@@ -454,31 +479,29 @@ export default function Dashboard() {
 
         {/* 팀 카드 */}
         {team && (
-          <div className="bg-gray-900 rounded-2xl border border-white/5 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                  <span className="text-emerald-400 font-black text-base">{team.name[0]}</span>
+          <div className="bg-gray-900 rounded-2xl border border-white/5 p-2">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                <span className="text-emerald-400 font-black text-base">{team.name[0]}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="font-bold text-white truncate">{team.name}</p>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${ROLE_COLOR[team.my_role]}`}>
+                    {ROLE_LABEL[team.my_role]}
+                  </span>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-bold text-white">{team.name}</p>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${ROLE_COLOR[team.my_role]}`}>
-                      {ROLE_LABEL[team.my_role]}
-                    </span>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex -space-x-1.5 shrink-0">
+                    {team.members.slice(0, 5).map((m, i) =>
+                      m.users?.image ? (
+                        <img key={i} src={m.users.image.replace(/^http:\/\//, 'https://')} alt={m.users.name} referrerPolicy="no-referrer" className="w-5 h-5 rounded-full ring-1 ring-gray-900" onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
+                      ) : (
+                        <div key={i} className="w-5 h-5 rounded-full ring-1 ring-gray-900 bg-emerald-500/20 flex items-center justify-center text-[9px]">👤</div>
+                      )
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex -space-x-1.5">
-                      {team.members.slice(0, 5).map((m, i) =>
-                        m.users?.image ? (
-                          <img key={i} src={m.users.image.replace(/^http:\/\//, 'https://')} alt={m.users.name} referrerPolicy="no-referrer" className="w-5 h-5 rounded-full ring-1 ring-gray-900" onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
-                        ) : (
-                          <div key={i} className="w-5 h-5 rounded-full ring-1 ring-gray-900 bg-emerald-500/20 flex items-center justify-center text-[9px]">👤</div>
-                        )
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500">팀원 {team.members.length}명</p>
-                  </div>
+                  <p className="text-xs text-gray-500 shrink-0">팀원 {team.members.length}명</p>
                 </div>
               </div>
               <div className="flex gap-2 shrink-0">

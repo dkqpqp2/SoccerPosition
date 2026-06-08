@@ -27,34 +27,6 @@ export async function getUserAndTeam(
   const userId = await getUserId(kakaoId);
   if (!userId) return { userId: null, teamId: null };
   const teamId = await getTeamId(userId);
-  if (!teamId) return { userId, teamId: null };
-
-  // 현재 active_team_id의 팀에 실제로 속해있는지 확인
-  const { data: membership } = await supabaseAdmin
-    .from("team_users")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("team_id", teamId)
-    .maybeSingle();
-
-  // 강퇴됐거나 탈퇴한 경우 → 내 소유 팀으로 자동 전환
-  if (!membership) {
-    const { data: myTeam } = await supabaseAdmin
-      .from("teams")
-      .select("id")
-      .eq("owner_id", userId)
-      .maybeSingle();
-
-    const fallbackTeamId = myTeam?.id ?? null;
-    // active_team_id 자동 업데이트
-    await supabaseAdmin
-      .from("users")
-      .update({ active_team_id: fallbackTeamId })
-      .eq("id", userId);
-
-    return { userId, teamId: fallbackTeamId };
-  }
-
   return { userId, teamId };
 }
 
