@@ -4,8 +4,6 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUserAndTeam } from "@/lib/team";
 
-// 큰 이미지 처리를 위해 body size 제한 해제
-export const config = { api: { bodyParser: false } };
 export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
