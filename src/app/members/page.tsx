@@ -53,6 +53,8 @@ export default function MembersPage() {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const canManage = userRole === "owner" || userRole === "manager" || userRole === "coach" || userRole === "president";
 
   useEffect(() => {
@@ -88,12 +90,22 @@ export default function MembersPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setFormError(null);
+    setSubmitting(true);
+    let res: Response;
     if (editId) {
-      await fetch(`/api/members/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      res = await fetch(`/api/members/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
     } else {
-      await fetch("/api/members", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      res = await fetch("/api/members", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+    }
+    setSubmitting(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setFormError(data.error ?? "오류가 발생했어요. 다시 시도해주세요.");
+      return;
     }
     setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: false, is_cafe_mercenary: false, referrer: "" });
+    setFormError(null);
     setShowForm(false); setEditId(null); fetchMembers();
   }
 
@@ -227,12 +239,17 @@ export default function MembersPage() {
       {/* 모달 폼 */}
       {showForm && canManage && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div className="absolute inset-0 bg-black/70" onClick={() => { setShowForm(false); setEditId(null); }} />
+          <div className="absolute inset-0 bg-black/70" onClick={() => { setShowForm(false); setEditId(null); setFormError(null); }} />
           <form onSubmit={handleSubmit}
             className="relative bg-gray-900 border border-white/10 w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl p-6 z-10 max-h-[85vh] overflow-y-auto overscroll-contain"
             style={{ WebkitOverflowScrolling: "touch" }}
             onClick={e => e.stopPropagation()}>
             <h2 className="font-bold text-white text-lg mb-5">{editId ? "팀원 수정" : "팀원 추가"}</h2>
+            {formError && (
+              <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-sm text-red-400 font-medium">
+                ⚠️ {formError}
+              </div>
+            )}
             <div className="flex flex-col gap-4">
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">이름 *</label>
@@ -291,10 +308,10 @@ export default function MembersPage() {
               )}
 
               <div className="flex gap-3 pt-1">
-                <button type="submit" className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-black py-3 rounded-xl font-bold transition-colors">
-                  {editId ? "수정 완료" : "추가"}
+                <button type="submit" disabled={submitting} className="flex-1 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black py-3 rounded-xl font-bold transition-colors">
+                  {submitting ? "처리 중..." : editId ? "수정 완료" : "추가"}
                 </button>
-                <button type="button" onClick={() => { setShowForm(false); setEditId(null); setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: false, is_cafe_mercenary: false, referrer: "" }); }}
+                <button type="button" onClick={() => { setShowForm(false); setEditId(null); setFormError(null); setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: false, is_cafe_mercenary: false, referrer: "" }); }}
                   className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-3 rounded-xl font-bold transition-colors">취소</button>
               </div>
             </div>
