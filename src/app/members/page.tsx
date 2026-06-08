@@ -152,7 +152,6 @@ export default function MembersPage() {
 
   return (
     <AppLayout title="팀원 관리" helpContent={{ items: [
-      { icon: "👤", title: "팀원 추가", desc: "+ 정규팀원 버튼으로 새 팀원을 등록해요. 이름·포지션·나이를 입력할 수 있어요." },
       { icon: "⚡", title: "용병 추가", desc: "+ 용병 버튼으로 단기 참가자를 등록해요. 정규 통계에 포함되지 않아요." },
       { icon: "🎯", title: "선호 포지션", desc: "각 팀원에게 1순위·2순위 포지션을 설정하면 포지션 배정 시 자동으로 반영돼요." },
       { icon: "📋", title: "평가 탭", desc: "관리자는 팀원별 능력치와 메모를 기록할 수 있어요. 팀원 본인만 볼 수 있어요." },
@@ -161,18 +160,11 @@ export default function MembersPage() {
       {/* 상단 버튼 */}
       <div className="flex justify-end gap-2 px-4 pt-4">
         {canManage && tab !== "eval" && (
-          <>
-            <button
-              onClick={() => { setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: false, is_cafe_mercenary: false, referrer: "" }); setEditId(null); setShowForm(true); }}
-              className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-3 py-1.5 rounded-xl text-sm transition-colors">
-              + 정규팀원
-            </button>
-            <button
-              onClick={() => { setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: true, is_cafe_mercenary: false, referrer: "" }); setEditId(null); setShowForm(true); }}
-              className="bg-amber-500 hover:bg-amber-400 text-black font-bold px-3 py-1.5 rounded-xl text-sm transition-colors">
-              + 용병
-            </button>
-          </>
+          <button
+            onClick={() => { setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: true, is_cafe_mercenary: false, referrer: "" }); setEditId(null); setShowForm(true); }}
+            className="bg-amber-500 hover:bg-amber-400 text-black font-bold px-3 py-1.5 rounded-xl text-sm transition-colors">
+            + 용병
+          </button>
         )}
       </div>
 
