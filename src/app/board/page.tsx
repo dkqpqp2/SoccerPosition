@@ -397,9 +397,9 @@ export default function BoardPage() {
       {showUpload && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto"
           onClick={() => !uploading && resetUpload()}>
-          <div className="flex min-h-full items-end sm:items-center justify-center px-4 py-0 sm:py-6">
+          <div className="flex min-h-full items-center justify-center px-4 py-6">
           <form onSubmit={uploadPhotos}
-            className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[90vh]"
+            className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[85vh]"
             onClick={e => e.stopPropagation()}>
 
             <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between shrink-0">
@@ -496,7 +496,7 @@ export default function BoardPage() {
       {showWrite && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto"
           onClick={() => setShowWrite(false)}>
-          <div className="flex min-h-full items-end sm:items-center justify-center px-4 py-0 sm:py-6">
+          <div className="flex min-h-full items-center justify-center px-4 py-6">
           <form onSubmit={submitPost}
             className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
             onClick={e => e.stopPropagation()}>
