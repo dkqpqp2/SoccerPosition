@@ -57,6 +57,11 @@ export default function MembersPage() {
   const [submitting, setSubmitting] = useState(false);
   const canManage = userRole === "owner" || userRole === "manager" || userRole === "coach" || userRole === "president";
 
+  // 계정 연결 모달
+  const [linkTarget, setLinkTarget] = useState<Member | null>(null); // 연결할 임의 추가 멤버
+  const [linkingId, setLinkingId] = useState<string | null>(null); // 선택한 계정 멤버 id
+  const [linking, setLinking] = useState(false);
+
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
     if (status === "authenticated") { fetchMembers(); fetchUserRole(); }
@@ -113,6 +118,25 @@ export default function MembersPage() {
     if (!confirm("정말 삭제할까요?")) return;
     await fetch(`/api/members/${id}`, { method: "DELETE" });
     fetchMembers();
+  }
+
+  async function handleLink() {
+    if (!linkTarget || !linkingId) return;
+    setLinking(true);
+    const res = await fetch(`/api/members/${linkTarget.id}/link`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ target_member_id: linkingId }),
+    });
+    setLinking(false);
+    if (res.ok) {
+      setLinkTarget(null);
+      setLinkingId(null);
+      fetchMembers();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error ?? "연결 실패. 다시 시도해주세요.");
+    }
   }
 
   function handleEdit(member: Member) {
@@ -209,7 +233,8 @@ export default function MembersPage() {
               {displayedMembers.map((member, idx) => (
                 <MemberRow key={member.id} member={member} isLast={idx === displayedMembers.length - 1}
                   onEdit={handleEdit} onDelete={handleDelete} isMercenary={member.is_mercenary}
-                  canManage={canManage} onDetail={id => router.push(`/members/${id}`)} />
+                  canManage={canManage} onDetail={id => router.push(`/members/${id}`)}
+                  onLink={m => setLinkTarget(m)} />
               ))}
             </div>
 
@@ -235,6 +260,76 @@ export default function MembersPage() {
           </>
         )}
       </div>
+
+      {/* 계정 연결 모달 */}
+      {linkTarget && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="absolute inset-0 bg-black/70" onClick={() => { setLinkTarget(null); setLinkingId(null); }} />
+          <div className="flex min-h-full items-center justify-center px-4 py-6">
+            <div className="relative bg-gray-900 border border-white/10 w-full max-w-md rounded-2xl shadow-2xl p-6 z-10"
+              onClick={e => e.stopPropagation()}>
+              <h2 className="font-bold text-white text-lg mb-1">계정 연결</h2>
+              <p className="text-sm text-gray-400 mb-5">
+                <span className="text-orange-400 font-semibold">{linkTarget.name}</span>님을 아래 계정과 연결할게요. 납부 기록이 모두 이전됩니다.
+              </p>
+
+              {/* 연결 가능한 계정 멤버 목록 */}
+              <div className="flex flex-col gap-2 mb-5 max-h-60 overflow-y-auto">
+                {members.filter(m => m.user_id && !m.is_mercenary).length === 0 ? (
+                  <p className="text-sm text-gray-600 text-center py-4">연결 가능한 계정이 없어요</p>
+                ) : (
+                  members.filter(m => m.user_id && !m.is_mercenary).map(m => (
+                    <button
+                      key={m.id}
+                      onClick={() => setLinkingId(m.id)}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-colors ${
+                        linkingId === m.id
+                          ? "border-purple-400/60 bg-purple-500/10"
+                          : "border-white/10 bg-white/3 hover:bg-white/5"
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
+                        linkingId === m.id ? "bg-purple-500/20 text-purple-400" : "bg-white/5 text-gray-400"
+                      }`}>
+                        {m.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className={`text-sm font-semibold ${linkingId === m.id ? "text-purple-300" : "text-white"}`}>{m.name}</p>
+                        <p className="text-xs text-gray-500">{m.position_1st ?? "포지션 미설정"}</p>
+                      </div>
+                      {linkingId === m.id && (
+                        <span className="ml-auto text-purple-400 text-sm">✓</span>
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+
+              {linkingId && (
+                <div className="mb-4 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-400">
+                  ⚠️ 연결 후에는 되돌릴 수 없어요. 기존 계정 팀원 항목은 삭제되고, <b>{linkTarget.name}</b>님의 기록이 선택한 계정으로 이전돼요.
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleLink}
+                  disabled={!linkingId || linking}
+                  className="flex-1 bg-purple-500 hover:bg-purple-400 disabled:opacity-40 text-white py-3 rounded-xl font-bold transition-colors"
+                >
+                  {linking ? "연결 중..." : "계정 연결"}
+                </button>
+                <button
+                  onClick={() => { setLinkTarget(null); setLinkingId(null); }}
+                  className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-3 rounded-xl font-bold transition-colors"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 모달 폼 */}
       {showForm && canManage && (
@@ -399,9 +494,9 @@ function EvalCard({ ev, canEdit, onEdit }: {
 }
 
 /* ── 팀원 행 ── */
-function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canManage = false, onDetail }: {
+function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canManage = false, onDetail, onLink }: {
   member: Member; isLast: boolean; onEdit: (m: Member) => void; onDelete: (id: string) => void;
-  canManage?: boolean; isMercenary?: boolean; onDetail?: (id: string) => void;
+  canManage?: boolean; isMercenary?: boolean; onDetail?: (id: string) => void; onLink?: (m: Member) => void;
 }) {
   const age = member.birth_year ? new Date().getFullYear() - member.birth_year : null;
   const isManual = !member.user_id; // 임의 추가된 팀원 (계정 없음)
@@ -443,6 +538,12 @@ function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canM
           )}
           {canManage && (
             <>
+              {isManual && !isMercenary && onLink && (
+                <button onClick={() => onLink(member)}
+                  className="text-xs text-purple-400 hover:text-purple-300 px-2 py-1 rounded-lg hover:bg-purple-500/10 transition-colors font-semibold">
+                  연결
+                </button>
+              )}
               <button onClick={() => onEdit(member)} className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded-lg hover:bg-blue-500/10 transition-colors">수정</button>
               <button onClick={() => onDelete(member.id)} className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors">삭제</button>
             </>

@@ -47,7 +47,7 @@ export async function GET(req: Request) {
   const due = dueData ?? null;
 
   // 이달 납부 기록
-  let payments: { user_id: string; amount: number; paid_at: string }[] = [];
+  let payments: { user_id: string | null; member_id: string | null; amount: number; paid_at: string }[] = [];
   if (due) {
     const { data: p } = await supabaseAdmin
       .from("dues_payments")
@@ -85,9 +85,10 @@ export async function GET(req: Request) {
   const members = (teamMembers ?? []).map((tm) => {
     const isManual = !tm.user_id;
     const setting = !isManual ? (memberSettings ?? []).find((m) => m.user_id === tm.user_id) : null;
-    // 임의 추가 멤버는 member_id를 proxy user_id로 사용하여 납부 기록 조회
-    const paymentKey = isManual ? tm.id : tm.user_id;
-    const payment = payments.find((p) => p.user_id === paymentKey);
+    // 임의 추가 멤버는 member_id 컬럼으로, 계정 멤버는 user_id로 납부 기록 조회
+    const payment = isManual
+      ? payments.find((p) => p.member_id === tm.id)
+      : payments.find((p) => p.user_id === tm.user_id);
     const effectiveAmount = setting?.custom_amount ?? defaultAmount;
     const displayName = tm.user_id ? (userMap[tm.user_id] ?? tm.name) : tm.name;
     return {

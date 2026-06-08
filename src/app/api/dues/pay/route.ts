@@ -90,14 +90,28 @@ export async function POST(req: Request) {
     amount = memberSetting?.custom_amount ?? dueAmount;
   }
 
-  const { error } = await supabaseAdmin
-    .from("dues_payments")
-    .upsert(
-      { dues_id: dueId, user_id: targetUserId, amount, recorded_by: userId },
-      { onConflict: "dues_id,user_id" }
-    );
+  let payError;
+  if (is_manual) {
+    // 임의 추가 멤버: member_id 컬럼 사용 (SQL 컬럼 추가 후 동작)
+    const { error } = await supabaseAdmin
+      .from("dues_payments")
+      .upsert(
+        { dues_id: dueId, member_id: targetUserId, amount, recorded_by: userId },
+        { onConflict: "dues_id,member_id" }
+      );
+    payError = error;
+  } else {
+    // 계정 있는 멤버: user_id 컬럼 사용
+    const { error } = await supabaseAdmin
+      .from("dues_payments")
+      .upsert(
+        { dues_id: dueId, user_id: targetUserId, amount, recorded_by: userId },
+        { onConflict: "dues_id,user_id" }
+      );
+    payError = error;
+  }
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (payError) return NextResponse.json({ error: payError.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }
 
@@ -112,7 +126,7 @@ export async function DELETE(req: Request) {
   const role = await getUserRole(userId, teamId);
   if (!canManageDues(role)) return NextResponse.json({ error: "관리자 또는 총무만 처리할 수 있습니다" }, { status: 403 });
 
-  const { month, user_id: targetUserId } = await req.json();
+  const { month, user_id: targetUserId, is_manual } = await req.json();
   if (!month || !targetUserId) return NextResponse.json({ error: "month, user_id 필요" }, { status: 400 });
 
   const { startDate, endDate } = getMonthRange(month);
@@ -127,12 +141,23 @@ export async function DELETE(req: Request) {
 
   if (!due) return NextResponse.json({ success: true }); // 이미 없음
 
-  const { error } = await supabaseAdmin
-    .from("dues_payments")
-    .delete()
-    .eq("dues_id", due.id)
-    .eq("user_id", targetUserId);
+  let delError;
+  if (is_manual) {
+    const { error } = await supabaseAdmin
+      .from("dues_payments")
+      .delete()
+      .eq("dues_id", due.id)
+      .eq("member_id", targetUserId);
+    delError = error;
+  } else {
+    const { error } = await supabaseAdmin
+      .from("dues_payments")
+      .delete()
+      .eq("dues_id", due.id)
+      .eq("user_id", targetUserId);
+    delError = error;
+  }
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (delError) return NextResponse.json({ error: delError.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }
