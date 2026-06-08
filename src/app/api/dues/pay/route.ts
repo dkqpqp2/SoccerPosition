@@ -123,7 +123,10 @@ export async function POST(req: Request) {
     payError = error;
   }
 
-  if (payError) return NextResponse.json({ error: payError.message }, { status: 500 });
+  if (payError) {
+    console.error("[dues/pay] 납부 처리 에러:", JSON.stringify(payError));
+    return NextResponse.json({ error: payError.message, details: payError }, { status: 500 });
+  }
   return NextResponse.json({ success: true });
 }
 
