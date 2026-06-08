@@ -92,14 +92,26 @@ export async function POST(req: Request) {
 
   let payError;
   if (is_manual) {
-    // 임의 추가 멤버: member_id 컬럼 사용 (SQL 컬럼 추가 후 동작)
-    const { error } = await supabaseAdmin
+    // 임의 추가 멤버: member_id 컬럼 사용
+    // partial index는 onConflict upsert가 안 되므로 수동 체크
+    const { data: existing } = await supabaseAdmin
       .from("dues_payments")
-      .upsert(
-        { dues_id: dueId, member_id: targetUserId, amount, recorded_by: userId },
-        { onConflict: "dues_id,member_id" }
-      );
-    payError = error;
+      .select("id")
+      .eq("dues_id", dueId)
+      .eq("member_id", targetUserId)
+      .maybeSingle();
+    if (existing) {
+      const { error } = await supabaseAdmin
+        .from("dues_payments")
+        .update({ amount, recorded_by: userId })
+        .eq("id", existing.id);
+      payError = error;
+    } else {
+      const { error } = await supabaseAdmin
+        .from("dues_payments")
+        .insert({ dues_id: dueId, member_id: targetUserId, amount, recorded_by: userId });
+      payError = error;
+    }
   } else {
     // 계정 있는 멤버: user_id 컬럼 사용
     const { error } = await supabaseAdmin
