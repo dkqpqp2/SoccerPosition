@@ -131,7 +131,7 @@ export default function MatchingPage() {
 
   async function fetchMyTeamId() {
     try {
-      const res = await fetch("/api/matching/myteam");
+      const res = await fetch("/api/user/profile");
       if (res.ok) {
         const data = await res.json();
         if (data?.team_id) setMyTeamId(data.team_id);
