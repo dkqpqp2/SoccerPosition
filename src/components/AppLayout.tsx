@@ -159,7 +159,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
           >
             <span className="relative shrink-0">
               {session?.user?.image ? (
-                <img src={session.user.image} alt="" className="w-7 h-7 rounded-full ring-1 ring-emerald-400/30" />
+                <img src={session.user.image.replace(/^http:\/\//, 'https://')} alt="" className="w-7 h-7 rounded-full ring-1 ring-emerald-400/30" />
               ) : (
                 <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center">
                   <span className="text-xs">👤</span>
@@ -223,7 +223,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
               className="md:hidden"
             >
               {session?.user?.image ? (
-                <img src={session.user.image} alt="" className="w-7 h-7 rounded-full ring-1 ring-emerald-400/30" />
+                <img src={session.user.image.replace(/^http:\/\//, 'https://')} alt="" className="w-7 h-7 rounded-full ring-1 ring-emerald-400/30" />
               ) : (
                 <span className="text-sm">👤</span>
               )}
