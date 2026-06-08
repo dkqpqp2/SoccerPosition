@@ -304,8 +304,19 @@ export default function MatchingPage() {
   const myListings   = listings.filter(l => l.team_id === myTeamId);
   const openListings = listings.filter(l => l.team_id !== myTeamId && l.status === "open");
 
+  // 팀 정보 로딩 중
+  if (!myTeamLoaded) {
+    return (
+      <AppLayout title="팀 매칭">
+        <div className="flex justify-center items-center py-32">
+          <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </AppLayout>
+    );
+  }
+
   // 팀 이름 미설정 시 접근 차단
-  const isTeamNameUnset = myTeamLoaded && (!myTeamName || myTeamName.trim() === "" || myTeamName === "우리팀");
+  const isTeamNameUnset = !myTeamName || myTeamName.trim() === "" || myTeamName === "우리팀";
   if (isTeamNameUnset) {
     return (
       <AppLayout title="팀 매칭">
