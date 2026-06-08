@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getUserAndTeam } from "@/lib/team";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -25,13 +26,32 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { teamId } = await getUserAndTeam(session.user.id);
   const { id } = await params;
 
+  // 삭제할 팀원 정보 조회 (계정 있는 멤버면 team_users도 제거)
+  const { data: member } = await supabaseAdmin
+    .from("team_members")
+    .select("id, user_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  // team_members에서 삭제 (dues_payments.member_id는 ON DELETE CASCADE로 자동 삭제)
   const { error } = await supabaseAdmin
     .from("team_members")
     .delete()
     .eq("id", id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // 계정 있는 멤버면 team_users에서도 제거 (완전 강퇴)
+  if (member?.user_id && teamId) {
+    await supabaseAdmin
+      .from("team_users")
+      .delete()
+      .eq("team_id", teamId)
+      .eq("user_id", member.user_id);
+  }
+
   return NextResponse.json({ success: true });
 }
