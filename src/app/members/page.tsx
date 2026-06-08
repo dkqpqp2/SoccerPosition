@@ -333,11 +333,10 @@ export default function MembersPage() {
 
       {/* 모달 폼 */}
       {showForm && canManage && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div className="absolute inset-0 bg-black/70" onClick={() => { setShowForm(false); setEditId(null); setFormError(null); }} />
+        <div className="fixed inset-0 z-50 bg-black/70 overflow-y-auto" onClick={() => { setShowForm(false); setEditId(null); setFormError(null); }}>
+          <div className="flex min-h-full items-end sm:items-center justify-center px-0 sm:px-4 py-0 sm:py-6">
           <form onSubmit={handleSubmit}
-            className="relative bg-gray-900 border border-white/10 w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl p-6 z-10 max-h-[85vh] overflow-y-auto overscroll-contain"
-            style={{ WebkitOverflowScrolling: "touch" }}
+            className="relative bg-gray-900 border border-white/10 w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl p-6 z-10"
             onClick={e => e.stopPropagation()}>
             <h2 className="font-bold text-white text-lg mb-5">{editId ? "팀원 수정" : "팀원 추가"}</h2>
             {formError && (
@@ -411,6 +410,7 @@ export default function MembersPage() {
               </div>
             </div>
           </form>
+          </div>
         </div>
       )}
     </AppLayout>
