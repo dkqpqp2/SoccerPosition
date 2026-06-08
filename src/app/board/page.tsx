@@ -390,8 +390,9 @@ export default function BoardPage() {
 
       {/* ══════ 사진 업로드 모달 ══════ */}
       {showUpload && (
-        <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 px-4"
+        <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto"
           onClick={() => !uploading && resetUpload()}>
+          <div className="flex min-h-full items-end sm:items-center justify-center px-4 py-0 sm:py-6">
           <form onSubmit={uploadPhotos}
             className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[90vh]"
             onClick={e => e.stopPropagation()}>
@@ -482,13 +483,15 @@ export default function BoardPage() {
               </button>
             </div>
           </form>
+          </div>
         </div>
       )}
 
       {/* ══════ 건의 작성 모달 ══════ */}
       {showWrite && (
-        <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 px-4"
+        <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto"
           onClick={() => setShowWrite(false)}>
+          <div className="flex min-h-full items-end sm:items-center justify-center px-4 py-0 sm:py-6">
           <form onSubmit={submitPost}
             className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
             onClick={e => e.stopPropagation()}>
@@ -518,6 +521,7 @@ export default function BoardPage() {
               </button>
             </div>
           </form>
+          </div>
         </div>
       )}
 

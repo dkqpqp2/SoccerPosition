@@ -672,7 +672,8 @@ export default function MatchesPage() {
 
       {/* ⚽ 골/어시 기록 모달 */}
       {statsModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => setStatsModal(null)}>
+        <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setStatsModal(null)}>
+          <div className="flex min-h-full items-center justify-center px-4 py-6">
           <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between shrink-0">
               <div>
@@ -744,11 +745,13 @@ export default function MatchesPage() {
               </>
             )}
           </div>
+          </div>
         </div>
       )}
       {/* 🏆 스코어 입력 모달 */}
       {scoreModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => setScoreModal(null)}>
+        <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setScoreModal(null)}>
+          <div className="flex min-h-full items-center justify-center px-4 py-6">
           <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-xs" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
               <div>
@@ -818,6 +821,7 @@ export default function MatchesPage() {
                 {scoreSaving ? "저장 중..." : "결과 저장"}
               </button>
             </div>
+          </div>
           </div>
         </div>
       )}

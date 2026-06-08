@@ -71,7 +71,8 @@ export default function KakaoMapModal({ place, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/80 z-50 overflow-y-auto" onClick={onClose}>
+      <div className="flex min-h-full items-end sm:items-center justify-center">
       <div className="bg-gray-900 rounded-t-3xl sm:rounded-2xl border border-white/10 w-full max-w-md overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
 
         {/* 헤더 */}
@@ -127,6 +128,7 @@ export default function KakaoMapModal({ place, onClose }: Props) {
             카카오맵에서 보기
           </a>
         </div>
+      </div>
       </div>
     </div>
   );

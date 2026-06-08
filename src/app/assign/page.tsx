@@ -744,7 +744,8 @@ function AssignContent() {
         const total = savedAssignments.length;
         const quarterLabels = savedAssignments.map((s, i) => s.session_name.replace(/[^0-9]/g, "") || String(i + 1));
         return (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => setShowStatsModal(false)}>
+          <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setShowStatsModal(false)}>
+            <div className="flex min-h-full items-center justify-center px-4 py-6">
             <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
                 <div><h3 className="font-bold text-white text-lg">📊 참여 현황</h3><p className="text-xs text-gray-500 mt-0.5">총 {total}쿼터 · {sorted.length}명</p></div>
@@ -790,13 +791,15 @@ function AssignContent() {
                 <button onClick={() => setShowStatsModal(false)} className="w-full bg-white/5 hover:bg-white/10 text-gray-400 font-semibold py-2.5 rounded-xl transition-colors">닫기</button>
               </div>
             </div>
+            </div>
           </div>
         );
       })()}
 
       {/* 참가 인원 선택 모달 */}
       {showAttendModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => setShowAttendModal(false)}>
+        <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setShowAttendModal(false)}>
+          <div className="flex min-h-full items-center justify-center px-4 py-6">
           <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
               <div>
@@ -868,6 +871,7 @@ function AssignContent() {
               </button>
             </div>
           </div>
+          </div>
         </div>
       )}
 
@@ -880,7 +884,8 @@ function AssignContent() {
 
       {/* 저장 모달 */}
       {showSaveModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-6" onClick={() => setShowSaveModal(false)}>
+        <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setShowSaveModal(false)}>
+          <div className="flex min-h-full items-center justify-center px-6 py-6">
           <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-white mb-4">{loadedAssignmentId ? `"${saveSessionName}" 업데이트` : "배정 저장"}</h3>
             {loadedAssignmentId ? (
@@ -906,12 +911,14 @@ function AssignContent() {
               <button onClick={() => { setShowSaveModal(false); setSaveError(""); }} className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2.5 rounded-xl font-semibold">취소</button>
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {/* 슬롯 클릭 팝업 */}
       {popup && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-6" onClick={() => setPopup(null)}>
+        <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setPopup(null)}>
+          <div className="flex min-h-full items-center justify-center px-6 py-6">
           <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-white mb-1">
               <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded-lg mr-2 text-sm">{popup.label}</span>
@@ -998,6 +1005,7 @@ function AssignContent() {
               })()}
             </div>
             <button onClick={() => setPopup(null)} className="w-full mt-4 bg-white/5 hover:bg-white/10 text-gray-400 py-2 rounded-xl font-medium transition-colors">닫기</button>
+          </div>
           </div>
         </div>
       )}

@@ -581,7 +581,7 @@ export default function MatchingPage() {
 
       {/* ── 매칭 신청 모달 (상대팀 찾기) ── */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 px-4 pb-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60"><div className="flex min-h-full items-end sm:items-center justify-center px-4 pb-4 sm:py-6">
           <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-md p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-white text-lg">⚽ 매칭 신청</h3>
@@ -637,12 +637,12 @@ export default function MatchingPage() {
               </button>
             </div>
           </div>
-        </div>
+          </div></div>
       )}
 
       {/* ── 매칭 등록 폼 모달 ── */}
       {showListingForm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 px-4 pb-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60"><div className="flex min-h-full items-end sm:items-center justify-center px-4 pb-4 sm:py-6">
           <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-md p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-white text-lg">📋 매칭 등록</h3>
@@ -698,12 +698,12 @@ export default function MatchingPage() {
               </button>
             </div>
           </div>
-        </div>
+          </div></div>
       )}
 
       {/* ── 매칭 등록 신청 모달 ── */}
       {applyListing && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 px-4 pb-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60"><div className="flex min-h-full items-end sm:items-center justify-center px-4 pb-4 sm:py-6">
           <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-md p-6 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-white text-lg">⚽ 매칭 신청</h3>
@@ -754,12 +754,12 @@ export default function MatchingPage() {
               </button>
             </div>
           </div>
-        </div>
+          </div></div>
       )}
 
       {/* ── 팀 이름 경고 모달 ── */}
       {showTeamNameWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60"><div className="flex min-h-full items-center justify-center px-4 py-6">
           <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-sm p-6 flex flex-col gap-4">
             <div className="text-center">
               <p className="text-4xl mb-3">⚠️</p>
@@ -776,13 +776,12 @@ export default function MatchingPage() {
                 팀 설정하러 가기
               </button>
             </div>
-          </div>
-        </div>
+          </div></div></div>
       )}
 
       {/* ── 취소 모달 ── */}
       {cancelTarget && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 px-4 pb-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60"><div className="flex min-h-full items-end sm:items-center justify-center px-4 pb-4 sm:py-6">
           <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-md p-6 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-white text-lg">❌ 매칭 취소</h3>
@@ -815,7 +814,7 @@ export default function MatchingPage() {
               </button>
             </div>
           </div>
-        </div>
+          </div></div>
       )}
     </AppLayout>
   );

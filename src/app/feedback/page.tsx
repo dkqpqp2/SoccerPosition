@@ -368,7 +368,8 @@ function FeedbackContent() {
 
       {/* 영상 추가 모달 (AppLayout 내 최상위) */}
       {showVideoAdd && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => setShowVideoAdd(false)}>
+        <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setShowVideoAdd(false)}>
+          <div className="flex min-h-full items-center justify-center px-4 py-6">
           <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-white text-base mb-4">🎬 영상 추가</h3>
             <div className="flex flex-col gap-3">
@@ -422,6 +423,7 @@ function FeedbackContent() {
                 <button onClick={() => setShowVideoAdd(false)} className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2.5 rounded-xl transition-colors">취소</button>
               </div>
             </div>
+          </div>
           </div>
         </div>
       )}

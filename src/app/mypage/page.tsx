@@ -598,7 +598,8 @@ export default function MyPage() {
 
       {/* 회원 탈퇴 확인 모달 */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => setShowDeleteConfirm(false)}>
+        <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="flex min-h-full items-center justify-center px-4 py-6">
           <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
             <div className="text-center mb-5">
               <span className="text-4xl">⚠️</span>
@@ -636,6 +637,7 @@ export default function MyPage() {
                 {deleting ? "처리 중..." : "탈퇴하기"}
               </button>
             </div>
+          </div>
           </div>
         </div>
       )}

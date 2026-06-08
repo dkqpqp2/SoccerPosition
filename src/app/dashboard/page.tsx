@@ -747,10 +747,11 @@ export default function Dashboard() {
       {/* ─── 팀원 모달 ─── */}
       {showMembers && team && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          className="fixed inset-0 z-50 overflow-y-auto"
           onClick={() => setShowMembers(false)}
         >
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative flex min-h-full items-center justify-center px-4 py-6">
           <div
             className="relative bg-gray-900 border border-white/10 rounded-2xl w-full max-w-lg flex flex-col"
             style={{ maxHeight: "80vh" }}
@@ -840,16 +841,18 @@ export default function Dashboard() {
               );
             })()}
           </div>
+          </div>
         </div>
       )}
 
       {/* ─── 초대 모달 ─── */}
       {showInvite && team && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          className="fixed inset-0 z-50 overflow-y-auto"
           onClick={() => setShowInvite(false)}
         >
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative flex min-h-full items-center justify-center px-4 py-6">
           <div
             className="relative bg-gray-900 border border-white/10 rounded-2xl w-full max-w-lg p-5"
             onClick={e => e.stopPropagation()}
@@ -882,6 +885,7 @@ export default function Dashboard() {
               <span className="text-xs text-gray-500">초대 코드</span>
               <span className="font-mono font-bold text-gray-300 text-sm tracking-widest">{team.invite_code}</span>
             </div>
+          </div>
           </div>
         </div>
       )}

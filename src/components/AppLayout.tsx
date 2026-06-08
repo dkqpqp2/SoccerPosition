@@ -240,9 +240,10 @@ export default function AppLayout({ children, title, helpContent }: { children: 
       {/* ── 도움말 모달 ── */}
       {showHelp && helpContent && (
         <div
-          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4"
+          className="fixed inset-0 bg-black/70 z-50 overflow-y-auto"
           onClick={() => setShowHelp(false)}
         >
+          <div className="flex min-h-full items-center justify-center px-4 py-6">
           <div
             className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm"
             onClick={e => e.stopPropagation()}
@@ -275,6 +276,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
                 닫기
               </button>
             </div>
+          </div>
           </div>
         </div>
       )}

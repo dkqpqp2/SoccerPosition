@@ -861,7 +861,8 @@ export default function DuesPage() {
 
       {/* 기타 수입 추가 모달 */}
       {showIncomeModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-end md:items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-end md:items-center justify-center p-4">
           <div className="bg-gray-900 rounded-2xl w-full max-w-md border border-white/10 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
               <h2 className="text-base font-bold text-white">기타 수입 추가</h2>
@@ -917,12 +918,14 @@ export default function DuesPage() {
               </button>
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {/* 지출 추가 모달 */}
       {showExpenseModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-end md:items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-end md:items-center justify-center p-4">
           <div className="bg-gray-900 rounded-2xl w-full max-w-md border border-white/10 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
               <h2 className="text-base font-bold text-white">지출 내역 추가</h2>
@@ -975,11 +978,13 @@ export default function DuesPage() {
               </button>
             </div>
           </div>
+          </div>
         </div>
       )}
       {/* 초기화 확인 모달 */}
       {showResetConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60">
+          <div className="flex min-h-full items-center justify-center px-4 py-6">
           <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-sm p-6 flex flex-col gap-4">
             <div className="text-center">
               <p className="text-4xl mb-3">⚠️</p>
@@ -1000,6 +1005,7 @@ export default function DuesPage() {
                 {resetting ? "초기화 중..." : "초기화"}
               </button>
             </div>
+          </div>
           </div>
         </div>
       )}
