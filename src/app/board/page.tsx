@@ -124,6 +124,11 @@ export default function BoardPage() {
   async function init() {
     const res     = await fetch("/api/user/profile");
     const profile = await res.json();
+    // 게시판 허용 팀이 아니면 대시보드로 리다이렉트
+    if (profile.team_id !== process.env.NEXT_PUBLIC_BOARD_TEAM_ID) {
+      router.replace("/dashboard");
+      return;
+    }
     setUserRole(profile.role ?? null);
     setMyMemberId(profile.member_id ?? null);
     fetchPhotos();

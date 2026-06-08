@@ -44,9 +44,12 @@ export default function AppLayout({ children, title, helpContent }: { children: 
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [isOwner, setIsOwner] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [teamId, setTeamId] = useState<string | null>(null);
 
   // 포메이션·포지션 배정은 관리자급(owner/manager/coach/president)에게만 표시
   const canManageNav = userRole === "owner" || userRole === "manager" || userRole === "coach" || userRole === "president";
+  // 게시판은 FC키싱구라미 전용
+  const boardAllowed = teamId === process.env.NEXT_PUBLIC_BOARD_TEAM_ID;
 
   function fetchSidebarData() {
     fetch("/api/user/profile").then(r => r.json()).then(d => {
@@ -54,6 +57,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
       if (d.avg_age !== undefined) setAvgAge(d.avg_age ?? null);
       setIsOwner(!!d.is_owner);
       setUserRole(d.role ?? null);
+      setTeamId(d.team_id ?? null);
     }).catch(() => {});
     fetch("/api/matching/requests").then(r => r.json()).then((data: { status: string }[]) => {
       if (Array.isArray(data)) setPendingMatches(data.filter(r => r.status === "pending").length);
@@ -104,7 +108,11 @@ export default function AppLayout({ children, title, helpContent }: { children: 
 
         {/* 네비게이션 */}
         <nav className="flex-1 py-3 overflow-y-auto">
-          {NAV_ITEMS.filter(item => !item.managerOnly || canManageNav).map(item => {
+          {NAV_ITEMS.filter(item => {
+            if (item.managerOnly && !canManageNav) return false;
+            if (item.path === "/board" && !boardAllowed) return false;
+            return true;
+          }).map(item => {
             const active = pathname === item.path || (item.path !== "/dashboard" && pathname.startsWith(item.path));
             const locked = item.adminOnly && !isOwner;
             return (
@@ -287,7 +295,11 @@ export default function AppLayout({ children, title, helpContent }: { children: 
           className="flex overflow-x-auto"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
-          {NAV_ITEMS.filter(item => !item.managerOnly || canManageNav).map(item => {
+          {NAV_ITEMS.filter(item => {
+            if (item.managerOnly && !canManageNav) return false;
+            if (item.path === "/board" && !boardAllowed) return false;
+            return true;
+          }).map(item => {
             const active = pathname === item.path || (item.path !== "/dashboard" && pathname.startsWith(item.path));
             const locked = item.adminOnly && !isOwner;
             const showBadge = item.path === "/matching" && !locked && pendingMatches > 0;
