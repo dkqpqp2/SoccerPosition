@@ -8,6 +8,7 @@ interface DueMember {
   member_id: string;
   name: string;
   is_manual?: boolean;
+  is_former?: boolean;
   status: string | null;
   custom_amount: number | null;
   effective_amount: number;
@@ -377,7 +378,7 @@ export default function DuesPage() {
   };
 
   const paid = members.filter(m => m.paid);
-  const unpaid = members.filter(m => !m.paid);
+  const unpaid = members.filter(m => !m.paid && !m.is_former); // 강퇴 멤버는 일괄납부 대상 제외
   const monthCollected = paid.reduce((s, m) => s + (m.payment_amount ?? 0), 0);
   const paidRate = members.length > 0 ? (paid.length / members.length) * 100 : 0;
 
@@ -421,7 +422,12 @@ export default function DuesPage() {
                 임의
               </span>
             )}
-            {m.status && (
+            {m.is_former && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 bg-gray-500/15 text-gray-500 border-gray-500/30">
+                강퇴
+              </span>
+            )}
+            {m.status && !m.is_former && (
               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${STATUS_BADGE[m.status] ?? "bg-gray-500/20 text-gray-400 border-gray-500/30"}`}>
                 {m.status}
               </span>
@@ -432,8 +438,8 @@ export default function DuesPage() {
             {fmt(m.paid ? (m.payment_amount ?? m.effective_amount) : m.effective_amount)}
           </span>
 
-          {/* 일반 모드 버튼들 */}
-          {!selectMode && canManage && (
+          {/* 일반 모드 버튼들 - 강퇴 멤버는 버튼 없음 */}
+          {!selectMode && canManage && !m.is_former && (
             m.paid ? (
               <button onClick={e => { e.stopPropagation(); handlePay(m, true); }}
                 className="text-[10px] text-gray-600 hover:text-red-400 transition-colors px-2 py-1 rounded-lg border border-white/5 shrink-0">
@@ -447,7 +453,7 @@ export default function DuesPage() {
             ) : null
           )}
 
-          {!selectMode && canManage && !m.is_manual && (
+          {!selectMode && canManage && !m.is_manual && !m.is_former && (
             <button onClick={e => { e.stopPropagation(); setOpenPanel(isOpen ? null : rowKey); }}
               title="상태 및 개인 금액 설정"
               className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-colors shrink-0 ${

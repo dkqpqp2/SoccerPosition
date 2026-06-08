@@ -15,6 +15,7 @@ export async function GET() {
     .from("team_members")
     .select("*")
     .eq("team_id", teamId)
+    .is("left_at", null)
     .order("created_at", { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

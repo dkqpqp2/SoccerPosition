@@ -36,15 +36,15 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     .eq("id", id)
     .maybeSingle();
 
-  // team_members에서 삭제 (dues_payments.member_id는 ON DELETE CASCADE로 자동 삭제)
+  // 소프트 삭제: left_at 기록 (납부 기록 보존을 위해 행 유지)
   const { error } = await supabaseAdmin
     .from("team_members")
-    .delete()
+    .update({ left_at: new Date().toISOString() })
     .eq("id", id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // 계정 있는 멤버면 team_users에서도 제거 (완전 강퇴)
+  // 계정 있는 멤버면 team_users에서도 제거 (앱 접근 차단)
   if (member?.user_id && teamId) {
     await supabaseAdmin
       .from("team_users")

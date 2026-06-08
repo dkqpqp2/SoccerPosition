@@ -29,7 +29,7 @@ export async function GET(req: Request) {
     { data: expenses },
     { data: incomeList },
   ] = await Promise.all([
-    supabaseAdmin.from("team_members").select("id, user_id, name").eq("team_id", teamId).eq("is_mercenary", false),
+    supabaseAdmin.from("team_members").select("id, user_id, name, left_at").eq("team_id", teamId).eq("is_mercenary", false),
     supabaseAdmin.from("dues_settings").select("*").eq("team_id", teamId).maybeSingle(),
     supabaseAdmin.from("team_member_dues_settings").select("*").eq("team_id", teamId),
     supabaseAdmin
@@ -81,29 +81,41 @@ export async function GET(req: Request) {
   const userMap: Record<string, string> = {};
   (usersData ?? []).forEach((u) => { userMap[u.id] = u.name; });
 
-  // 팀원별 상태 + 납부 현황 조합 (team_members 기반 - 임의 추가 포함)
-  const members = (teamMembers ?? []).map((tm) => {
-    const isManual = !tm.user_id;
-    const setting = !isManual ? (memberSettings ?? []).find((m) => m.user_id === tm.user_id) : null;
-    // 임의 추가 멤버는 member_id 컬럼으로, 계정 멤버는 user_id로 납부 기록 조회
-    const payment = isManual
-      ? payments.find((p) => p.member_id === tm.id)
-      : payments.find((p) => p.user_id === tm.user_id);
-    const effectiveAmount = setting?.custom_amount ?? defaultAmount;
-    const displayName = tm.user_id ? (userMap[tm.user_id] ?? tm.name) : tm.name;
-    return {
-      user_id: tm.user_id,
-      member_id: tm.id,
-      name: displayName,
-      is_manual: isManual,
-      status: setting?.status ?? null,
-      custom_amount: setting?.custom_amount ?? null,
-      effective_amount: effectiveAmount,
-      paid: !!payment,
-      paid_at: payment?.paid_at ?? null,
-      payment_amount: payment?.amount ?? null,
-    };
-  });
+  // 팀원별 상태 + 납부 현황 조합
+  // - 활성 멤버(left_at IS NULL): 항상 표시
+  // - 강퇴 멤버(left_at IS NOT NULL): 해당 월 납부 기록 있을 때만 표시
+  const members = (teamMembers ?? [])
+    .filter((tm) => {
+      if (!tm.left_at) return true; // 활성 멤버
+      // 강퇴 멤버: 이달 납부 기록 있을 때만 표시
+      const hasPaid = !tm.user_id
+        ? payments.some((p) => p.member_id === tm.id)
+        : payments.some((p) => p.user_id === tm.user_id);
+      return hasPaid;
+    })
+    .map((tm) => {
+      const isManual = !tm.user_id;
+      const isFormer = !!tm.left_at;
+      const setting = !isManual && !isFormer ? (memberSettings ?? []).find((m) => m.user_id === tm.user_id) : null;
+      const payment = isManual
+        ? payments.find((p) => p.member_id === tm.id)
+        : payments.find((p) => p.user_id === tm.user_id);
+      const effectiveAmount = setting?.custom_amount ?? defaultAmount;
+      const displayName = tm.user_id ? (userMap[tm.user_id] ?? tm.name) : tm.name;
+      return {
+        user_id: tm.user_id,
+        member_id: tm.id,
+        name: displayName,
+        is_manual: isManual,
+        is_former: isFormer,
+        status: setting?.status ?? null,
+        custom_amount: setting?.custom_amount ?? null,
+        effective_amount: effectiveAmount,
+        paid: !!payment,
+        paid_at: payment?.paid_at ?? null,
+        payment_amount: payment?.amount ?? null,
+      };
+    });
 
   // 지출 + 작성자 이름
   const enrichedExpenses = (expenses ?? []).map((e) => ({
