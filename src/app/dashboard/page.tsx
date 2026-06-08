@@ -479,32 +479,40 @@ export default function Dashboard() {
 
         {/* 팀 카드 */}
         {team && (
-          <div className="bg-gray-900 rounded-2xl border border-white/5 p-2">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                <span className="text-emerald-400 font-black text-base">{team.name[0]}</span>
+          <div className="bg-gray-900 rounded-2xl border border-white/5 p-5">
+            <div className="flex items-center gap-4">
+              {/* 팀 로고 */}
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                <span className="text-emerald-400 font-black text-xl">{team.name[0]}</span>
               </div>
+              {/* 팀 정보 */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="font-bold text-white truncate">{team.name}</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="font-bold text-white text-base truncate">{team.name}</p>
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${ROLE_COLOR[team.my_role]}`}>
                     {ROLE_LABEL[team.my_role]}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="flex -space-x-1.5 shrink-0">
-                    {team.members.slice(0, 5).map((m, i) =>
-                      m.users?.image ? (
-                        <img key={i} src={m.users.image.replace(/^http:\/\//, 'https://')} alt={m.users.name} referrerPolicy="no-referrer" className="w-5 h-5 rounded-full ring-1 ring-gray-900" onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
-                      ) : (
-                        <div key={i} className="w-5 h-5 rounded-full ring-1 ring-gray-900 bg-emerald-500/20 flex items-center justify-center text-[9px]">👤</div>
-                      )
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 shrink-0">팀원 {team.members.length}명</p>
+                {/* 아바타 */}
+                <div className="flex -space-x-2 mb-1">
+                  {team.members.slice(0, 7).map((m, i) =>
+                    m.users?.image ? (
+                      <img key={i} src={m.users.image.replace(/^http:\/\//, 'https://')} alt={m.users.name} referrerPolicy="no-referrer" className="w-7 h-7 rounded-full ring-2 ring-gray-900" onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
+                    ) : (
+                      <div key={i} className="w-7 h-7 rounded-full ring-2 ring-gray-900 bg-emerald-500/20 flex items-center justify-center text-[10px]">👤</div>
+                    )
+                  )}
+                  {team.members.length > 7 && (
+                    <div className="w-7 h-7 rounded-full ring-2 ring-gray-900 bg-white/10 flex items-center justify-center text-[10px] text-gray-400 font-bold">
+                      +{team.members.length - 7}
+                    </div>
+                  )}
                 </div>
+                {/* 팀원 수 */}
+                <p className="text-xs text-gray-500">팀원 {team.members.length}명</p>
               </div>
-              <div className="flex gap-2 shrink-0">
+              {/* 버튼 */}
+              <div className="flex flex-col gap-2 shrink-0">
                 <button
                   onClick={() => { setShowMembers(true); setShowInvite(false); setMemberPage(0); }}
                   className="text-xs font-bold px-3 py-2 rounded-xl transition-colors bg-white/5 text-gray-400 hover:bg-white/10"
