@@ -242,7 +242,7 @@ export default function MyPage() {
         {/* 프로필 카드 */}
         <div className="bg-gray-900 border border-white/5 rounded-2xl p-5 flex items-center gap-4">
           {profile.image ? (
-            <img src={profile.image} alt="프로필" className="w-14 h-14 rounded-full ring-2 ring-emerald-400/30" />
+            <img src={profile.image.replace(/^http:\/\//, 'https://')} alt="프로필" className="w-14 h-14 rounded-full ring-2 ring-emerald-400/30" />
           ) : (
             <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-2xl">👤</div>
           )}
