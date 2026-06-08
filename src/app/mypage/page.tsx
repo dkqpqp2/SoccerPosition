@@ -70,6 +70,9 @@ export default function MyPage() {
   const [matchingSaved, setMatchingSaved] = useState(false);
   const [notifications, setNotifications] = useState<{ id: string; title: string; body: string; link: string; is_read: boolean; created_at: string; type?: string }[]>([]);
   const [myTab, setMyTab] = useState<"info" | "matching">("info");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteInput, setDeleteInput] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -570,7 +573,72 @@ export default function MyPage() {
         >
           로그아웃
         </button>
+
+        {/* 문의 및 탈퇴 */}
+        <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
+          <h2 className="font-bold text-white mb-3 text-sm">고객 지원</h2>
+          <div className="flex flex-col gap-2">
+            <a
+              href="mailto:dkqpqp3@gmail.com"
+              className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              <span>✉️</span>
+              <span>문의하기: dkqpqp3@gmail.com</span>
+            </a>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center gap-2 text-sm text-gray-600 hover:text-red-400 transition-colors mt-1"
+            >
+              <span>🗑️</span>
+              <span>회원 탈퇴</span>
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* 회원 탈퇴 확인 모달 */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <div className="text-center mb-5">
+              <span className="text-4xl">⚠️</span>
+              <h3 className="font-black text-white text-lg mt-2">정말 탈퇴할까요?</h3>
+              <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                탈퇴 시 계정 및 모든 개인 데이터가 삭제되며<br />복구할 수 없어요.
+              </p>
+            </div>
+            <div className="mb-4">
+              <p className="text-xs text-gray-500 mb-2">확인을 위해 <span className="text-red-400 font-bold">탈퇴</span> 를 입력하세요</p>
+              <input
+                type="text"
+                value={deleteInput}
+                onChange={e => setDeleteInput(e.target.value)}
+                placeholder="탈퇴"
+                className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-600"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setShowDeleteConfirm(false); setDeleteInput(""); }}
+                className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+              >
+                취소
+              </button>
+              <button
+                disabled={deleteInput !== "탈퇴" || deleting}
+                onClick={async () => {
+                  setDeleting(true);
+                  await fetch("/api/user/delete", { method: "DELETE" });
+                  await signOut({ callbackUrl: "/" });
+                }}
+                className="flex-1 bg-red-500 hover:bg-red-400 disabled:opacity-30 disabled:cursor-not-allowed text-white py-2.5 rounded-xl text-sm font-bold transition-colors"
+              >
+                {deleting ? "처리 중..." : "탈퇴하기"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }
