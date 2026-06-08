@@ -1,4 +1,4 @@
-package com.spm.soccerposition;
+package com.soccerpositionmanagement.app;
 
 import com.getcapacitor.BridgeActivity;
 
