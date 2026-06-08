@@ -30,6 +30,14 @@ export async function POST(req: Request) {
 
   const { startDate, endDate, year, mon } = getMonthRange(month);
 
+  // 항상 최신 기본 회비 조회
+  const { data: settings } = await supabaseAdmin
+    .from("dues_settings")
+    .select("default_amount")
+    .eq("team_id", teamId)
+    .maybeSingle();
+  const currentDefault = settings?.default_amount ?? 0;
+
   // 이 달의 dues 찾기 (없으면 자동 생성)
   const { data: existing } = await supabaseAdmin
     .from("dues")
@@ -40,26 +48,25 @@ export async function POST(req: Request) {
     .maybeSingle();
 
   let dueId: string;
-  let dueAmount: number;
+  const dueAmount = currentDefault; // 항상 최신 default_amount 사용
 
   if (existing) {
     dueId = existing.id;
-    dueAmount = existing.amount;
+    // dues.amount가 현재 기본 회비와 다르면 동기화 (초기화 후 재설정 케이스)
+    if (existing.amount !== currentDefault) {
+      await supabaseAdmin
+        .from("dues")
+        .update({ amount: currentDefault })
+        .eq("id", existing.id);
+    }
   } else {
-    // 기본 금액 조회 후 자동 생성
-    const { data: settings } = await supabaseAdmin
-      .from("dues_settings")
-      .select("default_amount")
-      .eq("team_id", teamId)
-      .maybeSingle();
-    const defaultAmount = settings?.default_amount ?? 0;
-
+    // 신규 생성
     const { data: newDue, error: dueErr } = await supabaseAdmin
       .from("dues")
       .insert({
         team_id: teamId,
         title: `${year}년 ${MONTH_NAMES[mon - 1]} 회비`,
-        amount: defaultAmount,
+        amount: currentDefault,
         due_date: startDate,
         status: "active",
         created_by: userId,
@@ -69,7 +76,6 @@ export async function POST(req: Request) {
 
     if (dueErr || !newDue) return NextResponse.json({ error: "dues 생성 실패" }, { status: 500 });
     dueId = newDue.id;
-    dueAmount = defaultAmount;
   }
 
   // 이 멤버의 실제 납부 금액 (개인 설정 > 기본 금액) - 임의 추가 멤버는 설정 없음
