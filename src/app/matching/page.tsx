@@ -305,7 +305,8 @@ export default function MatchingPage() {
   const openListings = listings.filter(l => l.team_id !== myTeamId && l.status === "open");
 
   // 팀 이름 미설정 시 접근 차단
-  if (myTeamLoaded && myTeamName === "우리팀") {
+  const isTeamNameUnset = myTeamLoaded && (!myTeamName || myTeamName.trim() === "" || myTeamName === "우리팀");
+  if (isTeamNameUnset) {
     return (
       <AppLayout title="팀 매칭">
         <div className="max-w-3xl mx-auto px-4 py-16 flex flex-col items-center justify-center gap-6 text-center">
@@ -436,7 +437,7 @@ export default function MatchingPage() {
                         </div>
                       )}
                     </div>
-                    <button onClick={() => myTeamName === "우리팀" ? setShowTeamNameWarning(true) : setSelected(team)}
+                    <button onClick={() => isTeamNameUnset ? setShowTeamNameWarning(true) : setSelected(team)}
                       className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl text-sm transition-colors">
                       매칭 신청하기
                     </button>
