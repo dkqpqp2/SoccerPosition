@@ -299,6 +299,30 @@ export default function MatchingPage() {
   const myListings   = listings.filter(l => l.team_id === myTeamId);
   const openListings = listings.filter(l => l.team_id !== myTeamId && l.status === "open");
 
+  // 팀 이름 미설정 시 접근 차단
+  if (!loading && myTeamName === "우리팀") {
+    return (
+      <AppLayout title="팀 매칭">
+        <div className="max-w-3xl mx-auto px-4 py-16 flex flex-col items-center justify-center gap-6 text-center">
+          <p className="text-6xl">⚠️</p>
+          <div>
+            <h2 className="text-xl font-bold text-white mb-2">팀 이름을 먼저 설정해주세요</h2>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              현재 팀 이름이 <span className="text-amber-400 font-bold">"우리팀"</span>으로 설정되어 있어요.<br />
+              팀 매칭 기능은 팀 이름을 변경한 후 사용할 수 있어요.
+            </p>
+          </div>
+          <button
+            onClick={() => router.push("/mypage")}
+            className="px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl text-sm transition-colors"
+          >
+            팀 이름 설정하러 가기 →
+          </button>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout title="팀 매칭">
       <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col gap-4">
