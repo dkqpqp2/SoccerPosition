@@ -6,7 +6,7 @@ import { getUserAndTeam, getUserRole } from "@/lib/team";
 
 // PATCH /api/members/[id]/link
 // 임의 추가 팀원을 기존 계정과 연결
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: "권한 없음" }, { status: 403 });
   }
 
-  const manualMemberId = params.id; // 임의 추가 팀원의 team_members.id
+  const { id: manualMemberId } = await params; // 임의 추가 팀원의 team_members.id
   const { target_member_id } = await req.json(); // 연결할 계정의 team_members.id
   if (!target_member_id) return NextResponse.json({ error: "target_member_id 필요" }, { status: 400 });
 
