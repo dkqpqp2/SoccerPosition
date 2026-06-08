@@ -100,6 +100,7 @@ export default function MatchingPage() {
   const [requests, setRequests] = useState<MatchRequest[]>([]);
   const [myTeamId, setMyTeamId] = useState<string | null>(null);
   const [myTeamName, setMyTeamName] = useState<string | null>(null);
+  const [myTeamLoaded, setMyTeamLoaded] = useState(false);
   const [showTeamNameWarning, setShowTeamNameWarning] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<MatchRequest | null>(null);
   const [cancelReason, setCancelReason] = useState("");
@@ -129,11 +130,15 @@ export default function MatchingPage() {
   }, [status]);
 
   async function fetchMyTeamId() {
-    const res = await fetch("/api/matching/myteam");
-    if (res.ok) {
-      const data = await res.json();
-      if (data?.team_id) setMyTeamId(data.team_id);
-      if (data?.team_name) setMyTeamName(data.team_name);
+    try {
+      const res = await fetch("/api/matching/myteam");
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.team_id) setMyTeamId(data.team_id);
+        setMyTeamName(data?.team_name ?? null);
+      }
+    } finally {
+      setMyTeamLoaded(true);
     }
   }
 
@@ -300,7 +305,7 @@ export default function MatchingPage() {
   const openListings = listings.filter(l => l.team_id !== myTeamId && l.status === "open");
 
   // 팀 이름 미설정 시 접근 차단
-  if (!loading && myTeamName === "우리팀") {
+  if (myTeamLoaded && myTeamName === "우리팀") {
     return (
       <AppLayout title="팀 매칭">
         <div className="max-w-3xl mx-auto px-4 py-16 flex flex-col items-center justify-center gap-6 text-center">
