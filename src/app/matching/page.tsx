@@ -298,7 +298,7 @@ export default function MatchingPage() {
   const PAGE = 5;
   const pendingReceived = requests.filter(r => r.to_team_id === myTeamId && r.status === "pending").length;
   const filteredTeams   = teams.filter(t =>
-    t.teams.name !== "우리팀" &&
+    t.teams.name && t.teams.name.trim() !== "" && t.teams.name !== "우리팀" &&
     (teamSearch.trim() === "" || t.teams.name.toLowerCase().includes(teamSearch.toLowerCase()))
   );
   const myListings   = listings.filter(l => l.team_id === myTeamId);
@@ -458,7 +458,7 @@ export default function MatchingPage() {
         {tab === "listings" && (
           <div className="flex flex-col gap-4">
             {/* 등록 버튼 */}
-            <button onClick={() => myTeamName === "우리팀" ? setShowTeamNameWarning(true) : setShowListingForm(true)}
+            <button onClick={() => isTeamNameUnset ? setShowTeamNameWarning(true) : setShowListingForm(true)}
               className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
               <span>+</span> 매칭 등록하기
             </button>
@@ -506,7 +506,7 @@ export default function MatchingPage() {
                       onClose={closeListing}
                       onReopen={reopenListing}
                       onDelete={deleteListing}
-                      onApply={(l) => myTeamName === "우리팀" ? setShowTeamNameWarning(true) : setApplyListing(l)}
+                      onApply={(l) => isTeamNameUnset ? setShowTeamNameWarning(true) : setApplyListing(l)}
                     />
                   ))}
                 </div>
