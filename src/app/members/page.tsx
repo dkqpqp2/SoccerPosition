@@ -152,6 +152,7 @@ export default function MembersPage() {
 
   return (
     <AppLayout title="팀원 관리" helpContent={{ items: [
+      { icon: "👤", title: "정규팀원 추가", desc: "대시보드의 초대 코드를 팀원에게 공유하면, 팀원이 직접 가입 후 자동으로 등록돼요." },
       { icon: "⚡", title: "용병 추가", desc: "+ 용병 버튼으로 단기 참가자를 등록해요. 정규 통계에 포함되지 않아요." },
       { icon: "🎯", title: "선호 포지션", desc: "각 팀원에게 1순위·2순위 포지션을 설정하면 포지션 배정 시 자동으로 반영돼요." },
       { icon: "📋", title: "평가 탭", desc: "관리자는 팀원별 능력치와 메모를 기록할 수 있어요. 팀원 본인만 볼 수 있어요." },
