@@ -9,6 +9,7 @@ import PositionSelect from "@/components/PositionSelect";
 
 interface Member {
   id: string;
+  user_id: string | null;
   name: string;
   position_1st: string | null;
   position_2nd: string | null;
@@ -228,7 +229,9 @@ export default function MembersPage() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/70" onClick={() => { setShowForm(false); setEditId(null); }} />
           <form onSubmit={handleSubmit}
-            className="relative bg-gray-900 border border-white/10 w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl p-6 z-10 max-h-[90vh] overflow-y-auto">
+            className="relative bg-gray-900 border border-white/10 w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl p-6 z-10 max-h-[85vh] overflow-y-auto overscroll-contain"
+            style={{ WebkitOverflowScrolling: "touch" }}
+            onClick={e => e.stopPropagation()}>
             <h2 className="font-bold text-white text-lg mb-5">{editId ? "팀원 수정" : "팀원 추가"}</h2>
             <div className="flex flex-col gap-4">
               <div>
@@ -384,9 +387,10 @@ function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canM
   canManage?: boolean; isMercenary?: boolean; onDetail?: (id: string) => void;
 }) {
   const age = member.birth_year ? new Date().getFullYear() - member.birth_year : null;
+  const isManual = !member.user_id; // 임의 추가된 팀원 (계정 없음)
 
   return (
-    <div className={`px-4 py-3 ${!isLast ? "border-b border-white/5" : ""}`}>
+    <div className={`px-4 py-3 ${!isLast ? "border-b border-white/5" : ""} ${isManual ? "bg-orange-500/3" : ""}`}>
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
@@ -397,7 +401,11 @@ function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canM
           >
             {member.name}{isMercenary && <span className="ml-1 text-xs">⚡</span>}
           </button>
-          {!isMercenary && (
+          {/* 임의 추가 배지 */}
+          {isManual && (
+            <span className="text-[10px] text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded-full font-medium">임의추가</span>
+          )}
+          {!isMercenary && !isManual && (
             age
               ? <span className="text-xs text-gray-500 bg-white/5 px-1.5 py-0.5 rounded-full">만 {age}세</span>
               : <span className="text-xs text-gray-700">나이 미설정</span>

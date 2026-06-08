@@ -48,9 +48,20 @@ export async function POST(req: NextRequest) {
   const { name, position_1st, position_2nd, is_mercenary, is_cafe_mercenary, referrer } = await req.json();
   if (!name) return NextResponse.json({ error: "이름을 입력해주세요" }, { status: 400 });
 
+  // 동일 이름 중복 방지
+  const { data: existing } = await supabaseAdmin
+    .from("team_members")
+    .select("id")
+    .eq("team_id", teamId)
+    .eq("name", name)
+    .eq("is_mercenary", !!is_mercenary)
+    .maybeSingle();
+  if (existing) return NextResponse.json({ error: `"${name}"은 이미 등록된 팀원이에요` }, { status: 409 });
+
+  // 임의 추가 멤버는 user_id = null (계정 없음)
   const { data, error } = await supabaseAdmin
     .from("team_members")
-    .insert({ user_id: userId, team_id: teamId, name, position_1st, position_2nd, is_mercenary: !!is_mercenary, is_cafe_mercenary: !!is_cafe_mercenary, referrer: is_mercenary && !is_cafe_mercenary ? (referrer || null) : null })
+    .insert({ user_id: null, team_id: teamId, name, position_1st, position_2nd, is_mercenary: !!is_mercenary, is_cafe_mercenary: !!is_cafe_mercenary, referrer: is_mercenary && !is_cafe_mercenary ? (referrer || null) : null })
     .select()
     .single();
 

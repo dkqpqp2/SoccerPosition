@@ -22,14 +22,14 @@ export async function GET(req: Request) {
 
   // 1차 병렬 조회
   const [
-    { data: teamUsers },
+    { data: teamMembers },
     { data: duesSettings },
     { data: memberSettings },
     { data: dueData },
     { data: expenses },
     { data: incomeList },
   ] = await Promise.all([
-    supabaseAdmin.from("team_users").select("user_id").eq("team_id", teamId),
+    supabaseAdmin.from("team_members").select("id, user_id, name").eq("team_id", teamId).eq("is_mercenary", false),
     supabaseAdmin.from("dues_settings").select("*").eq("team_id", teamId).maybeSingle(),
     supabaseAdmin.from("team_member_dues_settings").select("*").eq("team_id", teamId),
     supabaseAdmin
@@ -68,10 +68,10 @@ export async function GET(req: Request) {
       ? await supabaseAdmin.from("dues_payments").select("amount").in("dues_id", dueIds)
       : { data: [] };
 
-  // 사용자 이름 조회
-  const memberIds = (teamUsers ?? []).map((u) => u.user_id);
+  // 사용자 이름 조회 (계정 있는 멤버만)
+  const linkedUserIds = (teamMembers ?? []).filter(m => m.user_id).map(m => m.user_id as string);
   const expenseCreatorIds = (expenses ?? []).map((e) => e.created_by).filter(Boolean);
-  const allUserIds = [...new Set([...memberIds, ...expenseCreatorIds])];
+  const allUserIds = [...new Set([...linkedUserIds, ...expenseCreatorIds])];
 
   const { data: usersData } =
     allUserIds.length > 0
@@ -81,14 +81,20 @@ export async function GET(req: Request) {
   const userMap: Record<string, string> = {};
   (usersData ?? []).forEach((u) => { userMap[u.id] = u.name; });
 
-  // 팀원별 상태 + 납부 현황 조합
-  const members = (teamUsers ?? []).map((tu) => {
-    const setting = (memberSettings ?? []).find((m) => m.user_id === tu.user_id);
-    const payment = payments.find((p) => p.user_id === tu.user_id);
+  // 팀원별 상태 + 납부 현황 조합 (team_members 기반 - 임의 추가 포함)
+  const members = (teamMembers ?? []).map((tm) => {
+    const isManual = !tm.user_id;
+    const setting = !isManual ? (memberSettings ?? []).find((m) => m.user_id === tm.user_id) : null;
+    // 임의 추가 멤버는 member_id를 proxy user_id로 사용하여 납부 기록 조회
+    const paymentKey = isManual ? tm.id : tm.user_id;
+    const payment = payments.find((p) => p.user_id === paymentKey);
     const effectiveAmount = setting?.custom_amount ?? defaultAmount;
+    const displayName = tm.user_id ? (userMap[tm.user_id] ?? tm.name) : tm.name;
     return {
-      user_id: tu.user_id,
-      name: userMap[tu.user_id] ?? "알 수 없음",
+      user_id: tm.user_id,
+      member_id: tm.id,
+      name: displayName,
+      is_manual: isManual,
       status: setting?.status ?? null,
       custom_amount: setting?.custom_amount ?? null,
       effective_amount: effectiveAmount,

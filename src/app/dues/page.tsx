@@ -4,8 +4,10 @@ import { useEffect, useState, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
 
 interface DueMember {
-  user_id: string;
+  user_id: string | null;
+  member_id: string;
   name: string;
+  is_manual?: boolean;
   status: string | null;
   custom_amount: number | null;
   effective_amount: number;
@@ -95,7 +97,7 @@ function nowMonth() {
 function MemberPanel({
   member, defaultAmount, onSave, onClose,
 }: {
-  member: DueMember;
+  member: DueMember & { user_id: string };
   defaultAmount: number;
   onSave: (userId: string, status: string | null, amount: string) => Promise<void>;
   onClose: () => void;
@@ -268,12 +270,15 @@ export default function DuesPage() {
     if (res.ok) { setEditingInitial(false); load(); }
   };
 
-  // 납부 처리
-  const handlePay = async (userId: string, cancel = false) => {
+  // 납부 처리 (manual 멤버는 member_id 사용)
+  const handlePay = async (member: DueMember, cancel = false) => {
+    const body = member.user_id
+      ? { month, user_id: member.user_id }
+      : { month, user_id: member.member_id, is_manual: true };
     const res = await fetch("/api/dues/pay", {
       method: cancel ? "DELETE" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ month, user_id: userId }),
+      body: JSON.stringify(body),
     });
     if (res.ok) load();
   };
@@ -283,13 +288,17 @@ export default function DuesPage() {
     if (selected.size === 0) return;
     setBulkPaying(true);
     await Promise.all(
-      [...selected].map(uid =>
-        fetch("/api/dues/pay", {
+      [...selected].map(memberId => {
+        const m = members.find(x => x.member_id === memberId);
+        const body = m?.user_id
+          ? { month, user_id: m.user_id }
+          : { month, user_id: memberId, is_manual: true };
+        return fetch("/api/dues/pay", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ month, user_id: uid }),
-        })
-      )
+          body: JSON.stringify(body),
+        });
+      })
     );
     setBulkPaying(false);
     setSelected(new Set());
@@ -297,10 +306,10 @@ export default function DuesPage() {
     load();
   };
 
-  const toggleSelect = (uid: string) => {
+  const toggleSelect = (memberId: string) => {
     setSelected(prev => {
       const next = new Set(prev);
-      next.has(uid) ? next.delete(uid) : next.add(uid);
+      next.has(memberId) ? next.delete(memberId) : next.add(memberId);
       return next;
     });
   };
@@ -310,7 +319,7 @@ export default function DuesPage() {
     setSelected(new Set());
   };
 
-  // 팀원 설정 저장 (영구)
+  // 팀원 설정 저장 (영구) - manual 멤버는 user_id 없어서 skip
   const saveMemberSettings = async (userId: string, status: string | null, amountStr: string) => {
     const custom_amount = amountStr === "" ? null : parseInt(amountStr, 10);
     await fetch("/api/dues/member-settings", {
@@ -374,16 +383,17 @@ export default function DuesPage() {
 
   // 멤버 행 렌더
   const renderRow = (m: DueMember, isLast: boolean) => {
-    const isOpen = openPanel === m.user_id;
-    const isChecked = selected.has(m.user_id);
+    const rowKey = m.member_id;
+    const isOpen = openPanel === rowKey;
+    const isChecked = selected.has(rowKey);
 
     return (
-      <div key={m.user_id}>
+      <div key={rowKey}>
         <div
           className={`flex items-center gap-2 px-4 py-3 transition-colors ${!isLast && !isOpen ? "border-b border-white/[0.03]" : ""} ${
             selectMode && !m.paid ? "cursor-pointer active:bg-white/5" : ""
           } ${isChecked ? "bg-emerald-500/5" : ""}`}
-          onClick={() => { if (selectMode && !m.paid) toggleSelect(m.user_id); }}
+          onClick={() => { if (selectMode && !m.paid) toggleSelect(rowKey); }}
         >
           {/* 선택 모드: 체크박스 / 일반 모드: 납부 아이콘 */}
           {selectMode ? (
@@ -406,6 +416,11 @@ export default function DuesPage() {
             <span className={`text-sm font-medium truncate ${m.paid ? "text-white" : selectMode && !m.paid && isChecked ? "text-emerald-300" : "text-gray-400"}`}>
               {m.name}
             </span>
+            {m.is_manual && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 bg-orange-500/15 text-orange-400 border-orange-500/30">
+                임의
+              </span>
+            )}
             {m.status && (
               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${STATUS_BADGE[m.status] ?? "bg-gray-500/20 text-gray-400 border-gray-500/30"}`}>
                 {m.status}
@@ -420,20 +435,20 @@ export default function DuesPage() {
           {/* 일반 모드 버튼들 */}
           {!selectMode && canManage && (
             m.paid ? (
-              <button onClick={e => { e.stopPropagation(); handlePay(m.user_id, true); }}
+              <button onClick={e => { e.stopPropagation(); handlePay(m, true); }}
                 className="text-[10px] text-gray-600 hover:text-red-400 transition-colors px-2 py-1 rounded-lg border border-white/5 shrink-0">
                 취소
               </button>
             ) : defaultAmount > 0 || m.custom_amount !== null ? (
-              <button onClick={e => { e.stopPropagation(); handlePay(m.user_id); }}
+              <button onClick={e => { e.stopPropagation(); handlePay(m); }}
                 className="text-[10px] text-emerald-400 font-bold px-2.5 py-1.5 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/10 transition-colors shrink-0">
                 납부완료
               </button>
             ) : null
           )}
 
-          {!selectMode && canManage && (
-            <button onClick={e => { e.stopPropagation(); setOpenPanel(isOpen ? null : m.user_id); }}
+          {!selectMode && canManage && !m.is_manual && (
+            <button onClick={e => { e.stopPropagation(); setOpenPanel(isOpen ? null : rowKey); }}
               title="상태 및 개인 금액 설정"
               className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-colors shrink-0 ${
                 isOpen ? "bg-emerald-500/20 text-emerald-400"
@@ -445,9 +460,9 @@ export default function DuesPage() {
             </button>
           )}
         </div>
-        {isOpen && canManage && !selectMode && (
+        {isOpen && canManage && !selectMode && m.user_id && (
           <MemberPanel
-            member={m}
+            member={m as DueMember & { user_id: string }}
             defaultAmount={defaultAmount}
             onSave={saveMemberSettings}
             onClose={() => setOpenPanel(null)}
@@ -571,14 +586,14 @@ export default function DuesPage() {
                   <>
                     <button
                       onClick={() => {
-                        const unpaidIds = unpaid.map(m => m.user_id);
+                        const unpaidIds = unpaid.map(m => m.member_id);
                         const allSelected = unpaidIds.every(id => selected.has(id));
                         if (allSelected) setSelected(new Set());
                         else setSelected(new Set(unpaidIds));
                       }}
                       className="text-xs text-gray-400 hover:text-white font-semibold px-3 py-2 rounded-xl border border-white/10 hover:border-white/20 transition-colors"
                     >
-                      {unpaid.every(m => selected.has(m.user_id)) ? "전체 해제" : `전체 선택 (${unpaid.length}명)`}
+                      {unpaid.every(m => selected.has(m.member_id)) ? "전체 해제" : `전체 선택 (${unpaid.length}명)`}
                     </button>
                     <button onClick={exitSelectMode}
                       className="text-xs text-gray-500 hover:text-white font-semibold px-3 py-2 rounded-xl border border-white/10 transition-colors">
@@ -824,8 +839,8 @@ export default function DuesPage() {
                   <>
                     <p className="text-sm font-bold text-white">{selected.size}명 선택됨</p>
                     <p className="text-xs text-emerald-400">
-                      {fmt([...selected].reduce((s, uid) => {
-                        const m = members.find(x => x.user_id === uid);
+                      {fmt([...selected].reduce((s, mid) => {
+                        const m = members.find(x => x.member_id === mid);
                         return s + (m?.effective_amount ?? 0);
                       }, 0))} 납부 처리
                     </p>

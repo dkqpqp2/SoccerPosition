@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   const role = await getUserRole(userId, teamId);
   if (!canManageDues(role)) return NextResponse.json({ error: "관리자 또는 총무만 처리할 수 있습니다" }, { status: 403 });
 
-  const { month, user_id: targetUserId } = await req.json();
+  const { month, user_id: targetUserId, is_manual } = await req.json();
   if (!month || !targetUserId) return NextResponse.json({ error: "month, user_id 필요" }, { status: 400 });
 
   const { startDate, endDate, year, mon } = getMonthRange(month);
@@ -72,15 +72,17 @@ export async function POST(req: Request) {
     dueAmount = defaultAmount;
   }
 
-  // 이 멤버의 실제 납부 금액 (개인 설정 > 기본 금액)
-  const { data: memberSetting } = await supabaseAdmin
-    .from("team_member_dues_settings")
-    .select("custom_amount")
-    .eq("team_id", teamId)
-    .eq("user_id", targetUserId)
-    .maybeSingle();
-
-  const amount = memberSetting?.custom_amount ?? dueAmount;
+  // 이 멤버의 실제 납부 금액 (개인 설정 > 기본 금액) - 임의 추가 멤버는 설정 없음
+  let amount = dueAmount;
+  if (!is_manual) {
+    const { data: memberSetting } = await supabaseAdmin
+      .from("team_member_dues_settings")
+      .select("custom_amount")
+      .eq("team_id", teamId)
+      .eq("user_id", targetUserId)
+      .maybeSingle();
+    amount = memberSetting?.custom_amount ?? dueAmount;
+  }
 
   const { error } = await supabaseAdmin
     .from("dues_payments")
