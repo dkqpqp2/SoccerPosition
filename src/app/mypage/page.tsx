@@ -73,6 +73,8 @@ export default function MyPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -585,6 +587,15 @@ export default function MyPage() {
               <span>✉️</span>
               <span>문의하기: dkqpqp3@gmail.com</span>
             </a>
+            {!profile?.is_owner && (
+              <button
+                onClick={() => setShowLeaveConfirm(true)}
+                className="flex items-center gap-2 text-sm text-gray-600 hover:text-orange-400 transition-colors mt-1"
+              >
+                <span>🚪</span>
+                <span>팀 나가기</span>
+              </button>
+            )}
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="flex items-center gap-2 text-sm text-gray-600 hover:text-red-400 transition-colors mt-1"
@@ -595,6 +606,51 @@ export default function MyPage() {
           </div>
         </div>
       </div>
+
+      {/* 팀 나가기 확인 모달 */}
+      {showLeaveConfirm && (
+        <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setShowLeaveConfirm(false)}>
+          <div className="flex min-h-full items-center justify-center px-4 py-6">
+            <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+              <div className="text-center mb-5">
+                <span className="text-4xl">🚪</span>
+                <h3 className="font-black text-white text-lg mt-2">팀을 나갈까요?</h3>
+                <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                  팀을 나가면 팀 데이터에 접근할 수 없어요.<br />
+                  납부 기록은 보존되며 언제든 재가입할 수 있어요.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={async () => {
+                    setLeaving(true);
+                    const res = await fetch("/api/team/leave", { method: "POST" });
+                    setLeaving(false);
+                    if (res.ok) {
+                      setShowLeaveConfirm(false);
+                      router.push("/dashboard");
+                      router.refresh();
+                    } else {
+                      const data = await res.json().catch(() => ({}));
+                      alert(data.error ?? "오류가 발생했어요.");
+                    }
+                  }}
+                  disabled={leaving}
+                  className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-white py-3 rounded-xl font-bold transition-colors"
+                >
+                  {leaving ? "처리 중..." : "나가기"}
+                </button>
+                <button
+                  onClick={() => setShowLeaveConfirm(false)}
+                  className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-3 rounded-xl font-bold transition-colors"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 회원 탈퇴 확인 모달 */}
       {showDeleteConfirm && (
