@@ -101,13 +101,8 @@ export default function Home() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // 이미 카카오 로그인된 상태면 바로 통과, 아니면 일반 로그인 화면
-  async function handleKakaoLogin() {
-    const result = await signIn("kakao", { redirect: false, prompt: "none" } as Parameters<typeof signIn>[1]);
-    if (result?.error) {
-      // 첫 로그인이거나 동의 필요한 경우 → 일반 로그인 화면으로
-      signIn("kakao");
-    }
+  function handleKakaoLogin() {
+    signIn("kakao");
   }
 
   if (status === "loading") {
