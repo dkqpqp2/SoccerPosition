@@ -102,7 +102,7 @@ export default function Home() {
   }, []);
 
   function handleKakaoLogin() {
-    signIn("kakao");
+    signIn("kakao", undefined, { prompt: "login" });
   }
 
   if (status === "loading") {
