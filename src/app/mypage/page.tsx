@@ -618,7 +618,12 @@ export default function MyPage() {
                 <span>🔕</span>
                 <span>알림이 차단되어 있어요</span>
               </div>
-              <p className="text-xs text-gray-500">Chrome 설정 → 사이트 설정 → 알림에서 직접 허용해주세요.</p>
+              <div className="text-xs text-gray-500 leading-relaxed space-y-1 mt-1">
+                <p>아래 순서로 직접 허용해주세요:</p>
+                <p>① 주소창 왼쪽 <span className="text-gray-300">🔒 자물쇠</span> 탭</p>
+                <p>② <span className="text-gray-300">알림 → 허용</span> 선택</p>
+                <p>③ 페이지 새로고침</p>
+              </div>
             </div>
           ) : (
             <button
