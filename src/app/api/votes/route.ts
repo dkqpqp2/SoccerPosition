@@ -140,13 +140,12 @@ export async function POST(req: Request) {
 
   if (optErr) return NextResponse.json({ error: optErr.message }, { status: 500 });
 
-  // ── 팀원 전체에게 알림 전송 (작성자 본인 제외) ──
+  // ── 팀원 전체에게 알림 전송 (본인 포함) ──
   try {
     const { data: members } = await supabaseAdmin
       .from("team_users")
       .select("user_id")
-      .eq("team_id", teamId)
-      .neq("user_id", userId);
+      .eq("team_id", teamId);
 
     if (members && members.length > 0) {
       const notifications = members.map((m) => ({
@@ -163,12 +162,12 @@ export async function POST(req: Request) {
     console.error("vote notification error:", e);
   }
 
-  // 푸시 알림 발송
+  // 푸시 알림 발송 (본인 포함)
   sendPushToTeam(teamId, {
     title: "새 투표가 등록됐어요 🗳️",
     body: `"${vote.title}" 투표에 참여해보세요!`,
     url: "/votes",
-  }, userId).catch(console.error);
+  }).catch(console.error);
 
   return NextResponse.json(vote);
 }
