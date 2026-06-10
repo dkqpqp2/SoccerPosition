@@ -84,7 +84,11 @@ export default function MyPage() {
   }, [status]);
 
   useEffect(() => {
-    if (typeof Notification !== "undefined") setNotifPermission(Notification.permission);
+    if (typeof Notification !== "undefined") {
+      setNotifPermission(Notification.permission);
+    } else {
+      setNotifPermission("denied"); // 지원 안 하는 환경
+    }
   }, []);
 
   async function handleEnableNotification() {
@@ -601,33 +605,31 @@ export default function MyPage() {
         </div>}{/* end 팀 매칭 탭 */}
 
         {/* 알림 설정 */}
-        {notifPermission !== null && (
-          <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
-            <h2 className="font-bold text-white mb-3 text-sm">알림 설정</h2>
-            {notifPermission === "granted" ? (
-              <div className="flex items-center gap-2 text-sm text-emerald-400">
-                <span>🔔</span>
-                <span>알림이 허용되어 있어요</span>
+        <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
+          <h2 className="font-bold text-white mb-3 text-sm">알림 설정</h2>
+          {notifPermission === "granted" ? (
+            <div className="flex items-center gap-2 text-sm text-emerald-400">
+              <span>🔔</span>
+              <span>알림이 허용되어 있어요</span>
+            </div>
+          ) : notifPermission === "denied" || typeof window !== "undefined" && !("PushManager" in window) ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-sm text-red-400">
+                <span>🔕</span>
+                <span>알림이 차단되어 있어요</span>
               </div>
-            ) : notifPermission === "denied" ? (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2 text-sm text-red-400">
-                  <span>🔕</span>
-                  <span>알림이 차단되어 있어요</span>
-                </div>
-                <p className="text-xs text-gray-500">Chrome 설정 → 사이트 설정 → 알림에서 직접 허용해주세요.</p>
-              </div>
-            ) : (
-              <button
-                onClick={handleEnableNotification}
-                disabled={subscribing}
-                className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold py-2.5 rounded-xl text-sm transition-colors"
-              >
-                {subscribing ? "처리 중..." : "🔔 알림 허용하기"}
-              </button>
-            )}
-          </div>
-        )}
+              <p className="text-xs text-gray-500">Chrome 설정 → 사이트 설정 → 알림에서 직접 허용해주세요.</p>
+            </div>
+          ) : (
+            <button
+              onClick={handleEnableNotification}
+              disabled={subscribing}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold py-2.5 rounded-xl text-sm transition-colors"
+            >
+              {subscribing ? "처리 중..." : "🔔 알림 허용하기"}
+            </button>
+          )}
+        </div>
 
         {/* 로그아웃 */}
         <button
