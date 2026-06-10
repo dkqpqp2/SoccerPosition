@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUserAndTeam, getUserRole, canManage } from "@/lib/team";
+import { sendPushToTeam } from "@/lib/push";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -105,9 +106,15 @@ export async function POST(req: NextRequest) {
       }
     }
   } catch (e) {
-    // 알림 실패해도 저장은 성공
     console.error("notification error:", e);
   }
+
+  // 푸시 알림 발송
+  sendPushToTeam(teamId, {
+    title: "포지션 배정이 완료됐어요 ⚽",
+    body: `[${session_name}] 포지션을 확인해보세요!`,
+    url: `/share/${data.id}`,
+  }, userId).catch(console.error);
 
   return NextResponse.json(data);
 }

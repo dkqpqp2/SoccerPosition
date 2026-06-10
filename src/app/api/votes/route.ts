@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUserAndTeam, getUserRole } from "@/lib/team";
+import { sendPushToTeam } from "@/lib/push";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -161,6 +162,13 @@ export async function POST(req: Request) {
   } catch (e) {
     console.error("vote notification error:", e);
   }
+
+  // 푸시 알림 발송
+  sendPushToTeam(teamId, {
+    title: "새 투표가 등록됐어요 🗳️",
+    body: `"${vote.title}" 투표에 참여해보세요!`,
+    url: "/votes",
+  }, userId).catch(console.error);
 
   return NextResponse.json(vote);
 }

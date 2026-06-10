@@ -77,6 +77,30 @@ export default function AppLayout({ children, title, helpContent }: { children: 
     return () => window.removeEventListener("teamSwitch", fetchSidebarData);
   }, []);
 
+  // 푸시 알림 구독 등록
+  useEffect(() => {
+    if (!session || !("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    (async () => {
+      try {
+        const reg = await navigator.serviceWorker.register("/sw.js");
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") return;
+        const existing = await reg.pushManager.getSubscription();
+        const sub = existing ?? await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+        });
+        await fetch("/api/push", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sub.toJSON()),
+        });
+      } catch (e) {
+        console.error("push subscription error:", e);
+      }
+    })();
+  }, [session]);
+
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
 

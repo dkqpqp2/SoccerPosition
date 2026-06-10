@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUserAndTeam, getUserRole, canManageDues } from "@/lib/team";
+import { sendPushToTeam } from "@/lib/push";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -125,5 +126,13 @@ export async function POST(req: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // 푸시 알림 발송
+  sendPushToTeam(teamId, {
+    title: "회비 납부 요청이 왔어요 💰",
+    body: `"${data.title}" ${amount.toLocaleString()}원 납부 요청`,
+    url: "/dues",
+  }, userId).catch(console.error);
+
   return NextResponse.json(data);
 }
