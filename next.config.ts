@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
       "t1.kakaocdn.net",
     ],
   },
+  serverExternalPackages: ["web-push"],
 };
 
 export default nextConfig;
