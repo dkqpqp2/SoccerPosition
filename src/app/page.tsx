@@ -107,6 +107,15 @@ export default function Home() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // 이미 카카오 로그인된 상태면 바로 통과, 아니면 일반 로그인 화면
+  async function handleKakaoLogin() {
+    const result = await signIn("kakao", { redirect: false, prompt: "none" } as Parameters<typeof signIn>[1]);
+    if (result?.error) {
+      // 첫 로그인이거나 동의 필요한 경우 → 일반 로그인 화면으로
+      signIn("kakao");
+    }
+  }
+
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-950">
@@ -137,7 +146,7 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
           <SpmLogo size="sm" />
           <button
-            onClick={() => signIn("kakao")}
+            onClick={handleKakaoLogin}
             className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold px-4 py-2 rounded-xl text-sm transition-colors"
           >
             💬 카카오로 시작하기
@@ -168,7 +177,7 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
-              onClick={() => signIn("kakao")}
+              onClick={handleKakaoLogin}
               className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold py-4 px-8 rounded-2xl transition-colors text-base shadow-2xl shadow-yellow-400/20"
             >
               <span>💬</span> 카카오로 무료 시작
@@ -418,7 +427,7 @@ export default function Home() {
             팀 생성도 1분이면 완료돼요.
           </p>
           <button
-            onClick={() => signIn("kakao")}
+            onClick={handleKakaoLogin}
             className="inline-flex items-center gap-2.5 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-black py-4 px-10 rounded-2xl transition-colors text-base shadow-2xl shadow-yellow-400/20"
           >
             <span>💬</span> 카카오로 무료 시작
