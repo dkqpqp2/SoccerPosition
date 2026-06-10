@@ -204,6 +204,11 @@ export default function DuesPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkPaying, setBulkPaying] = useState(false);
 
+  // 납부 요청 알림
+  const [notifying, setNotifying] = useState(false);
+  const [notifySent, setNotifySent] = useState(false);
+  const [duesNotif, setDuesNotif] = useState(false);
+
   // 지출 모달
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [expForm, setExpForm] = useState({ title: "", amount: "", category: "기타", used_at: "", memo: "" });
@@ -216,14 +221,22 @@ export default function DuesPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await fetch(`/api/dues/monthly?month=${month}`);
-    if (res.ok) {
-      const d = await res.json();
+    setNotifySent(false);
+    const [duesRes, notifRes] = await Promise.all([
+      fetch(`/api/dues/monthly?month=${month}`),
+      fetch("/api/notifications"),
+    ]);
+    if (duesRes.ok) {
+      const d = await duesRes.json();
       setDefaultAmount(d.default_amount ?? 0);
       setMembers(d.members ?? []);
       setExpenses(d.expenses ?? []);
       setIncome(d.income ?? []);
       setSummary(d.summary ?? { initial_balance: 0, total_collected: 0, total_income: 0, total_expenses: 0, balance: 0 });
+    }
+    if (notifRes.ok) {
+      const notifs = await notifRes.json();
+      setDuesNotif(notifs.some((n: { type: string; is_read: boolean }) => n.type === "dues_request" && !n.is_read));
     }
     setLoading(false);
   }, [month]);
@@ -587,6 +600,16 @@ export default function DuesPage() {
         {/* ── 납부 현황 탭 ── */}
         {!loading && activeTab === "payments" && (
           <div className="space-y-3">
+            {/* 납부 요청 알림 배너 (미납자 본인) */}
+            {duesNotif && (
+              <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/25 rounded-2xl px-4 py-3">
+                <span className="text-xl shrink-0">💰</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-amber-300">납부 요청 알림이 왔어요</p>
+                  <p className="text-xs text-amber-400/70 mt-0.5">{getMonthLabel(month)} 회비를 납부해주세요.</p>
+                </div>
+              </div>
+            )}
             {/* 일괄 선택 모드 진입/취소 버튼 */}
             {canManage && unpaid.length > 0 && (
               <div className="flex items-center justify-between">
@@ -633,8 +656,30 @@ export default function DuesPage() {
                 {paid.length > 0 && unpaid.length > 0 && <div className="border-t border-white/5" />}
                 {unpaid.length > 0 && (
                   <div>
-                    <div className="px-4 pt-4 pb-2">
+                    <div className="px-4 pt-4 pb-2 flex items-center justify-between">
                       <p className="text-[10px] text-gray-600 uppercase tracking-widest font-semibold">미납 · {unpaid.length}명</p>
+                      {canManage && (
+                        <button
+                          onClick={async () => {
+                            setNotifying(true);
+                            const res = await fetch("/api/dues/notify", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ month }),
+                            });
+                            setNotifying(false);
+                            if (res.ok) setNotifySent(true);
+                          }}
+                          disabled={notifying || notifySent}
+                          className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-colors shrink-0 ${
+                            notifySent
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              : "bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20"
+                          }`}
+                        >
+                          {notifying ? "전송 중..." : notifySent ? "알림 전송됨 ✓" : "💬 납부 요청 알림"}
+                        </button>
+                      )}
                     </div>
                     {unpaid.map((m, i) => renderRow(m, i === unpaid.length - 1))}
                   </div>

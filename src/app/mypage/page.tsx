@@ -199,7 +199,7 @@ export default function MyPage() {
                 className={`rounded-2xl border p-4 flex gap-3 transition-colors ${n.is_read ? "bg-gray-900 border-white/5 opacity-60" : "bg-emerald-500/5 border-emerald-500/20"}`}
               >
                 <span className="text-xl shrink-0 mt-0.5">
-                  {n.type === "vote_created" ? "🗳️" : "⚽"}
+                  {n.type === "vote_created" ? "🗳️" : n.type === "dues_request" ? "💰" : "⚽"}
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-bold mb-0.5 ${n.is_read ? "text-gray-400" : "text-white"}`}>{n.title}</p>
@@ -208,7 +208,7 @@ export default function MyPage() {
                     onClick={() => markReadAndGo(n)}
                     className="mt-2 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1"
                   >
-                    {n.type === "vote_created" ? "투표 참여하기 →" : "포지션 확인하기 →"}
+                    {n.type === "vote_created" ? "투표 참여하기 →" : n.type === "dues_request" ? "회비 납부하러 가기 →" : "포지션 확인하기 →"}
                   </button>
                 </div>
                 <button
