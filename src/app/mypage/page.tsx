@@ -75,11 +75,43 @@ export default function MyPage() {
   const [deleting, setDeleting] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | null>(null);
+  const [subscribing, setSubscribing] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
     if (status === "authenticated") { fetchProfile(); fetchMatchingProfile(); fetchNotifications(); }
   }, [status]);
+
+  useEffect(() => {
+    if (typeof Notification !== "undefined") setNotifPermission(Notification.permission);
+  }, []);
+
+  async function handleEnableNotification() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    setSubscribing(true);
+    try {
+      const permission = await Notification.requestPermission();
+      setNotifPermission(permission);
+      if (permission !== "granted") return;
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+      const existing = await reg.pushManager.getSubscription();
+      const sub = existing ?? await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+      });
+      await fetch("/api/push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sub.toJSON()),
+      });
+    } catch (e) {
+      console.error("push error:", e);
+    } finally {
+      setSubscribing(false);
+    }
+  }
 
   async function fetchProfile() {
     const res = await fetch("/api/user/profile");
@@ -567,6 +599,35 @@ export default function MyPage() {
             {matchingSaved ? "✓ 저장됐어요!" : matchingSaving ? "저장 중..." : "매칭 프로필 저장"}
           </button>
         </div>}{/* end 팀 매칭 탭 */}
+
+        {/* 알림 설정 */}
+        {notifPermission !== null && (
+          <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
+            <h2 className="font-bold text-white mb-3 text-sm">알림 설정</h2>
+            {notifPermission === "granted" ? (
+              <div className="flex items-center gap-2 text-sm text-emerald-400">
+                <span>🔔</span>
+                <span>알림이 허용되어 있어요</span>
+              </div>
+            ) : notifPermission === "denied" ? (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-sm text-red-400">
+                  <span>🔕</span>
+                  <span>알림이 차단되어 있어요</span>
+                </div>
+                <p className="text-xs text-gray-500">Chrome 설정 → 사이트 설정 → 알림에서 직접 허용해주세요.</p>
+              </div>
+            ) : (
+              <button
+                onClick={handleEnableNotification}
+                disabled={subscribing}
+                className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold py-2.5 rounded-xl text-sm transition-colors"
+              >
+                {subscribing ? "처리 중..." : "🔔 알림 허용하기"}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* 로그아웃 */}
         <button
