@@ -61,12 +61,6 @@ const FEATURES = [
     color: "pink",
   },
   {
-    icon: "💬",
-    title: "팀 게시판",
-    desc: "공지, 자유글 등 팀 전용 커뮤니티. 팀원들과 소통을 한 곳에서.",
-    color: "cyan",
-  },
-  {
     icon: "🔗",
     title: "간편 공유",
     desc: "포메이션과 피드백을 링크 하나로 공유. 카카오톡, 단톡방에 바로 붙여넣기.",
@@ -198,7 +192,6 @@ export default function Home() {
             { icon: "🗳️", label: "팀 투표", highlight: true },
             { icon: "🤝", label: "팀 매칭", highlight: true },
             { icon: "🎬", label: "영상 추천" },
-            { icon: "💬", label: "팀 게시판" },
             { icon: "🔗", label: "간편 공유" },
           ].map((item, i) => (
             <div
