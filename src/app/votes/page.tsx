@@ -458,7 +458,7 @@ export default function VotesPage() {
           onClick={() => { setShowCreateModal(false); resetForm(); }}
         >
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div className="relative flex min-h-full items-end sm:items-center justify-center py-0 sm:py-6">
+          <div className="relative flex min-h-full items-center justify-center py-6">
           <div
             className="relative bg-gray-900 border border-white/10 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg flex flex-col"
             style={{ maxHeight: "92vh" }}

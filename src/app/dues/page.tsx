@@ -870,7 +870,7 @@ export default function DuesPage() {
       {/* 기타 수입 추가 모달 */}
       {showIncomeModal && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto">
-          <div className="flex min-h-full items-end md:items-center justify-center p-4">
+          <div className="flex min-h-full items-center justify-center p-4">
           <div className="bg-gray-900 rounded-2xl w-full max-w-md border border-white/10 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
               <h2 className="text-base font-bold text-white">기타 수입 추가</h2>
@@ -933,7 +933,7 @@ export default function DuesPage() {
       {/* 지출 추가 모달 */}
       {showExpenseModal && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto">
-          <div className="flex min-h-full items-end md:items-center justify-center p-4">
+          <div className="flex min-h-full items-center justify-center p-4">
           <div className="bg-gray-900 rounded-2xl w-full max-w-md border border-white/10 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
               <h2 className="text-base font-bold text-white">지출 내역 추가</h2>
