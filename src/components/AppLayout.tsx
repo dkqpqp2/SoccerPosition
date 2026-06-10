@@ -77,27 +77,6 @@ export default function AppLayout({ children, title, helpContent }: { children: 
     return () => window.removeEventListener("teamSwitch", fetchSidebarData);
   }, []);
 
-  // 이미 허용된 경우 자동으로 Service Worker 등록만
-  useEffect(() => {
-    if (!session || !("serviceWorker" in navigator)) return;
-    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
-    (async () => {
-      try {
-        const reg = await navigator.serviceWorker.register("/sw.js");
-        await navigator.serviceWorker.ready;
-        const existing = await reg.pushManager.getSubscription();
-        if (existing) {
-          await fetch("/api/push", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(existing.toJSON()),
-          });
-        }
-      } catch (e) {
-        console.error("push subscription error:", e);
-      }
-    })();
-  }, [session]);
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
@@ -250,12 +229,17 @@ export default function AppLayout({ children, title, helpContent }: { children: 
             )}
             <button
               onClick={() => router.push("/mypage")}
-              className="md:hidden"
+              className="md:hidden relative"
             >
               {session?.user?.image ? (
                 <img src={session.user.image.replace(/^http:\/\//, 'https://')} alt="" referrerPolicy="no-referrer" className="w-7 h-7 rounded-full ring-1 ring-emerald-400/30" onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
               ) : (
                 <span className="text-sm">👤</span>
+              )}
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                  {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                </span>
               )}
             </button>
           </div>
