@@ -8,6 +8,8 @@ import KakaoPlaceSearch, { type SelectedPlace } from "@/components/KakaoPlaceSea
 import KakaoMapModal from "@/components/KakaoMapModal";
 import TimeSelect from "@/components/TimeSelect";
 
+type RsvpStatus = "attending" | "absent" | "maybe";
+
 interface Match {
   id: string;
   match_date: string;
@@ -21,6 +23,9 @@ interface Match {
   score_us: number | null;
   score_them: number | null;
   position_assignments: { id: string; session_name: string; created_at: string }[];
+  rsvp_counts: { attending: number; absent: number; maybe: number };
+  my_rsvp: RsvpStatus | null;
+  rsvp_list: { user_id: string; name: string; status: string }[];
 }
 
 interface ScoreModal {
@@ -80,6 +85,10 @@ export default function MatchesPage() {
   const [mapModal, setMapModal] = useState<MapModal | null>(null);
   const [scoreModal, setScoreModal] = useState<ScoreModal | null>(null);
   const [scoreSaving, setScoreSaving] = useState(false);
+
+  // 출석 체크
+  const [rsvpState, setRsvpState] = useState<Record<string, RsvpStatus | null>>({});
+  const [expandedRsvp, setExpandedRsvp] = useState<Set<string>>(new Set());
 
   // 추가 폼 장소 선택
   const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(null);
@@ -251,6 +260,18 @@ export default function MatchesPage() {
     });
     setScoreSaving(false);
     setScoreModal(null);
+    fetchMatches();
+  }
+
+  async function handleRsvp(matchId: string, status: RsvpStatus) {
+    // 낙관적 업데이트
+    setRsvpState(prev => ({ ...prev, [matchId]: status }));
+    await fetch("/api/matches/rsvp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ match_id: matchId, status }),
+    });
+    // 카운트 반영을 위해 목록 갱신
     fetchMatches();
   }
 
@@ -616,6 +637,89 @@ export default function MatchesPage() {
                         </div>
                       )}
                     </div>
+                    {/* ── 출석 체크 섹션 ── */}
+                    {(() => {
+                      const ended = isMatchEnded(match);
+                      const myRsvp = rsvpState[match.id] !== undefined ? rsvpState[match.id] : match.my_rsvp;
+                      const counts = match.rsvp_counts ?? { attending: 0, absent: 0, maybe: 0 };
+                      const isExpanded = expandedRsvp.has(match.id);
+
+                      const BTNS: { key: RsvpStatus; label: string; active: string; count: string }[] = [
+                        { key: "attending", label: "✅ 참석", active: "bg-emerald-500 text-white border-emerald-500", count: "text-emerald-400" },
+                        { key: "absent",    label: "❌ 불참", active: "bg-red-500 text-white border-red-500",       count: "text-red-400"     },
+                        { key: "maybe",     label: "❓ 미정", active: "bg-gray-600 text-white border-gray-500",     count: "text-gray-500"    },
+                      ];
+
+                      return (
+                        <div className="mt-3 pt-3 border-t border-white/5">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-[10px] text-gray-600 uppercase tracking-widest font-semibold">출석 체크</p>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-gray-600">
+                                <span className="text-emerald-400 font-bold">{counts.attending}</span>
+                                <span className="mx-0.5">·</span>
+                                <span className="text-red-400 font-bold">{counts.absent}</span>
+                                <span className="mx-0.5">·</span>
+                                <span className="text-gray-500 font-bold">{counts.maybe}</span>
+                                <span className="ml-1 text-gray-700">명</span>
+                              </span>
+                              {canManage && match.rsvp_list?.length > 0 && (
+                                <button
+                                  onClick={() => setExpandedRsvp(prev => {
+                                    const next = new Set(prev);
+                                    next.has(match.id) ? next.delete(match.id) : next.add(match.id);
+                                    return next;
+                                  })}
+                                  className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors"
+                                >
+                                  {isExpanded ? "접기" : "명단보기"}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 버튼 3개 */}
+                          {!ended && (
+                            <div className="flex gap-1.5">
+                              {BTNS.map(({ key, label, active }) => (
+                                <button
+                                  key={key}
+                                  onClick={() => handleRsvp(match.id, key)}
+                                  className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${
+                                    myRsvp === key
+                                      ? active
+                                      : "bg-white/5 text-gray-500 border-white/10 hover:border-white/20 hover:text-gray-300"
+                                  }`}
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* 관리자 명단 펼치기 */}
+                          {isExpanded && canManage && (
+                            <div className="mt-2 space-y-1.5">
+                              {(["attending", "absent", "maybe"] as RsvpStatus[]).map(s => {
+                                const group = match.rsvp_list.filter(r => r.status === s);
+                                if (!group.length) return null;
+                                const labels = { attending: "✅ 참석", absent: "❌ 불참", maybe: "❓ 미정" };
+                                const colors = { attending: "text-emerald-400", absent: "text-red-400", maybe: "text-gray-500" };
+                                return (
+                                  <div key={s} className="flex items-start gap-2">
+                                    <span className={`text-[10px] font-bold shrink-0 mt-0.5 ${colors[s]}`}>{labels[s]}</span>
+                                    <span className="text-[10px] text-gray-500 leading-relaxed">
+                                      {group.map(r => r.name).join(", ")}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
                     <div className="flex gap-1.5 mt-2.5 flex-wrap">
                       {match.position_assignments?.length > 0 ? (
                         [...match.position_assignments]

@@ -9,6 +9,7 @@ import AppLayout from "@/components/AppLayout";
 
 interface Member {
   id: string;
+  user_id?: string | null;
   name: string;
   position_1st: string | null;
   position_2nd: string | null;
@@ -65,6 +66,7 @@ function AssignContent() {
   const [popup, setPopup] = useState<SlotPopup | null>(null);
   const [teamColor] = useState("#facc15");
   const [matchInfo, setMatchInfo] = useState<{ match_date: string; match_time: string | null; match_end_time: string | null; location: string | null; title: string | null; uniform_info: string | null } | null>(null);
+  const [rsvpAttendingUserIds, setRsvpAttendingUserIds] = useState<string[]>([]);
   const [savedAssignments, setSavedAssignments] = useState<SavedAssignment[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveSessionName, setSaveSessionName] = useState("");
@@ -103,7 +105,13 @@ function AssignContent() {
     const res = await fetch("/api/matches");
     const data = await res.json();
     const match = data.find((m: { id: string }) => m.id === matchId);
-    if (match) setMatchInfo({ match_date: match.match_date, match_time: match.match_time ?? null, match_end_time: match.match_end_time ?? null, location: match.location ?? null, title: match.title, uniform_info: match.uniform_info ?? null });
+    if (match) {
+      setMatchInfo({ match_date: match.match_date, match_time: match.match_time ?? null, match_end_time: match.match_end_time ?? null, location: match.location ?? null, title: match.title, uniform_info: match.uniform_info ?? null });
+      const attending = (match.rsvp_list ?? [])
+        .filter((r: { status: string }) => r.status === "attending")
+        .map((r: { user_id: string }) => r.user_id);
+      setRsvpAttendingUserIds(attending);
+    }
   }
 
   async function saveAssignment() {
@@ -467,19 +475,38 @@ function AssignContent() {
                   <>
                     {/* 참가 인원 카드 */}
                     <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
-                      <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-bold text-white">오늘 참가 인원</p>
-                          <p className="text-xs text-gray-500 mt-0.5"><span className="text-emerald-400 font-bold">{attendingIds.size}명</span> 참가</p>
-                        </div>
+                      <div className="px-4 py-3 border-b border-white/5 flex flex-col gap-2">
+                        <p className="text-sm font-bold text-white">
+                          오늘 참가 인원
+                          <span className="text-gray-600 font-normal mx-1.5">/</span>
+                          <span className="text-emerald-400 text-xs font-semibold">{attendingIds.size}명</span><span className="text-gray-500 text-xs font-normal"> 참가</span>
+                        </p>
                         <div className="flex gap-1.5">
                           {attendingIds.size > 0 && (
-                            <button onClick={() => shareAttendees(attendingMembers)} className="text-xs bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 font-semibold px-3 py-1.5 rounded-lg border border-blue-500/20 transition-colors">공유</button>
+                            <button onClick={() => shareAttendees(attendingMembers)} className="flex-1 text-xs bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 font-semibold py-2 rounded-lg border border-blue-500/20 transition-colors">공유</button>
                           )}
                           {canManage && (
-                            <button onClick={() => setShowAttendModal(true)} className="text-xs bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-3 py-1.5 rounded-lg transition-colors">✏️ 설정</button>
+                            <button onClick={() => setShowAttendModal(true)} className="flex-1 text-xs bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-2 rounded-lg transition-colors">✏️ 설정</button>
                           )}
                         </div>
+                        {canManage && matchId && rsvpAttendingUserIds.length > 0 && (
+                          <button
+                            onClick={() => {
+                              const rsvpMemberIds = members
+                                .filter(m => !m.is_mercenary && m.user_id && rsvpAttendingUserIds.includes(m.user_id))
+                                .map(m => m.id);
+                              setAttendingIds(prev => {
+                                const merged = new Set(prev);
+                                rsvpMemberIds.forEach(id => merged.add(id));
+                                saveAttendees(merged);
+                                return merged;
+                              });
+                            }}
+                            className="w-full text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold py-2 rounded-lg border border-amber-500/20 transition-colors"
+                          >
+                            ✅ 참석자 추가하기 ({rsvpAttendingUserIds.length}명)
+                          </button>
+                        )}
                       </div>
 
                       {attendingIds.size === 0 ? (
