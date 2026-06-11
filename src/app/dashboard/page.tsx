@@ -40,6 +40,7 @@ interface Match {
   match_time: string | null;
   match_end_time: string | null;
   location: string | null;
+  rsvp_counts?: { attending: number; absent: number; maybe: number };
 }
 
 interface Assignment {
@@ -109,6 +110,8 @@ export default function Dashboard() {
   const [recentFeedback, setRecentFeedback] = useState<FeedbackData | null>(null);
   const [feedbackLoaded, setFeedbackLoaded] = useState(false);
 
+  const [myDuesStatus, setMyDuesStatus] = useState<{ paid: boolean | null; amount: number } | null>(null);
+
   // 슬라이더 터치/드래그
   const sliderRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -147,6 +150,7 @@ export default function Dashboard() {
     fetchMyTeams();
     fetchMatchData();
     fetchMembers();
+    fetchDuesStatus();
 
     // 30초마다 팀원 수 자동 갱신
     const interval = setInterval(() => {
@@ -174,6 +178,12 @@ export default function Dashboard() {
     if (!res.ok) return;
     const data: MemberInfo[] = await res.json();
     setMercenaryIds(new Set(data.filter(m => m.is_mercenary).map(m => m.id)));
+  }
+
+  async function fetchDuesStatus() {
+    const res = await fetch("/api/dues/my-status");
+    if (!res.ok) return;
+    setMyDuesStatus(await res.json());
   }
 
   async function fetchTeam() {
@@ -267,7 +277,7 @@ export default function Dashboard() {
     });
     // 사이드바에 팀 전환 알림 (AppLayout이 프로필 재요청)
     window.dispatchEvent(new Event("teamSwitch"));
-    await Promise.all([fetchTeam(), fetchMyTeams(), fetchMatchData(), fetchMembers()]);
+    await Promise.all([fetchTeam(), fetchMyTeams(), fetchMatchData(), fetchMembers(), fetchDuesStatus()]);
     setShowMembers(false);
     setShowInvite(false);
     setSwitching(false);
@@ -435,6 +445,23 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* 회비 미납 알림 배너 */}
+        {myDuesStatus?.paid === false && myDuesStatus.amount > 0 && (
+          <button
+            onClick={() => router.push("/dues")}
+            className="w-full bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center gap-3 text-left"
+          >
+            <span className="text-xl shrink-0">💰</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-amber-300 text-sm">이번 달 회비가 미납됐어요</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {myDuesStatus.amount.toLocaleString()}원 · 회비 페이지에서 확인해보세요
+              </p>
+            </div>
+            <span className="text-amber-400 text-xs font-bold shrink-0">확인 →</span>
+          </button>
+        )}
+
         {/* 팀 전환 탭 */}
         {myTeams.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -554,6 +581,23 @@ export default function Dashboard() {
                   {label}
                 </span>
               </div>
+
+              {/* RSVP 출석 현황 */}
+              {isUpcoming && upcomingMatch.rsvp_counts && (
+                <div className="flex items-center gap-3 px-4 pb-3">
+                  <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
+                    <span>✅</span> 참석 {upcomingMatch.rsvp_counts.attending}명
+                  </span>
+                  <span className="text-gray-700">·</span>
+                  <span className="flex items-center gap-1 text-xs font-semibold text-red-400">
+                    <span>❌</span> 불참 {upcomingMatch.rsvp_counts.absent}명
+                  </span>
+                  <span className="text-gray-700">·</span>
+                  <span className="flex items-center gap-1 text-xs font-semibold text-gray-500">
+                    <span>❓</span> 미정 {upcomingMatch.rsvp_counts.maybe}명
+                  </span>
+                </div>
+              )}
 
               {assignments.length > 0 ? (
                 <>
