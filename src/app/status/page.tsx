@@ -4,7 +4,6 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import CaptureButton from "@/components/CaptureButton";
 
 type MemberStatus = "active" | "injured" | "personal";
 
@@ -44,6 +43,7 @@ export default function StatusPage() {
   const [canManage, setCanManage] = useState(false);
   const [teamName, setTeamName] = useState("우리팀");
   const [tab, setTab] = useState<"available" | "unavailable">("available");
+  const [showShareView, setShowShareView] = useState(false);
 
   const [editTarget, setEditTarget] = useState<Member | null>(null);
   const [form, setForm] = useState<{ status: MemberStatus; status_note: string; status_until: string }>({
@@ -193,68 +193,85 @@ export default function StatusPage() {
               />
             )}
 
-            {/* 카톡 공유용 이미지 저장 (임원 전용) */}
+            {/* 카톡 공유용 화면 보기 (임원 전용) */}
             {canManage && (
-              <CaptureButton targetId="status-capture-area" filename={`팀현황_${todayLabel()}.png`} />
+              <button
+                onClick={() => setShowShareView(true)}
+                className="w-full mt-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-gray-300 hover:text-white font-semibold py-3 rounded-2xl transition-colors"
+              >
+                📸 공유용 화면 보기
+              </button>
             )}
           </>
         )}
       </div>
 
-      {/* 캡처 전용 레이아웃 (화면에 보이지 않음, 캡처 시에만 사용) */}
-      <div className="fixed top-0 -left-[9999px] pointer-events-none">
-        <div id="status-capture-area" className="bg-gray-950 p-4 w-[420px]">
-          <div className="text-center mb-4">
-            <p className="text-emerald-400 font-bold text-base">⚽ {teamName}</p>
-            <p className="text-gray-500 text-xs mt-0.5">{todayLabel()} 기준 팀 현황</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
-              <div className="bg-emerald-500/20 border-b border-emerald-500/20 px-3 py-2">
-                <p className="text-emerald-400 text-sm font-bold">✅ 참여가능 {available.length}명</p>
+      {/* 공유용 화면: 직접 스크린샷 찍어서 카톡에 공유 */}
+      {showShareView && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-950">
+          <div className="max-w-md mx-auto px-4 py-6">
+            <div className="bg-gray-950 p-4 rounded-2xl">
+              <div className="text-center mb-4">
+                <p className="text-emerald-400 font-bold text-base">⚽ {teamName}</p>
+                <p className="text-gray-500 text-xs mt-0.5">{todayLabel()} 기준 팀 현황</p>
               </div>
-              <div className="divide-y divide-white/5">
-                {available.map((m, i) => (
-                  <div key={m.id} className="flex items-start px-3 py-2 gap-1.5">
-                    <span className="text-xs text-gray-700 w-4 shrink-0 pt-0.5">{i + 1}</span>
-                    <p className="text-sm font-semibold text-white">{m.name}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+                  <div className="bg-emerald-500/20 border-b border-emerald-500/20 px-3 py-2">
+                    <p className="text-emerald-400 text-sm font-bold">✅ 참여가능 {available.length}명</p>
                   </div>
-                ))}
-                {available.length === 0 && <p className="text-xs text-gray-700 px-3 py-3">없음</p>}
-              </div>
-            </div>
-            <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
-              <div className="bg-amber-500/20 border-b border-amber-500/20 px-3 py-2">
-                <p className="text-amber-400 text-sm font-bold">🩹 부상·개인사정 {unavailable.length}명</p>
-              </div>
-              <div className="divide-y divide-white/5">
-                {unavailable.map((m, i) => {
-                  const st: MemberStatus = m.status ?? "active";
-                  return (
-                    <div key={m.id} className="flex items-start px-3 py-2 gap-1.5">
-                      <span className="text-xs text-gray-700 w-4 shrink-0 pt-0.5">{i + 1}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1 flex-wrap">
-                          <p className="text-sm font-semibold text-white">{m.name}</p>
-                          <span className={`text-[10px] font-bold px-1 py-0.5 rounded shrink-0 ${STATUS_COLOR[st]}`}>{STATUS_LABEL[st]}</span>
-                        </div>
-                        {(m.status_note || m.status_until) && (
-                          <p className="text-[11px] text-gray-500 mt-0.5">
-                            {m.status_note}
-                            {m.status_note && m.status_until ? " · " : ""}
-                            {m.status_until ? `복귀 ${m.status_until}` : ""}
-                          </p>
-                        )}
+                  <div className="divide-y divide-white/5">
+                    {available.map((m, i) => (
+                      <div key={m.id} className="flex items-start px-3 py-2 gap-1.5">
+                        <span className="text-xs text-gray-700 w-4 shrink-0 pt-0.5">{i + 1}</span>
+                        <p className="text-sm font-semibold text-white">{m.name}</p>
                       </div>
-                    </div>
-                  );
-                })}
-                {unavailable.length === 0 && <p className="text-xs text-gray-700 px-3 py-3">없음</p>}
+                    ))}
+                    {available.length === 0 && <p className="text-xs text-gray-700 px-3 py-3">없음</p>}
+                  </div>
+                </div>
+                <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+                  <div className="bg-amber-500/20 border-b border-amber-500/20 px-3 py-2">
+                    <p className="text-amber-400 text-sm font-bold">🩹 부상·개인사정 {unavailable.length}명</p>
+                  </div>
+                  <div className="divide-y divide-white/5">
+                    {unavailable.map((m, i) => {
+                      const st: MemberStatus = m.status ?? "active";
+                      return (
+                        <div key={m.id} className="flex items-start px-3 py-2 gap-1.5">
+                          <span className="text-xs text-gray-700 w-4 shrink-0 pt-0.5">{i + 1}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <p className="text-sm font-semibold text-white">{m.name}</p>
+                              <span className={`text-[10px] font-bold px-1 py-0.5 rounded shrink-0 ${STATUS_COLOR[st]}`}>{STATUS_LABEL[st]}</span>
+                            </div>
+                            {(m.status_note || m.status_until) && (
+                              <p className="text-[11px] text-gray-500 mt-0.5">
+                                {m.status_note}
+                                {m.status_note && m.status_until ? " · " : ""}
+                                {m.status_until ? `복귀 ${m.status_until}` : ""}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {unavailable.length === 0 && <p className="text-xs text-gray-700 px-3 py-3">없음</p>}
+                  </div>
+                </div>
               </div>
             </div>
+
+            <p className="text-center text-xs text-gray-500 mt-4">화면을 캡쳐(스크린샷)해서 카톡에 공유해주세요</p>
+            <button
+              onClick={() => setShowShareView(false)}
+              className="w-full mt-4 bg-white/5 border border-white/10 text-gray-400 font-bold py-3 rounded-2xl hover:bg-white/10 transition-colors"
+            >
+              닫기
+            </button>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 상태 수정 모달 */}
       {editTarget && (
