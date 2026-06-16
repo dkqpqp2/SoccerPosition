@@ -18,6 +18,7 @@ export interface HelpContent {
 const NAV_ITEMS = [
   { path: "/dashboard", icon: "⚡", label: "홈" },
   { path: "/members", icon: "👥", label: "팀원 관리" },
+  { path: "/status", icon: "🩹", label: "팀 현황" },
   { path: "/formations", icon: "🟩", label: "포메이션", managerOnly: true },
   { path: "/matches", icon: "📅", label: "경기 관리" },
   { path: "/assign", icon: "🎯", label: "포지션 배정", managerOnly: true },
