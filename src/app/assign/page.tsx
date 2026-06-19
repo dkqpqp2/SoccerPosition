@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef, Suspense } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabaseClient } from "@/lib/supabaseClient";
 import { FORMATIONS, Formation, PositionSlot, SOCCER_FORMATIONS, FUTSAL_FORMATIONS } from "@/lib/formations";
 import KakaoShare from "@/components/KakaoShare";
 import AppLayout from "@/components/AppLayout";
@@ -197,7 +197,7 @@ function AssignContent() {
   // Supabase Realtime presence — 같은 경기 배정 페이지에 있는 다른 사람 감지
   useEffect(() => {
     if (!matchId || !userName) return;
-    const channel = supabase.channel(`assign-${matchId}`, {
+    const channel = supabaseClient.channel(`assign-${matchId}`, {
       config: { presence: { key: sessionIdRef.current } },
     });
     channel.on("presence", { event: "sync" }, () => {
@@ -212,7 +212,7 @@ function AssignContent() {
         await channel.track({ name: userName });
       }
     });
-    return () => { supabase.removeChannel(channel); };
+    return () => { supabaseClient.removeChannel(channel); };
   }, [matchId, userName]);
 
   async function fetchCustomFormations() {

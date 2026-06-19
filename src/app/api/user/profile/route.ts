@@ -84,13 +84,17 @@ export async function PUT(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { teamId } = await getUserAndTeam(session.user.id);
+  const { userId, teamId } = await getUserAndTeam(session.user.id);
   if (!teamId) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
   const { team_name, uniform_info, position_1st, position_2nd, display_name, birth_year } = await req.json();
 
-  // 팀 정보 업데이트
+  // 팀 정보 업데이트 — 팀을 만든 팀장(owner)만 가능
   if (team_name !== undefined || uniform_info !== undefined) {
+    const role = userId ? await getUserRole(userId, teamId) : null;
+    if (role !== "owner") {
+      return NextResponse.json({ error: "팀 정보 수정 권한이 없어요. 팀장만 가능해요." }, { status: 403 });
+    }
     await supabaseAdmin.from("teams").update({
       ...(team_name !== undefined && { name: team_name }),
       ...(uniform_info !== undefined && { uniform_info }),
@@ -98,7 +102,6 @@ export async function PUT(req: NextRequest) {
   }
 
   // 유저 포지션 선호도 + 이름 업데이트
-  const { userId } = await getUserAndTeam(session.user.id);
   if (userId && (position_1st !== undefined || position_2nd !== undefined || display_name !== undefined || birth_year !== undefined)) {
     await supabaseAdmin.from("users").update({
       ...(position_1st !== undefined && { position_1st: position_1st || null }),

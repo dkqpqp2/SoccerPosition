@@ -145,7 +145,7 @@ export default function MyPage() {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        team_name: teamName,
+        ...(canManageTeam ? { team_name: teamName } : {}),
         position_1st: position1st || null,
         position_2nd: position2nd || null,
         display_name: useKakaoName ? null : (displayName.trim() || null),
@@ -167,6 +167,7 @@ export default function MyPage() {
   }
 
   const isManager = profile?.is_owner === true;
+  const canManageTeam = profile?.is_owner === true;
 
   return (
     <AppLayout title="마이페이지">
@@ -244,17 +245,22 @@ export default function MyPage() {
         {myTab === "info" && <>
 
         {/* 프로필 카드 */}
-        <div className="bg-gray-900 border border-white/5 rounded-2xl p-5 flex items-center gap-4">
-          {profile.image ? (
-            <img src={profile.image.replace(/^http:\/\//, 'https://')} alt="프로필" className="w-14 h-14 rounded-full ring-2 ring-emerald-400/30" />
-          ) : (
-            <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-2xl">👤</div>
-          )}
-          <div>
-            <p className="font-bold text-white text-lg">{profile.name}</p>
-            <p className="text-sm text-gray-500 mt-0.5">{profile.email || "이메일 없음"}</p>
-            <p className="text-xs text-emerald-400 mt-1 font-medium">카카오 계정 연동됨</p>
+        <div className="bg-gray-900 border border-white/5 rounded-2xl p-5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            {profile.image ? (
+              <img src={profile.image.replace(/^http:\/\//, 'https://')} alt="프로필" className="w-14 h-14 rounded-full ring-2 ring-emerald-400/30" />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-2xl">👤</div>
+            )}
+            <div>
+              <p className="font-bold text-white text-lg">{profile.name}</p>
+              <p className="text-sm text-gray-500 mt-0.5">{profile.email || "이메일 없음"}</p>
+              <p className="text-xs text-emerald-400 mt-1 font-medium">카카오 계정 연동됨</p>
+            </div>
           </div>
+          <span className="shrink-0 text-xs font-bold bg-blue-500/15 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-full whitespace-nowrap">
+            {isManager ? "내가 만든 팀" : "가입한 팀"}
+          </span>
         </div>
 
         {/* 2x2 그리드 카드 */}
@@ -351,17 +357,28 @@ export default function MyPage() {
 
         {/* 팀 정보 */}
         <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
-          <h2 className="font-bold text-white mb-4 flex items-center gap-2">⚽ 우리 팀 정보</h2>
+          <h2 className="font-bold text-white mb-4 flex items-center gap-2">⚽ 내 팀</h2>
           <div>
-            <label className="text-xs text-gray-500 mb-1.5 block uppercase tracking-widest">팀 이름</label>
-            <input
-              type="text"
-              value={teamName}
-              onChange={e => setTeamName(e.target.value)}
-              placeholder="예: FC키싱구라미"
-              className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600"
-            />
-            <p className="text-xs text-gray-600 mt-1">경기 추가 시 "팀이름 vs 상대팀" 형식으로 표시돼요</p>
+            <label className="text-xs text-gray-500 mb-1.5 block uppercase tracking-widest">우리팀</label>
+            {canManageTeam ? (
+              <>
+                <input
+                  type="text"
+                  value={teamName}
+                  onChange={e => setTeamName(e.target.value)}
+                  placeholder="예: FC키싱구라미"
+                  className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600"
+                />
+                <p className="text-xs text-gray-600 mt-1">경기 추가 시 "팀이름 vs 상대팀" 형식으로 표시돼요</p>
+              </>
+            ) : (
+              <>
+                <div className="bg-gray-800/50 border border-white/5 rounded-xl px-4 py-2.5 text-sm text-gray-400">
+                  {teamName || "팀 이름 없음"}
+                </div>
+                <p className="text-xs text-gray-600 mt-1">팀 이름은 팀을 만든 팀장만 수정할 수 있어요</p>
+              </>
+            )}
           </div>
         </div>
 
