@@ -2,7 +2,8 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
+import { supabase } from "@/lib/supabase";
 import { FORMATIONS, Formation, PositionSlot, SOCCER_FORMATIONS, FUTSAL_FORMATIONS } from "@/lib/formations";
 import KakaoShare from "@/components/KakaoShare";
 import AppLayout from "@/components/AppLayout";
@@ -79,6 +80,10 @@ function AssignContent() {
   const [shareToast, setShareToast] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+  const [otherEditors, setOtherEditors] = useState<string[]>([]);
+  const sessionIdRef = useRef(Math.random().toString(36).slice(2));
 
   const canManage = userRole === "owner" || userRole === "manager" || userRole === "coach" || userRole === "president";
 
@@ -115,7 +120,8 @@ function AssignContent() {
   }
 
   async function saveAssignment() {
-    if (!saveSessionName.trim()) return;
+    if (!saveSessionName.trim() || saving) return;
+    setSaving(true);
     setSaveError("");
     if (loadedAssignmentId) {
       await fetch(`/api/assignments/${loadedAssignmentId}`, {
@@ -146,12 +152,14 @@ function AssignContent() {
       if (!res.ok) {
         const err = await res.json();
         setSaveError(err.error ?? "저장에 실패했어요.");
+        setSaving(false);
         return;
       }
     }
     setShowSaveModal(false);
     setSaveSessionName("");
     setSaveError("");
+    setSaving(false);
     await fetchSavedAssignments();
     reset();
   }
@@ -183,7 +191,29 @@ function AssignContent() {
     const res = await fetch("/api/user/profile");
     const data = await res.json();
     setUserRole(data.role ?? null);
+    setUserName(data.name ?? "");
   }
+
+  // Supabase Realtime presence — 같은 경기 배정 페이지에 있는 다른 사람 감지
+  useEffect(() => {
+    if (!matchId || !userName) return;
+    const channel = supabase.channel(`assign-${matchId}`, {
+      config: { presence: { key: sessionIdRef.current } },
+    });
+    channel.on("presence", { event: "sync" }, () => {
+      const state = channel.presenceState<{ name: string }>();
+      const others = Object.entries(state)
+        .filter(([key]) => key !== sessionIdRef.current)
+        .flatMap(([, presences]) => presences.map((p) => p.name));
+      setOtherEditors(others);
+    });
+    channel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await channel.track({ name: userName });
+      }
+    });
+    return () => { supabase.removeChannel(channel); };
+  }, [matchId, userName]);
 
   async function fetchCustomFormations() {
     const res = await fetch("/api/formations");
@@ -397,6 +427,19 @@ function AssignContent() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-4 lg:px-6 lg:py-6">
+
+        {/* 동시 편집 경고 */}
+        {otherEditors.length > 0 && (
+          <div className="mb-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl px-4 py-3 flex items-start gap-2.5">
+            <span className="text-base shrink-0 mt-0.5">⚠️</span>
+            <div>
+              <p className="text-sm font-bold text-amber-300">
+                {otherEditors.join(", ")}님이 지금 이 배정 페이지에 있어요
+              </p>
+              <p className="text-xs text-amber-400/70 mt-0.5">같은 쿼터 이름으로 동시에 저장하면 충돌할 수 있어요. 서로 확인 후 진행하세요.</p>
+            </div>
+          </div>
+        )}
 
         {/* STEP 1: 포메이션 선택 */}
         {step === "setup" && (
@@ -934,8 +977,10 @@ function AssignContent() {
               </div>
             )}
             <div className="flex gap-3">
-              <button onClick={saveAssignment} className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-black py-2.5 rounded-xl font-bold">저장</button>
-              <button onClick={() => { setShowSaveModal(false); setSaveError(""); }} className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2.5 rounded-xl font-semibold">취소</button>
+              <button onClick={saveAssignment} disabled={saving} className="flex-1 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black py-2.5 rounded-xl font-bold">
+                {saving ? "저장 중..." : "저장"}
+              </button>
+              <button onClick={() => { setShowSaveModal(false); setSaveError(""); }} disabled={saving} className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2.5 rounded-xl font-semibold">취소</button>
             </div>
           </div>
           </div>
