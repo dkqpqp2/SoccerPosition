@@ -83,7 +83,9 @@ function AssignContent() {
   const [userName, setUserName] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [otherEditors, setOtherEditors] = useState<string[]>([]);
+  const [conflictAlert, setConflictAlert] = useState<string[] | null>(null);
   const sessionIdRef = useRef(Math.random().toString(36).slice(2));
+  const prevOtherCountRef = useRef(0);
 
   const canManage = userRole === "owner" || userRole === "manager" || userRole === "coach" || userRole === "president";
 
@@ -206,6 +208,11 @@ function AssignContent() {
         .filter(([key]) => key !== sessionIdRef.current)
         .flatMap(([, presences]) => presences.map((p) => p.name));
       setOtherEditors(others);
+      // 작업자가 없던 상태에서 누군가 새로 들어오면 즉시 알림
+      if (others.length > 0 && prevOtherCountRef.current === 0) {
+        setConflictAlert(others);
+      }
+      prevOtherCountRef.current = others.length;
     });
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
@@ -981,6 +988,28 @@ function AssignContent() {
                 {saving ? "저장 중..." : "저장"}
               </button>
               <button onClick={() => { setShowSaveModal(false); setSaveError(""); }} disabled={saving} className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2.5 rounded-xl font-semibold">취소</button>
+            </div>
+          </div>
+          </div>
+        </div>
+      )}
+
+      {/* 동시 편집 알림 모달 */}
+      {conflictAlert && (
+        <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setConflictAlert(null)}>
+          <div className="flex min-h-full items-center justify-center px-4 py-6">
+          <div className="bg-gray-900 border border-amber-500/30 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <div className="text-center mb-5">
+              <span className="text-4xl">⚠️</span>
+              <h3 className="font-black text-white text-lg mt-2">다른 사람이 배정 중이에요</h3>
+              <p className="text-sm text-gray-400 mt-2 leading-relaxed">
+                <b className="text-amber-300">{conflictAlert.join(", ")}</b>님이 지금 이 경기의 배정 작업을 하고 있어요.<br />
+                같은 쿼터를 동시에 저장하면 충돌할 수 있으니 서로 확인 후 진행해주세요.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => router.push("/matches")} className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2.5 rounded-xl font-semibold transition-colors">뒤로가기</button>
+              <button onClick={() => setConflictAlert(null)} className="flex-1 bg-amber-500 hover:bg-amber-400 text-black py-2.5 rounded-xl font-bold transition-colors">확인하고 계속</button>
             </div>
           </div>
           </div>

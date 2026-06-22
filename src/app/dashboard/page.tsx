@@ -562,22 +562,35 @@ export default function Dashboard() {
         {/* ── 포지션 배정 슬라이더 ── */}
         {upcomingMatch && (() => {
           const { label, isUpcoming, formatted } = formatDate(upcomingMatch.match_date);
+
+          if (!isUpcoming) {
+            return (
+              <div className="bg-gray-900 rounded-2xl border border-white/5 p-5 text-center">
+                <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-3">다가오는 경기</p>
+                <span className="text-3xl opacity-30 block mb-2">📅</span>
+                <p className="text-sm text-gray-500">다가오는 경기가 없어요</p>
+                {team?.can_manage && (
+                  <button
+                    onClick={() => router.push("/matches")}
+                    className="mt-3 text-xs text-emerald-400 hover:text-emerald-300 font-semibold border border-emerald-500/30 px-3 py-1.5 rounded-lg hover:bg-emerald-500/10 transition-colors"
+                  >
+                    경기 추가하러 가기 →
+                  </button>
+                )}
+              </div>
+            );
+          }
+
           return (
             <div className="bg-gray-900 rounded-2xl border border-white/5 overflow-hidden">
               {/* 경기 정보 헤더 */}
               <div className="flex items-center justify-between px-4 pt-4 pb-2">
                 <div>
-                  <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-0.5">
-                    {isUpcoming ? "다가오는 경기" : "최근 경기"}
-                  </p>
+                  <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-0.5">다가오는 경기</p>
                   <p className="text-sm font-bold text-white">{upcomingMatch.title}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{formatted}{upcomingMatch.location ? ` · ${upcomingMatch.location}` : ""}</p>
                 </div>
-                <span className={`text-sm font-black px-3 py-1.5 rounded-xl shrink-0 ${
-                  isUpcoming
-                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                    : "bg-white/5 text-gray-400 border border-white/10"
-                }`}>
+                <span className="text-sm font-black px-3 py-1.5 rounded-xl shrink-0 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                   {label}
                 </span>
               </div>
