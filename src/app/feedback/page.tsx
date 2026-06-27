@@ -36,6 +36,7 @@ function FeedbackContent() {
   const [activeTab, setActiveTab] = useState(0);
   const [teamFeedback, setTeamFeedback] = useState("");
   const [canWrite, setCanWrite] = useState(false);
+  const [myMemberId, setMyMemberId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -58,7 +59,7 @@ function FeedbackContent() {
     const res = await fetch("/api/matches");
     const data = await res.json();
     const list: MatchSummary[] = Array.isArray(data) ? data : [];
-    setMatches(list.filter(m => m.position_assignments?.length > 0));
+    setMatches(list);
   }
 
   async function loadFeedback(mId: string) {
@@ -68,6 +69,7 @@ function FeedbackContent() {
     const data = await res.json();
     setSelectedMatch(data.match);
     setCanWrite(data.can_feedback ?? false);
+    setMyMemberId(data.my_member_id ?? null);
     setTeamFeedback(data.feedback?.team_feedback ?? "");
     setVideos(data.feedback?.videos ?? []);
     setActiveTab(0);
@@ -162,7 +164,11 @@ function FeedbackContent() {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {m.match_time && <span className="text-xs text-emerald-400 font-medium">{formatTime(m.match_time)}</span>}
-                        <span className="text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">{m.position_assignments.length}쿼터</span>
+                        {m.position_assignments?.length > 0 ? (
+                          <span className="text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">{m.position_assignments.length}쿼터</span>
+                        ) : (
+                          <span className="text-xs bg-white/5 text-gray-600 border border-white/10 px-2 py-0.5 rounded-full">쿼터 없음</span>
+                        )}
                         <span className="text-gray-600 text-sm">→</span>
                       </div>
                     </button>
@@ -253,24 +259,33 @@ function FeedbackContent() {
                 ) : (
                   <>
                     <div className="flex gap-1.5 mb-4 flex-wrap">
-                      {quarterFeedbacks.map((q, i) => (
-                        <button key={q.session_id} onClick={() => setActiveTab(i)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
-                            activeTab === i ? "bg-emerald-500 text-black" : "bg-white/5 text-gray-500 hover:bg-white/10"
-                          }`}>
-                          {q.session_name}
-                          {q.players.filter(p => p.feedback).length > 0 && (
-                            <span className={`ml-1 ${activeTab === i ? "text-black/60" : "text-emerald-400"}`}>✓</span>
-                          )}
-                        </button>
-                      ))}
+                      {quarterFeedbacks.map((q, i) => {
+                        const hasFeedback = canWrite
+                          ? q.players.some(p => p.feedback)
+                          : q.players.some(p => p.member_id === myMemberId && p.feedback);
+                        return (
+                          <button key={q.session_id} onClick={() => setActiveTab(i)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
+                              activeTab === i ? "bg-emerald-500 text-black" : "bg-white/5 text-gray-500 hover:bg-white/10"
+                            }`}>
+                            {q.session_name}
+                            {hasFeedback && (
+                              <span className={`ml-1 ${activeTab === i ? "text-black/60" : "text-emerald-400"}`}>✓</span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
-                    {quarterFeedbacks[activeTab] && (
+                    {quarterFeedbacks[activeTab] && (() => {
+                      const playersToShow = canWrite
+                        ? quarterFeedbacks[activeTab].players
+                        : quarterFeedbacks[activeTab].players.filter(p => p.member_id === myMemberId);
+                      return (
                       <div className="flex flex-col gap-3 overflow-y-auto max-h-[480px] pr-1">
-                        {quarterFeedbacks[activeTab].players.length === 0 ? (
-                          <p className="text-sm text-gray-600">배정된 선수가 없어요</p>
+                        {playersToShow.length === 0 ? (
+                          <p className="text-sm text-gray-600">{canWrite ? "배정된 선수가 없어요" : "이 쿼터에는 배정되지 않았어요"}</p>
                         ) : (
-                          quarterFeedbacks[activeTab].players.map(p => (
+                          playersToShow.map(p => (
                             <div key={p.member_id} className="bg-gray-800/50 border border-white/5 rounded-xl p-3">
                               <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <span className="font-semibold text-white text-sm">{p.name}</span>
@@ -297,7 +312,8 @@ function FeedbackContent() {
                           ))
                         )}
                       </div>
-                    )}
+                      );
+                    })()}
                   </>
                 )}
               </div>

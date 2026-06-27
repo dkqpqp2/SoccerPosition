@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const quarters: QuarterPlayers[] = assignments.map(a => {
+  let quarters: QuarterPlayers[] = assignments.map(a => {
     const slots: { id: string; label: string }[] = a.formation_slots ?? [];
     const result: Record<string, { id: string; name: string } | null> = a.result ?? {};
     const playerMap: Record<string, { member_id: string; name: string; positions: string[] }> = {};
@@ -92,11 +92,47 @@ export async function GET(req: NextRequest) {
     };
   });
 
+  // 배정된 쿼터가 없어도 개인 피드백을 바로 쓸 수 있도록 — 참가자 기록(없으면 전체 팀원)으로 가상 그룹 생성
+  if (quarters.length === 0) {
+    const { data: attendeeRows } = await supabaseAdmin
+      .from("match_attendees")
+      .select("member_id")
+      .eq("match_id", matchId)
+      .eq("team_id", teamId);
+    const attendeeIds = (attendeeRows ?? []).map(r => r.member_id);
+
+    let fallbackQuery = supabaseAdmin
+      .from("team_members")
+      .select("id, name, position_1st, position_2nd")
+      .eq("team_id", teamId)
+      .eq("is_mercenary", false);
+    if (attendeeIds.length > 0) fallbackQuery = fallbackQuery.in("id", attendeeIds);
+
+    const { data: fallbackMembers } = await fallbackQuery;
+    quarters = [{
+      session_id: "general",
+      session_name: "전체",
+      players: (fallbackMembers ?? []).map(m => ({
+        member_id: m.id,
+        name: m.name,
+        positions: [m.position_1st, m.position_2nd].filter(Boolean) as string[],
+      })),
+    }];
+  }
+
+  const { data: myMember } = await supabaseAdmin
+    .from("team_members")
+    .select("id")
+    .eq("team_id", teamId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
   return NextResponse.json({
     match,
     quarters,
     feedback: feedback ?? null,
     can_feedback: canFeedback(await getUserRole(userId, teamId)),
+    my_member_id: myMember?.id ?? null,
   });
 }
 
