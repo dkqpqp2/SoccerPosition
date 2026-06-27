@@ -29,8 +29,10 @@ function FeedbackContent() {
   const matchId = searchParams.get("matchId");
 
   const [matches, setMatches] = useState<MatchSummary[]>([]);
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 10;
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const [openMonths, setOpenMonths] = useState<Set<string>>(new Set([currentMonthKey]));
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [quarterFeedbacks, setQuarterFeedbacks] = useState<QuarterFeedback[]>([]);
   const [activeTab, setActiveTab] = useState(0);
@@ -122,8 +124,6 @@ function FeedbackContent() {
     setSharing(false);
   }
 
-  const totalPages = Math.ceil(matches.length / PAGE_SIZE);
-
   return (
     <AppLayout title="경기 피드백" helpContent={{ items: [
       { icon: "📝", title: "팀 피드백", desc: "관리자가 경기 전체에 대한 피드백을 작성해요. 모든 팀원이 볼 수 있어요." },
@@ -139,55 +139,97 @@ function FeedbackContent() {
 
       <div className="max-w-5xl mx-auto px-4 py-6">
 
-        {/* 경기 선택 리스트 */}
+        {/* 경기 선택 리스트 (월별) */}
         {!selectedMatch && (
-          <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden mb-5">
-            <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-              <p className="text-sm font-bold text-white">경기 선택</p>
-              <p className="text-xs text-gray-600">총 {matches.length}경기</p>
+          <div className="mb-5">
+            {/* 연도 선택 */}
+            <div className="flex items-center gap-1 mb-3">
+              <button onClick={() => setSelectedYear(y => y - 1)}
+                className="w-8 h-8 flex items-center justify-center bg-gray-900 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white rounded-xl transition-colors text-sm">‹</button>
+              <span className="text-white font-bold text-sm px-2">{selectedYear}년</span>
+              <button onClick={() => setSelectedYear(y => y + 1)}
+                className="w-8 h-8 flex items-center justify-center bg-gray-900 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white rounded-xl transition-colors text-sm">›</button>
+              <span className="text-xs text-gray-600 ml-2">총 {matches.length}경기</span>
             </div>
 
             {matches.length === 0 ? (
-              <div className="text-center py-12">
+              <div className="bg-gray-900 border border-white/5 rounded-2xl text-center py-12">
                 <div className="text-4xl mb-2 opacity-30">📅</div>
-                <p className="text-sm text-gray-600">배정이 저장된 경기가 없어요</p>
+                <p className="text-sm text-gray-600">등록된 경기가 없어요</p>
               </div>
-            ) : (
-              <>
-                <div className="divide-y divide-white/5">
-                  {matches.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(m => (
-                    <button key={m.id} onClick={() => router.push(`/feedback?matchId=${m.id}`)}
-                      className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-emerald-500/5 transition-colors text-left">
-                      <div>
-                        <p className="font-semibold text-white text-sm">{formatDate(m.match_date)}</p>
-                        {m.title && <p className="text-xs text-gray-500 mt-0.5">{m.title}</p>}
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {m.match_time && <span className="text-xs text-emerald-400 font-medium">{formatTime(m.match_time)}</span>}
-                        {m.position_assignments?.length > 0 ? (
-                          <span className="text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">{m.position_assignments.length}쿼터</span>
-                        ) : (
-                          <span className="text-xs bg-white/5 text-gray-600 border border-white/10 px-2 py-0.5 rounded-full">쿼터 없음</span>
-                        )}
-                        <span className="text-gray-600 text-sm">→</span>
-                      </div>
-                    </button>
-                  ))}
+            ) : (() => {
+              const yearMatches = matches.filter(m => m.match_date.startsWith(String(selectedYear)));
+              const grouped: Record<string, MatchSummary[]> = {};
+              yearMatches.forEach(m => {
+                const key = m.match_date.slice(0, 7);
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(m);
+              });
+              const sortedKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+
+              if (sortedKeys.length === 0) return (
+                <div className="bg-gray-900 border border-white/5 rounded-2xl text-center py-12">
+                  <div className="text-4xl mb-2 opacity-30">📅</div>
+                  <p className="text-sm text-gray-600">{selectedYear}년 경기가 없어요</p>
                 </div>
-                {totalPages > 1 && (
-                  <div className="px-4 py-3 border-t border-white/5 flex items-center justify-center gap-1">
-                    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                      className="px-3 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-white/5 disabled:opacity-30">←</button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                      <button key={p} onClick={() => setPage(p)}
-                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${page === p ? "bg-emerald-500 text-black" : "text-gray-500 hover:bg-white/5"}`}>{p}</button>
-                    ))}
-                    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                      className="px-3 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-white/5 disabled:opacity-30">→</button>
-                  </div>
-                )}
-              </>
-            )}
+              );
+
+              return (
+                <div className="flex flex-col gap-3">
+                  {sortedKeys.map(monthKey => {
+                    const [, mm] = monthKey.split("-");
+                    const monthMatches = grouped[monthKey];
+                    const isOpen = openMonths.has(monthKey);
+                    const isCurrentMonth = monthKey === currentMonthKey;
+                    return (
+                      <div key={monthKey} className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+                        <button
+                          className={`w-full flex items-center justify-between px-4 py-3.5 hover:bg-white/3 transition-colors ${isOpen ? "border-b border-white/5" : ""}`}
+                          onClick={() => setOpenMonths(prev => {
+                            const next = new Set(prev);
+                            if (next.has(monthKey)) next.delete(monthKey);
+                            else next.add(monthKey);
+                            return next;
+                          })}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white">{Number(mm)}월</span>
+                            {isCurrentMonth && (
+                              <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-full">이번달</span>
+                            )}
+                            <span className="text-xs text-gray-600">{monthMatches.length}경기</span>
+                          </div>
+                          <span className={`text-gray-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}>▾</span>
+                        </button>
+
+                        {isOpen && (
+                          <div className="divide-y divide-white/5">
+                            {monthMatches.map(m => (
+                              <button key={m.id} onClick={() => router.push(`/feedback?matchId=${m.id}`)}
+                                className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-emerald-500/5 transition-colors text-left">
+                                <div>
+                                  <p className="font-semibold text-white text-sm">{formatDate(m.match_date)}</p>
+                                  {m.title && <p className="text-xs text-gray-500 mt-0.5">{m.title}</p>}
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {m.match_time && <span className="text-xs text-emerald-400 font-medium">{formatTime(m.match_time)}</span>}
+                                  {m.position_assignments?.length > 0 ? (
+                                    <span className="text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">{m.position_assignments.length}쿼터</span>
+                                  ) : (
+                                    <span className="text-xs bg-white/5 text-gray-600 border border-white/10 px-2 py-0.5 rounded-full">쿼터 없음</span>
+                                  )}
+                                  <span className="text-gray-600 text-sm">→</span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
 
