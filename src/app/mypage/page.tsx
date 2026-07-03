@@ -421,8 +421,8 @@ export default function MyPage() {
 
         </div>{/* end grid */}
 
-        {/* 내 평가 섹션 (팀원에게만 — 관리자 본인은 자기 평가를 직접 쓰므로 제외) */}
-        {!isManager && myEval !== "loading" && (
+        {/* 내 평가 섹션 */}
+        {myEval !== "loading" && (
           <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-bold text-white flex items-center gap-2">📋 나에 대한 평가</h2>
