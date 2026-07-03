@@ -179,10 +179,12 @@ export default function MembersPage() {
           className={`flex-1 py-3 text-sm font-bold transition-colors ${tab === "mercenary" ? "text-amber-400 border-b-2 border-amber-400" : "text-gray-600 hover:text-gray-400"}`}>
           ⚡ 용병 <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${tab === "mercenary" ? "bg-amber-500/20 text-amber-400" : "bg-white/5 text-gray-600"}`}>{mercenaryMembers.length}</span>
         </button>
-        <button onClick={() => setTab("eval")}
-          className={`flex-1 py-3 text-sm font-bold transition-colors ${tab === "eval" ? "text-purple-400 border-b-2 border-purple-400" : "text-gray-600 hover:text-gray-400"}`}>
-          📝 평가
-        </button>
+        {canManage && (
+          <button onClick={() => setTab("eval")}
+            className={`flex-1 py-3 text-sm font-bold transition-colors ${tab === "eval" ? "text-purple-400 border-b-2 border-purple-400" : "text-gray-600 hover:text-gray-400"}`}>
+            📝 평가
+          </button>
+        )}
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-4 flex flex-col" style={{ minHeight: "calc(100vh - 140px)" }}>

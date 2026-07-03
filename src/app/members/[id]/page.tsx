@@ -200,8 +200,8 @@ export default function MemberDetailPage() {
           )}
         </div>
 
-        {/* 장단점 평가 */}
-        <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
+        {/* 장단점 평가 — 관리자(감독·코치·회장·관리자)만 열람 */}
+        {canEdit && <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-bold text-white">📝 장단점 평가</h2>
             {eval_.updated_at && (
@@ -278,18 +278,12 @@ export default function MemberDetailPage() {
               )}
             </div>
 
-            {canEdit && (
-              <button onClick={save} disabled={saving}
-                className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold py-3 rounded-xl transition-colors">
-                {saving ? "저장 중..." : "💾 저장"}
-              </button>
-            )}
-
-            {!canEdit && (
-              <p className="text-center text-xs text-gray-700">감독 · 코치 · 회장 · 관리자만 수정할 수 있어요</p>
-            )}
+            <button onClick={save} disabled={saving}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold py-3 rounded-xl transition-colors">
+              {saving ? "저장 중..." : "💾 저장"}
+            </button>
           </div>
-        </div>
+        </div>}
 
       </div>
 

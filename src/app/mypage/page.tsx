@@ -46,6 +46,13 @@ interface Profile {
   is_owner: boolean;
 }
 
+interface MyEvaluation {
+  strengths: string;
+  weaknesses: string;
+  notes: string;
+  updated_at: string | null;
+}
+
 const defaultMatchingProfile: MatchingProfile = {
   description: "", region: "", age_group: "", skill_level: "",
   player_background: "", game_type: [], preferred_days: [],
@@ -75,11 +82,22 @@ export default function MyPage() {
   const [deleting, setDeleting] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [myEval, setMyEval] = useState<MyEvaluation | null | "loading">("loading");
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
-    if (status === "authenticated") { fetchProfile(); fetchMatchingProfile(); fetchNotifications(); }
+    if (status === "authenticated") { fetchProfile(); fetchMatchingProfile(); fetchNotifications(); fetchMyEval(); }
   }, [status]);
+
+  async function fetchMyEval() {
+    const res = await fetch("/api/user/evaluation");
+    if (res.ok) {
+      const data = await res.json();
+      setMyEval(data); // null이면 평가 없음
+    } else {
+      setMyEval(null);
+    }
+  }
 
   async function fetchProfile() {
     const res = await fetch("/api/user/profile");
@@ -402,6 +420,49 @@ export default function MyPage() {
         </div>
 
         </div>{/* end grid */}
+
+        {/* 내 평가 섹션 (팀원에게만 — 관리자 본인은 자기 평가를 직접 쓰므로 제외) */}
+        {!isManager && myEval !== "loading" && (
+          <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-bold text-white flex items-center gap-2">📋 나에 대한 평가</h2>
+              {myEval?.updated_at && (
+                <span className="text-[11px] text-gray-600">
+                  {new Date(myEval.updated_at).toLocaleDateString("ko-KR")} 수정됨
+                </span>
+              )}
+            </div>
+
+            {myEval && (myEval.strengths || myEval.weaknesses || myEval.notes) ? (
+              <div className="space-y-2.5">
+                {myEval.strengths && (
+                  <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl px-4 py-3">
+                    <p className="text-[11px] font-bold text-emerald-400 mb-1.5">✅ 장점</p>
+                    <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{myEval.strengths}</p>
+                  </div>
+                )}
+                {myEval.weaknesses && (
+                  <div className="bg-red-500/5 border border-red-500/15 rounded-xl px-4 py-3">
+                    <p className="text-[11px] font-bold text-red-400 mb-1.5">⚠️ 단점 / 개선점</p>
+                    <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{myEval.weaknesses}</p>
+                  </div>
+                )}
+                {myEval.notes && (
+                  <div className="bg-white/3 border border-white/5 rounded-xl px-4 py-3">
+                    <p className="text-[11px] font-bold text-gray-500 mb-1.5">🗒️ 메모</p>
+                    <p className="text-sm text-gray-400 whitespace-pre-wrap leading-relaxed">{myEval.notes}</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-5 space-y-2">
+                <p className="text-3xl opacity-30">📋</p>
+                <p className="text-sm text-gray-500 font-medium">아직 평가된 게 없어요</p>
+                <p className="text-xs text-gray-600 leading-relaxed">감독과 코치에게 평가해달라고 요청해보세요</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 저장 버튼 */}
         <button
