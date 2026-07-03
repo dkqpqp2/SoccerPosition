@@ -199,8 +199,7 @@ export default function DuesPage() {
   // 멤버 설정 패널
   const [openPanel, setOpenPanel] = useState<string | null>(null);
 
-  // 일괄 납부 선택
-  const [selectMode, setSelectMode] = useState(false);
+  // 납부 선택 (항상 체크박스 모드)
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkPaying, setBulkPaying] = useState(false);
 
@@ -316,7 +315,6 @@ export default function DuesPage() {
     );
     setBulkPaying(false);
     setSelected(new Set());
-    setSelectMode(false);
     load();
   };
 
@@ -326,11 +324,6 @@ export default function DuesPage() {
       next.has(memberId) ? next.delete(memberId) : next.add(memberId);
       return next;
     });
-  };
-
-  const exitSelectMode = () => {
-    setSelectMode(false);
-    setSelected(new Set());
   };
 
   // 팀원 설정 저장 (영구) - manual 멤버는 user_id 없어서 skip
@@ -400,34 +393,31 @@ export default function DuesPage() {
     const rowKey = m.member_id;
     const isOpen = openPanel === rowKey;
     const isChecked = selected.has(rowKey);
+    const isSelectable = canManage && !m.paid && !m.is_former;
 
     return (
       <div key={rowKey}>
         <div
           className={`flex items-center gap-2 px-4 py-3 transition-colors ${!isLast && !isOpen ? "border-b border-white/[0.03]" : ""} ${
-            selectMode && !m.paid ? "cursor-pointer active:bg-white/5" : ""
+            isSelectable ? "cursor-pointer active:bg-white/5" : ""
           } ${isChecked ? "bg-emerald-500/5" : ""}`}
-          onClick={() => { if (selectMode && !m.paid) toggleSelect(rowKey); }}
+          onClick={() => { if (isSelectable) toggleSelect(rowKey); }}
         >
-          {/* 선택 모드: 체크박스 / 일반 모드: 납부 아이콘 */}
-          {selectMode ? (
+          {/* 납부 여부 표시 / 미납자는 체크박스 */}
+          {m.paid ? (
+            <span className="text-base shrink-0 text-emerald-400">✅</span>
+          ) : canManage && !m.is_former ? (
             <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-              m.paid
-                ? "border-emerald-500/30 text-emerald-500/40"
-                : isChecked
-                  ? "border-emerald-400 bg-emerald-400"
-                  : "border-gray-600"
+              isChecked ? "border-emerald-400 bg-emerald-400" : "border-gray-600"
             }`}>
-              {m.paid ? <span className="text-[10px]">✓</span> : isChecked ? <span className="text-[10px] text-gray-900 font-black">✓</span> : null}
+              {isChecked && <span className="text-[10px] text-gray-900 font-black">✓</span>}
             </span>
           ) : (
-            <span className={`text-base shrink-0 ${m.paid ? "text-emerald-400" : "text-gray-700"}`}>
-              {m.paid ? "✅" : "○"}
-            </span>
+            <span className="text-base shrink-0 text-gray-700">○</span>
           )}
 
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
-            <span className={`text-sm font-medium truncate ${m.paid ? "text-white" : selectMode && !m.paid && isChecked ? "text-emerald-300" : "text-gray-400"}`}>
+            <span className={`text-sm font-medium truncate ${m.paid ? "text-white" : isChecked ? "text-emerald-300" : "text-gray-400"}`}>
               {m.name}
             </span>
             {m.is_manual && (
@@ -451,22 +441,15 @@ export default function DuesPage() {
             {fmt(m.paid ? (m.payment_amount ?? m.effective_amount) : m.effective_amount)}
           </span>
 
-          {/* 일반 모드 버튼들 - 강퇴 멤버는 버튼 없음 */}
-          {!selectMode && canManage && !m.is_former && (
-            m.paid ? (
-              <button onClick={e => { e.stopPropagation(); handlePay(m, true); }}
-                className="text-[10px] text-gray-600 hover:text-red-400 transition-colors px-2 py-1 rounded-lg border border-white/5 shrink-0">
-                취소
-              </button>
-            ) : defaultAmount > 0 || m.custom_amount !== null ? (
-              <button onClick={e => { e.stopPropagation(); handlePay(m); }}
-                className="text-[10px] text-emerald-400 font-bold px-2.5 py-1.5 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/10 transition-colors shrink-0">
-                납부완료
-              </button>
-            ) : null
+          {/* 납부완료 멤버만 취소 버튼 표시 */}
+          {canManage && m.paid && !m.is_former && (
+            <button onClick={e => { e.stopPropagation(); handlePay(m, true); }}
+              className="text-[10px] text-gray-600 hover:text-red-400 transition-colors px-2 py-1 rounded-lg border border-white/5 shrink-0">
+              취소
+            </button>
           )}
 
-          {!selectMode && canManage && !m.is_manual && !m.is_former && (
+          {canManage && !m.is_manual && !m.is_former && (
             <button onClick={e => { e.stopPropagation(); setOpenPanel(isOpen ? null : rowKey); }}
               title="상태 및 개인 금액 설정"
               className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-colors shrink-0 ${
@@ -479,7 +462,7 @@ export default function DuesPage() {
             </button>
           )}
         </div>
-        {isOpen && canManage && !selectMode && m.user_id && (
+        {isOpen && canManage && m.user_id && (
           <MemberPanel
             member={m as DueMember & { user_id: string }}
             defaultAmount={defaultAmount}
@@ -494,8 +477,8 @@ export default function DuesPage() {
   return (
     <AppLayout title="💰 회비 관리" helpContent={{ items: [
       { icon: "💵", title: "월별 회비 설정", desc: "상단 설정 버튼으로 월별 회비 금액을 지정해요. 팀원별로 납부 여부를 관리할 수 있어요." },
-      { icon: "✅", title: "납부 완료 처리", desc: "각 팀원의 납부 버튼을 눌러 납부 완료로 변경해요. 일괄 납부로 여러 명을 한 번에 처리할 수도 있어요." },
-      { icon: "☑️", title: "일괄 납부", desc: "☑ 일괄 납부 버튼 → 팀원 선택 → 납부완료 ✓ 버튼으로 여러 명을 한 번에 처리해요." },
+      { icon: "✅", title: "납부 완료 처리", desc: "미납자 이름을 눌러 체크한 뒤 하단 '납부완료' 버튼으로 한 번에 처리해요." },
+      { icon: "☑️", title: "전체 선택", desc: "'전체 선택' 버튼으로 미납자 전원을 한 번에 체크하고 납부 처리할 수 있어요." },
       { icon: "💸", title: "기타 수입/지출", desc: "수입·지출 탭에서 벌금·찬조금 등 기타 수입과 지출을 기록할 수 있어요." },
       { icon: "📊", title: "잔액 현황", desc: "잔액 탭에서 총 수납·기타 수입·지출·잔액을 한눈에 볼 수 있어요." },
     ]}}>
@@ -610,31 +593,24 @@ export default function DuesPage() {
                 </div>
               </div>
             )}
-            {/* 일괄 선택 모드 진입/취소 버튼 */}
+            {/* 전체 선택/해제 버튼 */}
             {canManage && unpaid.length > 0 && (
               <div className="flex items-center justify-between">
-                {selectMode ? (
-                  <>
-                    <button
-                      onClick={() => {
-                        const unpaidIds = unpaid.map(m => m.member_id);
-                        const allSelected = unpaidIds.every(id => selected.has(id));
-                        if (allSelected) setSelected(new Set());
-                        else setSelected(new Set(unpaidIds));
-                      }}
-                      className="text-xs text-gray-400 hover:text-white font-semibold px-3 py-2 rounded-xl border border-white/10 hover:border-white/20 transition-colors"
-                    >
-                      {unpaid.every(m => selected.has(m.member_id)) ? "전체 해제" : `전체 선택 (${unpaid.length}명)`}
-                    </button>
-                    <button onClick={exitSelectMode}
-                      className="text-xs text-gray-500 hover:text-white font-semibold px-3 py-2 rounded-xl border border-white/10 transition-colors">
-                      취소
-                    </button>
-                  </>
-                ) : (
-                  <button onClick={() => { setSelectMode(true); setOpenPanel(null); }}
-                    className="ml-auto text-xs text-emerald-400 hover:text-emerald-300 font-semibold px-3 py-2 rounded-xl border border-emerald-500/30 hover:bg-emerald-500/5 transition-colors">
-                    ☑ 일괄 납부
+                <button
+                  onClick={() => {
+                    const unpaidIds = unpaid.map(m => m.member_id);
+                    const allSelected = unpaidIds.every(id => selected.has(id));
+                    if (allSelected) setSelected(new Set());
+                    else setSelected(new Set(unpaidIds));
+                  }}
+                  className="text-xs text-gray-400 hover:text-white font-semibold px-3 py-2 rounded-xl border border-white/10 hover:border-white/20 transition-colors"
+                >
+                  {unpaid.every(m => selected.has(m.member_id)) ? "전체 해제" : `전체 선택 (${unpaid.length}명)`}
+                </button>
+                {selected.size > 0 && (
+                  <button onClick={() => setSelected(new Set())}
+                    className="text-xs text-gray-500 hover:text-white font-semibold px-3 py-2 rounded-xl border border-white/10 transition-colors">
+                    선택 해제
                   </button>
                 )}
               </div>
@@ -880,8 +856,8 @@ export default function DuesPage() {
         )}
       </div>
 
-      {/* 일괄 납부 하단 바 */}
-      {selectMode && (
+      {/* 납부 처리 하단 바 */}
+      {selected.size > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-6 pt-3 bg-gradient-to-t from-gray-950 via-gray-950/95 to-transparent pointer-events-none">
           <div className="max-w-2xl mx-auto pointer-events-auto">
             <div className="flex items-center gap-3 bg-gray-900 border border-white/10 rounded-2xl px-4 py-3 shadow-2xl">
