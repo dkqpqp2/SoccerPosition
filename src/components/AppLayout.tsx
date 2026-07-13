@@ -297,7 +297,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
       )}
 
       {/* ── 하단 탭바 (모바일 only) – 가로 스크롤 ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-white/5 z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-white/5 z-40">
         <div
           className="flex overflow-x-auto"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
