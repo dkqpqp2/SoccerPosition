@@ -78,6 +78,7 @@ export default function MyPage() {
   const [notifications, setNotifications] = useState<{ id: string; title: string; body: string; link: string; is_read: boolean; created_at: string; type?: string }[]>([]);
   const [myTab, setMyTab] = useState<"info" | "matching">("info");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showAllNotifs, setShowAllNotifs] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -213,7 +214,7 @@ export default function MyPage() {
                 모두 읽음
               </button>
             </div>
-            {notifications.map(n => (
+            {(showAllNotifs ? notifications : notifications.slice(0, 2)).map(n => (
               <div key={n.id}
                 className={`rounded-2xl border p-4 flex gap-3 transition-colors ${n.is_read ? "bg-gray-900 border-white/5 opacity-60" : "bg-emerald-500/5 border-emerald-500/20"}`}
               >
@@ -240,6 +241,14 @@ export default function MyPage() {
                 </button>
               </div>
             ))}
+            {notifications.length > 2 && (
+              <button
+                onClick={() => setShowAllNotifs(p => !p)}
+                className="text-xs text-gray-500 hover:text-gray-300 font-semibold py-2 text-center transition-colors"
+              >
+                {showAllNotifs ? "접기 ▲" : `알림 ${notifications.length - 2}개 더보기 ▼`}
+              </button>
+            )}
           </div>
         )}
 
