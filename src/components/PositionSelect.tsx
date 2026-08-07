@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { Check } from "lucide-react";
 import { POSITIONS, POSITION_GROUPS, POSITION_MAP } from "@/lib/positions";
 
 interface Props {
@@ -82,7 +83,7 @@ export default function PositionSelect({ value, onChange, placeholder = "선택 
                     >
                       <span className="font-bold w-10 shrink-0">{p.label}</span>
                       <span className="text-gray-500 text-xs">{p.description}</span>
-                      {value === p.value && <span className="ml-auto text-emerald-500">✓</span>}
+                      {value === p.value && <Check size={14} className="ml-auto text-emerald-500" />}
                     </button>
                   ))}
                 </div>

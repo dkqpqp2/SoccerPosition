@@ -3,6 +3,10 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  Calendar, MapPin, Goal, Trophy, Check, X, HelpCircle, Users, Target,
+  Swords, Handshake, Frown, type LucideIcon,
+} from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import KakaoPlaceSearch, { type SelectedPlace } from "@/components/KakaoPlaceSearch";
 import KakaoMapModal from "@/components/KakaoMapModal";
@@ -375,7 +379,7 @@ export default function MatchesPage() {
 
         {/* 추가 폼 */}
         {showForm && (
-          <form onSubmit={createMatch} className="bg-gray-900 border border-white/10 rounded-2xl p-5 mb-5">
+          <form onSubmit={createMatch} className="bg-gray-900 border border-white/10 rounded-lg p-5 mb-5">
             <h2 className="font-bold text-white mb-4">경기 추가</h2>
             <div className="flex flex-col gap-3">
               <div>
@@ -408,13 +412,13 @@ export default function MatchesPage() {
                             setSelectedPlace(null);
                           }
                         }}
-                        className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                        className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${
                           location === place.name
                             ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
                             : "bg-white/5 border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300"
                         }`}
                       >
-                        📍 {place.name}
+                        <MapPin size={11} strokeWidth={2} /> {place.name}
                       </button>
                     ))}
                   </div>
@@ -441,13 +445,13 @@ export default function MatchesPage() {
                           key={opp}
                           type="button"
                           onClick={() => setOpponent(opp)}
-                          className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                          className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${
                             opponent === opp
                               ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
                               : "bg-white/5 border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300"
                           }`}
                         >
-                          🆚 {opp}
+                          <Swords size={11} strokeWidth={2} /> {opp}
                         </button>
                       ))}
                     </div>
@@ -489,7 +493,7 @@ export default function MatchesPage() {
 
             if (sortedKeys.length === 0) return (
               <div className="text-center py-16">
-                <div className="text-5xl mb-3 opacity-30">📅</div>
+                <Calendar size={40} strokeWidth={1.5} className="opacity-30 mx-auto mb-3" />
                 <p className="text-gray-600">{selectedYear}년 경기가 없어요</p>
               </div>
             );
@@ -502,7 +506,7 @@ export default function MatchesPage() {
                   const isOpen = openMonths.has(monthKey);
                   const isCurrentMonth = monthKey === currentMonthKey;
                   return (
-                    <div key={monthKey} className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+                    <div key={monthKey} className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
                       {/* 월 헤더 (클릭하면 토글) */}
                       <button
                         className={`w-full flex items-center justify-between px-4 py-3.5 hover:bg-white/3 transition-colors ${isOpen ? "border-b border-white/5" : ""}`}
@@ -589,7 +593,7 @@ export default function MatchesPage() {
                           const style = isW
                             ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
                             : isD
-                              ? "bg-yellow-500/15 border-yellow-500/30 text-yellow-300"
+                              ? "bg-amber-500/15 border-amber-500/30 text-amber-300"
                               : "bg-red-500/15 border-red-500/30 text-red-300";
                           const label = isW ? "승" : isD ? "무" : "패";
                           return (
@@ -602,7 +606,7 @@ export default function MatchesPage() {
                         })()}
                         {match.location && (
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                            <p className="text-xs text-gray-600">📍 {match.location}</p>
+                            <p className="text-xs text-gray-600 inline-flex items-center gap-1"><MapPin size={11} strokeWidth={2} />{match.location}</p>
                             {match.place_lat && match.place_lng && (
                               <button
                                 onClick={() => setMapModal({ name: match.location!, lat: match.place_lat!, lng: match.place_lng! })}
@@ -621,7 +625,7 @@ export default function MatchesPage() {
                             onClick={() => openStatsModal(match)}
                             className="w-16 flex items-center justify-center gap-1 bg-white/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 border border-white/10 text-gray-400 hover:text-emerald-400 text-xs font-semibold px-2.5 py-1.5 rounded-xl transition-colors"
                           >
-                            ⚽ 기록
+                            <Goal size={13} strokeWidth={2} /> 기록
                           </button>
                           <button
                             onClick={() => setScoreModal({
@@ -632,7 +636,7 @@ export default function MatchesPage() {
                             })}
                             className="w-16 flex items-center justify-center gap-1 bg-white/5 hover:bg-blue-500/10 hover:border-blue-500/30 border border-white/10 text-gray-400 hover:text-blue-400 text-xs font-semibold px-2.5 py-1.5 rounded-xl transition-colors"
                           >
-                            🏆 결과
+                            <Trophy size={13} strokeWidth={2} /> 결과
                           </button>
                         </div>
                       )}
@@ -644,10 +648,10 @@ export default function MatchesPage() {
                       const counts = match.rsvp_counts ?? { attending: 0, absent: 0, maybe: 0 };
                       const isExpanded = expandedRsvp.has(match.id);
 
-                      const BTNS: { key: RsvpStatus; label: string; active: string; count: string }[] = [
-                        { key: "attending", label: "✅ 참석", active: "bg-emerald-500 text-white border-emerald-500", count: "text-emerald-400" },
-                        { key: "absent",    label: "❌ 불참", active: "bg-red-500 text-white border-red-500",       count: "text-red-400"     },
-                        { key: "maybe",     label: "❓ 미정", active: "bg-gray-600 text-white border-gray-500",     count: "text-gray-500"    },
+                      const BTNS: { key: RsvpStatus; label: string; icon: LucideIcon; active: string; count: string }[] = [
+                        { key: "attending", label: "참석", icon: Check,      active: "bg-emerald-500 text-white border-emerald-500", count: "text-emerald-400" },
+                        { key: "absent",    label: "불참", icon: X,          active: "bg-red-500 text-white border-red-500",       count: "text-red-400"     },
+                        { key: "maybe",     label: "미정", icon: HelpCircle, active: "bg-gray-600 text-white border-gray-500",     count: "text-gray-500"    },
                       ];
 
                       return (
@@ -681,17 +685,17 @@ export default function MatchesPage() {
                           {/* 버튼 3개 */}
                           {!ended && (
                             <div className="flex gap-1.5">
-                              {BTNS.map(({ key, label, active }) => (
+                              {BTNS.map(({ key, label, icon: Icon, active }) => (
                                 <button
                                   key={key}
                                   onClick={() => handleRsvp(match.id, key)}
-                                  className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors ${
+                                  className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors inline-flex items-center justify-center gap-1 ${
                                     myRsvp === key
                                       ? active
                                       : "bg-white/5 text-gray-500 border-white/10 hover:border-white/20 hover:text-gray-300"
                                   }`}
                                 >
-                                  {label}
+                                  <Icon size={13} strokeWidth={2} /> {label}
                                 </button>
                               ))}
                             </div>
@@ -703,11 +707,13 @@ export default function MatchesPage() {
                               {(["attending", "absent", "maybe"] as RsvpStatus[]).map(s => {
                                 const group = match.rsvp_list.filter(r => r.status === s);
                                 if (!group.length) return null;
-                                const labels = { attending: "✅ 참석", absent: "❌ 불참", maybe: "❓ 미정" };
+                                const labels = { attending: "참석", absent: "불참", maybe: "미정" };
+                                const icons: Record<RsvpStatus, LucideIcon> = { attending: Check, absent: X, maybe: HelpCircle };
                                 const colors = { attending: "text-emerald-400", absent: "text-red-400", maybe: "text-gray-500" };
+                                const Icon = icons[s];
                                 return (
                                   <div key={s} className="flex items-start gap-2">
-                                    <span className={`text-[10px] font-bold shrink-0 mt-0.5 ${colors[s]}`}>{labels[s]}</span>
+                                    <span className={`text-[10px] font-bold shrink-0 mt-0.5 flex items-center gap-0.5 ${colors[s]}`}><Icon size={10} strokeWidth={2.5} />{labels[s]}</span>
                                     <span className="text-[10px] text-gray-500 leading-relaxed">
                                       {group.map(r => r.name).join(", ")}
                                     </span>
@@ -778,18 +784,18 @@ export default function MatchesPage() {
       {statsModal && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setStatsModal(null)}>
           <div className="flex min-h-full items-center justify-center px-4 py-6">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="bg-gray-900 border border-white/10 rounded-lg shadow-2xl w-full max-w-sm max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between shrink-0">
               <div>
-                <h3 className="font-bold text-white text-base">⚽ 골/어시 기록</h3>
+                <h3 className="font-bold text-white text-base flex items-center gap-1.5"><Goal size={16} strokeWidth={2} /> 골/어시 기록</h3>
                 <p className="text-xs text-gray-500 mt-0.5 truncate max-w-[200px]">{statsModal.matchTitle}</p>
               </div>
-              <button onClick={() => setStatsModal(null)} className="text-gray-500 hover:text-white text-xl font-bold">✕</button>
+              <button onClick={() => setStatsModal(null)} className="text-gray-500 hover:text-white"><X size={20} /></button>
             </div>
 
             {statsEntries.length === 0 ? (
               <div className="px-5 py-10 text-center">
-                <div className="text-3xl mb-2 opacity-30">👥</div>
+                <Users size={28} strokeWidth={1.5} className="opacity-30 mx-auto mb-2" />
                 <p className="text-sm text-gray-600">참가 인원을 먼저 설정해주세요</p>
                 <p className="text-xs text-gray-700 mt-1">배정 페이지에서 참가자를 선택하면 여기에 표시돼요</p>
               </div>
@@ -799,8 +805,8 @@ export default function MatchesPage() {
                   {/* 헤더 */}
                   <div className="flex items-center px-5 py-2 border-b border-white/5">
                     <span className="flex-1 text-xs text-gray-600 font-semibold">선수</span>
-                    <span className="w-24 text-center text-xs text-emerald-400 font-semibold">🥅 골</span>
-                    <span className="w-24 text-center text-xs text-blue-400 font-semibold">🎯 어시</span>
+                    <span className="w-24 flex items-center justify-center gap-1 text-xs text-emerald-400 font-semibold"><Goal size={12} strokeWidth={2} /> 골</span>
+                    <span className="w-24 flex items-center justify-center gap-1 text-xs text-blue-400 font-semibold"><Target size={12} strokeWidth={2} /> 어시</span>
                   </div>
                   {statsEntries.map(entry => (
                     <div key={entry.member_id} className="flex items-center px-5 py-2.5 border-b border-white/5 last:border-0">
@@ -856,13 +862,13 @@ export default function MatchesPage() {
       {scoreModal && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setScoreModal(null)}>
           <div className="flex min-h-full items-center justify-center px-4 py-6">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-xs" onClick={e => e.stopPropagation()}>
+          <div className="bg-gray-900 border border-white/10 rounded-lg shadow-2xl w-full max-w-xs" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-white text-base">🏆 경기 결과</h3>
+                <h3 className="font-bold text-white text-base flex items-center gap-1.5"><Trophy size={16} strokeWidth={2} /> 경기 결과</h3>
                 <p className="text-xs text-gray-500 mt-0.5 truncate max-w-[180px]">{scoreModal.matchTitle}</p>
               </div>
-              <button onClick={() => setScoreModal(null)} className="text-gray-500 hover:text-white text-xl font-bold">✕</button>
+              <button onClick={() => setScoreModal(null)} className="text-gray-500 hover:text-white"><X size={20} /></button>
             </div>
 
             <div className="px-5 py-6">
@@ -910,9 +916,10 @@ export default function MatchesPage() {
               {(() => {
                 const isW = scoreModal.scoreUs > scoreModal.scoreThem;
                 const isD = scoreModal.scoreUs === scoreModal.scoreThem;
-                const label = isW ? "🏆 승리" : isD ? "🤝 무승부" : "😞 패배";
-                const style = isW ? "text-emerald-400" : isD ? "text-yellow-400" : "text-red-400";
-                return <p className={`text-center text-sm font-black mt-4 ${style}`}>{label}</p>;
+                const ResultIcon = isW ? Trophy : isD ? Handshake : Frown;
+                const label = isW ? "승리" : isD ? "무승부" : "패배";
+                const style = isW ? "text-emerald-400" : isD ? "text-amber-400" : "text-red-400";
+                return <p className={`flex items-center justify-center gap-1.5 text-sm font-black mt-4 ${style}`}><ResultIcon size={15} strokeWidth={2} />{label}</p>;
               })()}
             </div>
 

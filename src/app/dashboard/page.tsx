@@ -3,6 +3,10 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
+import {
+  Rocket, Wallet, Home, Handshake, Users, Link2, Calendar, Check,
+  X, HelpCircle, Target, FileText, MessageCircle, User,
+} from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 
 type TeamRole = "owner" | "manager" | "coach" | "president" | "member" | "treasurer";
@@ -75,13 +79,14 @@ const ROLE_LABEL: Record<TeamRole, string> = {
   treasurer: "총무",
 };
 
+// 관리자급(owner/manager/coach/president) vs 일반 팀원(member/treasurer) — CLAUDE.md 권한 체계와 동일한 2단계 구분
 const ROLE_COLOR: Record<TeamRole, string> = {
   owner: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
-  manager: "bg-blue-500/20 text-blue-400 border border-blue-500/30",
-  coach: "bg-purple-500/20 text-purple-400 border border-purple-500/30",
-  president: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30",
+  manager: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+  coach: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+  president: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
   member: "bg-white/10 text-gray-400 border border-white/10",
-  treasurer: "bg-teal-500/20 text-teal-400 border border-teal-500/30",
+  treasurer: "bg-white/10 text-gray-400 border border-white/10",
 };
 
 export default function Dashboard() {
@@ -427,8 +432,8 @@ export default function Dashboard() {
 
         {/* 신규 가입 온보딩 배너: 팀 이름이 기본값인 경우 */}
         {team?.name === "우리팀" && (
-          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-start gap-3">
-            <span className="text-2xl shrink-0">👋</span>
+          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 flex items-start gap-3">
+            <Rocket size={22} className="text-emerald-400 shrink-0" strokeWidth={1.75} />
             <div className="flex-1 min-w-0">
               <p className="font-bold text-emerald-300 text-sm">가입을 환영해요!</p>
               <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
@@ -449,9 +454,9 @@ export default function Dashboard() {
         {myDuesStatus?.paid === false && myDuesStatus.amount > 0 && (
           <button
             onClick={() => router.push("/dues")}
-            className="w-full bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center gap-3 text-left"
+            className="w-full bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-center gap-3 text-left"
           >
-            <span className="text-xl shrink-0">💰</span>
+            <Wallet size={20} className="text-amber-400 shrink-0" strokeWidth={1.75} />
             <div className="flex-1 min-w-0">
               <p className="font-bold text-amber-300 text-sm">이번 달 회비가 미납됐어요</p>
               <p className="text-xs text-gray-400 mt-0.5">
@@ -471,11 +476,11 @@ export default function Dashboard() {
                 disabled={switching}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
                   myOwnTeam.is_active
-                    ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/30"
+                    ? "bg-emerald-500 text-black"
                     : "bg-white/5 text-gray-400 hover:bg-white/10"
                 }`}
               >
-                🏠 내 팀
+                <Home size={15} strokeWidth={2} /> 내 팀
                 <span className="text-xs opacity-75 font-normal truncate max-w-[80px]">{myOwnTeam.name}</span>
               </button>
             )}
@@ -485,11 +490,11 @@ export default function Dashboard() {
                 disabled={switching}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
                   joinedTeam.is_active
-                    ? "bg-blue-500 text-white shadow-lg shadow-blue-500/30"
+                    ? "bg-blue-500 text-white"
                     : "bg-white/5 text-gray-400 hover:bg-white/10"
                 }`}
               >
-                🤝 가입한 팀
+                <Handshake size={15} strokeWidth={2} /> 가입한 팀
                 <span className="text-xs opacity-75 font-normal truncate max-w-[80px]">{joinedTeam.name}</span>
               </button>
             )}
@@ -506,10 +511,10 @@ export default function Dashboard() {
 
         {/* 팀 카드 */}
         {team && (
-          <div className="bg-gray-900 rounded-2xl border border-white/5 p-5">
+          <div className="bg-gray-900 rounded-lg border border-white/5 p-5">
             <div className="flex items-center gap-4">
               {/* 팀 로고 */}
-              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <div className="w-14 h-14 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
                 <span className="text-emerald-400 font-black text-xl">{team.name[0]}</span>
               </div>
               {/* 팀 정보 */}
@@ -526,7 +531,7 @@ export default function Dashboard() {
                     m.users?.image ? (
                       <img key={i} src={m.users.image.replace(/^http:\/\//, 'https://')} alt={m.users.name} referrerPolicy="no-referrer" className="w-7 h-7 rounded-full ring-2 ring-gray-900" onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
                     ) : (
-                      <div key={i} className="w-7 h-7 rounded-full ring-2 ring-gray-900 bg-emerald-500/20 flex items-center justify-center text-[10px]">👤</div>
+                      <div key={i} className="w-7 h-7 rounded-full ring-2 ring-gray-900 bg-emerald-500/20 flex items-center justify-center"><User size={12} className="text-emerald-400" /></div>
                     )
                   )}
                   {team.members.length > 7 && (
@@ -542,16 +547,16 @@ export default function Dashboard() {
               <div className="flex flex-col gap-2 shrink-0">
                 <button
                   onClick={() => { setShowMembers(true); setShowInvite(false); setMemberPage(0); }}
-                  className="text-xs font-bold px-3 py-2 rounded-xl transition-colors bg-white/5 text-gray-400 hover:bg-white/10"
+                  className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-colors bg-white/5 text-gray-400 hover:bg-white/10"
                 >
-                  👥 팀원
+                  <Users size={13} /> 팀원
                 </button>
                 {team.is_owner && (
                   <button
                     onClick={() => { setShowInvite(true); setShowMembers(false); }}
-                    className="text-xs font-bold px-3 py-2 rounded-xl transition-colors bg-white/5 text-gray-400 hover:bg-white/10"
+                    className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-colors bg-white/5 text-gray-400 hover:bg-white/10"
                   >
-                    🔗 초대
+                    <Link2 size={13} /> 초대
                   </button>
                 )}
               </div>
@@ -565,9 +570,9 @@ export default function Dashboard() {
 
           if (!isUpcoming) {
             return (
-              <div className="bg-gray-900 rounded-2xl border border-white/5 p-5 text-center">
+              <div className="bg-gray-900 rounded-lg border border-white/5 p-5 text-center">
                 <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-3">다가오는 경기</p>
-                <span className="text-3xl opacity-30 block mb-2">📅</span>
+                <Calendar size={30} strokeWidth={1.5} className="opacity-30 mx-auto mb-2" />
                 <p className="text-sm text-gray-500">다가오는 경기가 없어요</p>
                 {team?.can_manage && (
                   <button
@@ -582,7 +587,7 @@ export default function Dashboard() {
           }
 
           return (
-            <div className="bg-gray-900 rounded-2xl border border-white/5 overflow-hidden">
+            <div className="bg-gray-900 rounded-lg border border-white/5 overflow-hidden">
               {/* 경기 정보 헤더 */}
               <div className="flex items-center justify-between px-4 pt-4 pb-2">
                 <div>
@@ -599,15 +604,15 @@ export default function Dashboard() {
               {isUpcoming && upcomingMatch.rsvp_counts && (
                 <div className="flex items-center gap-3 px-4 pb-3">
                   <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
-                    <span>✅</span> 참석 {upcomingMatch.rsvp_counts.attending}명
+                    <Check size={13} /> 참석 {upcomingMatch.rsvp_counts.attending}명
                   </span>
                   <span className="text-gray-700">·</span>
                   <span className="flex items-center gap-1 text-xs font-semibold text-red-400">
-                    <span>❌</span> 불참 {upcomingMatch.rsvp_counts.absent}명
+                    <X size={13} /> 불참 {upcomingMatch.rsvp_counts.absent}명
                   </span>
                   <span className="text-gray-700">·</span>
                   <span className="flex items-center gap-1 text-xs font-semibold text-gray-500">
-                    <span>❓</span> 미정 {upcomingMatch.rsvp_counts.maybe}명
+                    <HelpCircle size={13} /> 미정 {upcomingMatch.rsvp_counts.maybe}명
                   </span>
                 </div>
               )}
@@ -622,7 +627,7 @@ export default function Dashboard() {
                         onClick={() => changeQuarter(i)}
                         className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${
                           activeQuarter === i
-                            ? "bg-emerald-500 text-black shadow-md shadow-emerald-500/30"
+                            ? "bg-emerald-500 text-black"
                             : "bg-white/5 text-gray-400 hover:bg-white/10"
                         }`}
                       >
@@ -754,7 +759,7 @@ export default function Dashboard() {
               ) : (
                 <div className="px-4 pb-5 text-center">
                   <div className="py-6 flex flex-col items-center gap-2">
-                    <span className="text-3xl opacity-30">🏃</span>
+                    <Target size={30} strokeWidth={1.5} className="opacity-30" />
                     <p className="text-xs text-gray-600">아직 포지션 배정이 없어요</p>
                     {team?.can_manage && (
                       <button
@@ -773,10 +778,10 @@ export default function Dashboard() {
 
         {/* ── 최근 경기 피드백 ── */}
         {feedbackLoaded && (
-          <div className="bg-gray-900 rounded-2xl border border-white/5 p-4">
+          <div className="bg-gray-900 rounded-lg border border-white/5 p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <span className="text-base">📝</span>
+                <FileText size={15} className="text-gray-400" />
                 <p className="text-sm font-bold text-white">최근 경기 피드백</p>
               </div>
               {recentFeedbackMatch && recentFeedback && (
@@ -791,7 +796,7 @@ export default function Dashboard() {
 
             {!recentFeedback || (!recentFeedback.team_feedback?.trim() && !recentFeedback.player_feedbacks?.some(p => p.feedback?.trim())) ? (
               <div className="flex flex-col items-center gap-2 py-5">
-                <span className="text-3xl opacity-30">💬</span>
+                <MessageCircle size={30} strokeWidth={1.5} className="opacity-30" />
                 <p className="text-xs text-gray-600">아직 피드백이 없습니다</p>
                 {recentFeedbackMatch && team?.can_manage && (
                   <button
@@ -841,7 +846,7 @@ export default function Dashboard() {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div className="relative flex min-h-full items-center justify-center px-4 py-6">
           <div
-            className="relative bg-gray-900 border border-white/10 rounded-2xl w-full max-w-lg flex flex-col"
+            className="relative bg-gray-900 border border-white/10 rounded-lg w-full max-w-lg flex flex-col"
             style={{ maxHeight: "80vh" }}
             onClick={e => e.stopPropagation()}
           >
@@ -863,13 +868,13 @@ export default function Dashboard() {
                 <>
                   <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-2">
                     {paged.map((m, idx) => (
-                      <div key={m.user_id} className="flex items-center gap-3 bg-white/3 rounded-2xl px-4 py-3 border border-white/5">
+                      <div key={m.user_id} className="flex items-center gap-3 bg-white/3 rounded-lg px-4 py-3 border border-white/5">
                         {/* 번호 */}
                         <span className="text-xs text-gray-700 w-5 shrink-0 text-right">{memberPage * PAGE_SIZE + idx + 1}</span>
                         {m.users?.image ? (
                           <img src={m.users.image.replace(/^http:\/\//, 'https://')} alt="" referrerPolicy="no-referrer" className="w-9 h-9 rounded-full shrink-0" onError={e => { const t = e.target as HTMLImageElement; t.style.display='none'; t.parentElement!.innerHTML='<div class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-sm shrink-0">👤</div>'; }} />
                         ) : (
-                          <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-sm shrink-0">👤</div>
+                          <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center shrink-0"><User size={16} className="text-gray-400" /></div>
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-white truncate">{m.users?.name ?? "이름 없음"}</p>
@@ -942,7 +947,7 @@ export default function Dashboard() {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div className="relative flex min-h-full items-center justify-center px-4 py-6">
           <div
-            className="relative bg-gray-900 border border-white/10 rounded-2xl w-full max-w-lg p-5"
+            className="relative bg-gray-900 border border-white/10 rounded-lg w-full max-w-lg p-5"
             onClick={e => e.stopPropagation()}
           >
             {/* 헤더 */}
@@ -966,7 +971,7 @@ export default function Dashboard() {
                   copied ? "bg-emerald-500 text-black" : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400"
                 }`}
               >
-                {copied ? "✓ 복사됨" : "복사"}
+                {copied ? <span className="inline-flex items-center gap-1"><Check size={13} /> 복사됨</span> : "복사"}
               </button>
             </div>
             <div className="bg-white/3 border border-white/5 rounded-xl px-4 py-3 flex items-center justify-between">

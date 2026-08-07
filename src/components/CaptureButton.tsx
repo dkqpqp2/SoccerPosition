@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toBlob } from "html-to-image";
+import { Camera, Loader2 } from "lucide-react";
 
 interface Props {
   targetId: string;
@@ -85,14 +86,14 @@ export default function CaptureButton({ targetId, filename, bgColor = "#030712" 
     <button
       onClick={handleCapture}
       disabled={loading}
-      className="w-full mt-4 flex items-center justify-center gap-2 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-gray-300 hover:text-white font-semibold py-3 rounded-2xl transition-colors disabled:opacity-50"
+      className="w-full mt-4 flex items-center justify-center gap-2 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-gray-300 hover:text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50"
     >
       {loading ? (
         <>
-          <span className="animate-spin text-base">⏳</span> 캡쳐 중...
+          <Loader2 size={16} className="animate-spin" /> 캡쳐 중...
         </>
       ) : (
-        <>📸 이미지로 저장</>
+        <><Camera size={16} /> 이미지로 저장</>
       )}
     </button>
   );

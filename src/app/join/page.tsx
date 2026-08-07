@@ -3,6 +3,7 @@
 import { useSession, signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
+import { MessageCircle, CheckCircle2 } from "lucide-react";
 import SpmLogo from "@/components/SpmLogo";
 
 function JoinContent() {
@@ -39,7 +40,7 @@ function JoinContent() {
     if (!res.ok) {
       setError(data.error ?? "오류가 발생했어요");
     } else {
-      setSuccess(`🎉 "${data.team_name}" 팀에 합류했어요!`);
+      setSuccess(`"${data.team_name}" 팀에 합류했어요!`);
       setTimeout(() => router.push("/dashboard"), 2000);
     }
     setLoading(false);
@@ -57,13 +58,13 @@ function JoinContent() {
     return (
       <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-4 gap-6">
         <SpmLogo size="md" />
-        <div className="bg-gray-900 border border-white/10 rounded-2xl p-6 w-full max-w-xs text-center flex flex-col gap-4">
+        <div className="bg-gray-900 border border-white/10 rounded-lg p-6 w-full max-w-xs text-center flex flex-col gap-4">
           <p className="text-gray-400 text-sm">팀에 합류하려면 먼저 로그인해주세요</p>
           <button
             onClick={() => signIn("kakao", { callbackUrl: "/join" })}
             className="w-full flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold px-6 py-3 rounded-xl transition-colors text-sm"
           >
-            <span>💬</span> 카카오 로그인
+            <MessageCircle size={16} strokeWidth={2} /> 카카오 로그인
           </button>
         </div>
       </div>
@@ -80,13 +81,13 @@ function JoinContent() {
           <SpmLogo size="md" />
         </div>
 
-        <div className="bg-gray-900 border border-white/10 rounded-2xl p-6 shadow-2xl shadow-black/40">
+        <div className="bg-gray-900 border border-white/10 rounded-lg p-6 shadow-2xl shadow-black/40">
           <h1 className="text-lg font-bold text-white mb-1">팀 합류</h1>
           <p className="text-sm text-gray-500 mb-5">초대 코드를 입력해서 팀에 합류하세요</p>
 
           {success ? (
             <div className="text-center py-6">
-              <div className="text-3xl mb-3">🎉</div>
+              <CheckCircle2 size={32} strokeWidth={1.75} className="text-emerald-400 mx-auto mb-3" />
               <p className="text-emerald-400 font-bold text-base">{success}</p>
               <p className="text-sm text-gray-500 mt-1">잠시 후 홈으로 이동해요...</p>
             </div>

@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import { notFound } from "next/navigation";
+import { Target, MapPin, FileText, Trophy, Coffee, Clapperboard, MessageCircle } from "lucide-react";
 import { ytThumb, ytEmbed, VIDEO_CATEGORIES } from "@/lib/youtube";
 
 interface MatchInfo {
@@ -87,7 +88,7 @@ export default async function ShareFeedbackPage({ params }: { params: Promise<{ 
 
         {/* 헤더 */}
         <div className="text-center mb-6">
-          <p className="text-emerald-400 font-bold text-base">⚽ {data.team_name}</p>
+          <p className="flex items-center justify-center gap-1.5 text-emerald-400 font-bold text-base"><Target size={15} /> {data.team_name}</p>
           {match_info && (
             <div className="mt-1">
               <p className="text-white font-bold text-lg">{formatDate(match_info.match_date)}</p>
@@ -98,19 +99,19 @@ export default async function ShareFeedbackPage({ params }: { params: Promise<{ 
                 </p>
               )}
               {match_info.title && <p className="text-gray-400 text-sm mt-0.5">{match_info.title}</p>}
-              {match_info.location && <p className="text-gray-500 text-sm">📍 {match_info.location}</p>}
+              {match_info.location && <p className="flex items-center justify-center gap-1 text-gray-500 text-sm"><MapPin size={12} /> {match_info.location}</p>}
             </div>
           )}
-          <div className="mt-3 inline-block bg-emerald-500 text-black font-black text-lg px-5 py-2 rounded-2xl shadow-lg shadow-emerald-500/20">
-            📝 경기 피드백
+          <div className="mt-3 inline-flex items-center gap-2 bg-emerald-500 text-black font-black text-lg px-5 py-2 rounded-lg">
+            <FileText size={18} /> 경기 피드백
           </div>
         </div>
 
         {/* 팀 전체 피드백 */}
         {team_feedback && (
-          <div className="bg-gray-900 border border-white/5 rounded-2xl p-5 mb-4">
+          <div className="bg-gray-900 border border-white/5 rounded-lg p-5 mb-4">
             <p className="font-bold text-white mb-3 flex items-center gap-2">
-              <span>🏆</span> 팀 전체 피드백
+              <Trophy size={16} /> 팀 전체 피드백
             </p>
             <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{team_feedback}</p>
           </div>
@@ -125,7 +126,7 @@ export default async function ShareFeedbackPage({ params }: { params: Promise<{ 
             {quarter_feedbacks.map(q => {
               const withFeedback = q.players.filter(p => p.feedback);
               return (
-                <div key={q.session_id} className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+                <div key={q.session_id} className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
                   <div className="bg-emerald-500/20 border-b border-emerald-500/10 px-3 py-2 flex items-center justify-between">
                     <p className="text-emerald-400 text-sm font-bold">{q.session_name}</p>
                     <p className="text-gray-500 text-xs">{withFeedback.length}명</p>
@@ -143,7 +144,7 @@ export default async function ShareFeedbackPage({ params }: { params: Promise<{ 
                             </span>
                             {p.is_mercenary && (
                               p.is_cafe_mercenary
-                                ? <span className="text-xs text-sky-400">☕카페</span>
+                                ? <span className="inline-flex items-center gap-0.5 text-xs text-sky-400"><Coffee size={11} />카페</span>
                                 : p.referrer
                                 ? <span className="text-xs text-amber-500">{p.referrer}지인</span>
                                 : <span className="text-xs text-amber-500">용병</span>
@@ -174,9 +175,9 @@ export default async function ShareFeedbackPage({ params }: { params: Promise<{ 
 
         {/* 추천 영상 */}
         {videos && videos.length > 0 && (
-          <div className="bg-gray-900 border border-white/5 rounded-2xl p-5 mb-4">
+          <div className="bg-gray-900 border border-white/5 rounded-lg p-5 mb-4">
             <p className="font-bold text-white mb-4 flex items-center gap-2">
-              <span>🎬</span> 추천 영상
+              <Clapperboard size={16} /> 추천 영상
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {videos.map((v, i) => (
@@ -206,7 +207,7 @@ export default async function ShareFeedbackPage({ params }: { params: Promise<{ 
         {/* 피드백 없는 경우 */}
         {!team_feedback && quarter_feedbacks.every(q => q.players.every(p => !p.feedback)) && (
           <div className="text-center py-10">
-            <div className="text-4xl mb-3 opacity-30">💬</div>
+            <MessageCircle size={36} strokeWidth={1.5} className="opacity-30 mx-auto mb-3" />
             <p className="text-gray-600">아직 작성된 피드백이 없어요</p>
           </div>
         )}

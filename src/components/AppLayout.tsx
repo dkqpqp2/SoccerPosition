@@ -3,6 +3,11 @@
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import {
+  Home, Users, HeartPulse, LayoutGrid, Calendar, Target, FileText,
+  Vote, Wallet, BarChart3, MessageCircle, Clapperboard, Handshake,
+  User, Bell, Lightbulb, X, type LucideIcon,
+} from "lucide-react";
 import SpmLogo from "@/components/SpmLogo";
 
 export interface HelpItem {
@@ -15,20 +20,20 @@ export interface HelpContent {
   items: HelpItem[];
 }
 
-const NAV_ITEMS = [
-  { path: "/dashboard", icon: "⚡", label: "홈" },
-  { path: "/members", icon: "👥", label: "팀원 관리" },
-  { path: "/status", icon: "🩹", label: "팀 현황" },
-  { path: "/formations", icon: "🟩", label: "포메이션", managerOnly: true },
-  { path: "/matches", icon: "📅", label: "경기 관리" },
-  { path: "/assign", icon: "🎯", label: "포지션 배정", managerOnly: true },
-  { path: "/feedback", icon: "📝", label: "경기 피드백" },
-  { path: "/votes", icon: "🗳️", label: "투표" },
-  { path: "/dues", icon: "💰", label: "회비 관리" },
-  { path: "/stats", icon: "📊", label: "팀 통계" },
-  { path: "/board", icon: "💬", label: "게시판" },
-  { path: "/videos", icon: "🎬", label: "영상 추천" },
-  { path: "/matching", icon: "🤝", label: "팀 매칭", adminOnly: true },
+const NAV_ITEMS: { path: string; icon: LucideIcon; label: string; managerOnly?: boolean; adminOnly?: boolean; groupStart?: boolean }[] = [
+  { path: "/dashboard", icon: Home, label: "홈" },
+  { path: "/members", icon: Users, label: "팀원 관리", groupStart: true },
+  { path: "/status", icon: HeartPulse, label: "팀 현황" },
+  { path: "/formations", icon: LayoutGrid, label: "포메이션", managerOnly: true, groupStart: true },
+  { path: "/matches", icon: Calendar, label: "경기 관리" },
+  { path: "/assign", icon: Target, label: "포지션 배정", managerOnly: true },
+  { path: "/feedback", icon: FileText, label: "경기 피드백" },
+  { path: "/votes", icon: Vote, label: "투표", groupStart: true },
+  { path: "/dues", icon: Wallet, label: "회비 관리" },
+  { path: "/stats", icon: BarChart3, label: "팀 통계" },
+  { path: "/board", icon: MessageCircle, label: "게시판", groupStart: true },
+  { path: "/videos", icon: Clapperboard, label: "영상 추천" },
+  { path: "/matching", icon: Handshake, label: "팀 매칭", adminOnly: true },
 ];
 
 // 모바일 하단은 NAV_ITEMS 전체를 가로 스크롤로 표시
@@ -118,8 +123,11 @@ export default function AppLayout({ children, title, helpContent }: { children: 
             const active = pathname === item.path || (item.path !== "/dashboard" && pathname.startsWith(item.path));
             const locked = item.adminOnly && !isOwner;
             return (
-              <button
-                key={item.path}
+              <div key={item.path}>
+                {item.groupStart && (
+                  <div className={`my-2 border-t border-white/5 ${collapsed ? "mx-4" : "mx-4"}`} />
+                )}
+                <button
                 onClick={() => !locked && router.push(item.path)}
                 disabled={locked}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all group relative ${
@@ -127,15 +135,15 @@ export default function AppLayout({ children, title, helpContent }: { children: 
                     ? "text-gray-700 cursor-not-allowed"
                     : active
                       ? "text-emerald-400 bg-emerald-500/10"
-                      : "text-gray-500 hover:text-white hover:bg-white/5"
+                      : "text-gray-400 hover:text-white hover:bg-white/5"
                 } ${collapsed ? "justify-center" : ""}`}
                 title={collapsed ? (locked ? `${item.label} (개발중)` : item.label) : undefined}
               >
                 {active && !locked && (
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-emerald-400 rounded-r-full" />
                 )}
-                <span className="text-base shrink-0 relative" style={locked ? { opacity: 0.35, filter: "grayscale(1)" } : {}}>
-                  {item.icon}
+                <span className="shrink-0 relative" style={locked ? { opacity: 0.35, filter: "grayscale(1)" } : {}}>
+                  <item.icon size={18} strokeWidth={2.25} />
                   {item.path === "/matching" && !locked && pendingMatches > 0 && (
                     <span className="absolute -top-1 -right-2 min-w-[16px] h-[16px] px-0.5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
                       {pendingMatches}
@@ -156,7 +164,8 @@ export default function AppLayout({ children, title, helpContent }: { children: 
                     ) : null}
                   </span>
                 )}
-              </button>
+                </button>
+              </div>
             );
           })}
         </nav>
@@ -172,7 +181,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
                 <img src={session.user.image.replace(/^http:\/\//, 'https://')} alt="" referrerPolicy="no-referrer" className="w-7 h-7 rounded-full ring-1 ring-emerald-400/30" onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
               ) : (
                 <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                  <span className="text-xs">👤</span>
+                  <User size={14} className="text-emerald-400" />
                 </div>
               )}
               {unreadNotifications > 0 && (
@@ -188,8 +197,8 @@ export default function AppLayout({ children, title, helpContent }: { children: 
               </div>
             )}
             {!collapsed && unreadNotifications > 0 && (
-              <span className="shrink-0 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
-                🔔 {unreadNotifications}
+              <span className="shrink-0 flex items-center gap-1 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                <Bell size={10} /> {unreadNotifications}
               </span>
             )}
           </button>
@@ -235,7 +244,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
               {session?.user?.image ? (
                 <img src={session.user.image.replace(/^http:\/\//, 'https://')} alt="" referrerPolicy="no-referrer" className="w-7 h-7 rounded-full ring-1 ring-emerald-400/30" onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
               ) : (
-                <span className="text-sm">👤</span>
+                <User size={16} className="text-gray-400" />
               )}
               {unreadNotifications > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
@@ -260,16 +269,18 @@ export default function AppLayout({ children, title, helpContent }: { children: 
         >
           <div className="flex min-h-full items-center justify-center px-4 py-6">
           <div
-            className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm"
+            className="bg-gray-900 border border-white/10 rounded-lg shadow-2xl w-full max-w-sm"
             onClick={e => e.stopPropagation()}
           >
             {/* 헤더 */}
             <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-base">💡</span>
+                <Lightbulb size={16} className="text-emerald-400" />
                 <h3 className="font-bold text-white text-sm">{title} 사용법</h3>
               </div>
-              <button onClick={() => setShowHelp(false)} className="text-gray-500 hover:text-white text-xl font-bold leading-none">✕</button>
+              <button onClick={() => setShowHelp(false)} className="text-gray-500 hover:text-white leading-none">
+                <X size={18} />
+              </button>
             </div>
             {/* 항목 목록 */}
             <div className="px-5 py-4 flex flex-col gap-3 max-h-[70vh] overflow-y-auto">
@@ -316,7 +327,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
                 onClick={() => !locked && router.push(item.path)}
                 disabled={locked}
                 className={`shrink-0 flex flex-col items-center justify-center py-2.5 gap-0.5 transition-colors relative ${
-                  locked ? "text-gray-800 cursor-not-allowed" : active ? "text-emerald-400" : "text-gray-600"
+                  locked ? "text-gray-800 cursor-not-allowed" : active ? "text-emerald-400" : "text-gray-500"
                 }`}
                 style={{ minWidth: 64 }}
               >
@@ -325,10 +336,10 @@ export default function AppLayout({ children, title, helpContent }: { children: 
                   <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-emerald-400 rounded-b-full" />
                 )}
                 <span
-                  className="text-lg leading-none relative"
+                  className="leading-none relative"
                   style={locked ? { filter: "grayscale(1)", opacity: 0.3 } : {}}
                 >
-                  {item.icon}
+                  <item.icon size={20} strokeWidth={2.25} />
                   {showBadge && (
                     <span className="absolute -top-1 -right-2 min-w-[14px] h-[14px] px-0.5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
                       {pendingMatches}

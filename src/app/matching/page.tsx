@@ -3,6 +3,10 @@
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import {
+  AlertTriangle, Search, ClipboardList, Mail, Inbox, Send, X, Plus,
+  Users, Calendar, MapPin, Handshake,
+} from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import KakaoPlaceSearch, { SelectedPlace } from "@/components/KakaoPlaceSearch";
 import TimeSelect from "@/components/TimeSelect";
@@ -60,17 +64,18 @@ interface MatchListing {
   teams: { id: string; name: string; color: string };
 }
 
+// 스킬 레벨은 항목별 무지개색이 아니라 "세미프로만 강조, 나머지는 중립" 2단계 규칙 (ROLE_COLOR와 동일한 패턴)
 const SKILL_COLOR: Record<string, string> = {
-  "입문": "text-green-400 bg-green-500/10 border-green-500/20",
-  "아마추어": "text-blue-400 bg-blue-500/10 border-blue-500/20",
-  "세미프로": "text-purple-400 bg-purple-500/10 border-purple-500/20",
+  "입문": "text-gray-400 bg-white/10 border-white/10",
+  "아마추어": "text-gray-400 bg-white/10 border-white/10",
+  "세미프로": "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
 };
 
 const BG_COLOR: Record<string, string> = {
   "없음": "text-gray-500",
-  "중학교": "text-emerald-400",
-  "고등학교": "text-blue-400",
-  "대학교": "text-purple-400",
+  "중학교": "text-gray-400",
+  "고등학교": "text-gray-400",
+  "대학교": "text-gray-400",
   "프로팀": "text-amber-400",
 };
 
@@ -321,7 +326,7 @@ export default function MatchingPage() {
     return (
       <AppLayout title="팀 매칭">
         <div className="max-w-3xl mx-auto px-4 py-16 flex flex-col items-center justify-center gap-6 text-center">
-          <p className="text-6xl">⚠️</p>
+          <AlertTriangle size={48} strokeWidth={1.5} className="text-amber-400" />
           <div>
             <h2 className="text-xl font-bold text-white mb-2">팀 이름을 먼저 설정해주세요</h2>
             <p className="text-gray-400 text-sm leading-relaxed">
@@ -345,18 +350,18 @@ export default function MatchingPage() {
       <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col gap-4">
 
         {/* ── 탭 ── */}
-        <div className="flex bg-gray-900 border border-white/5 rounded-2xl p-1 gap-1">
+        <div className="flex bg-gray-900 border border-white/5 rounded-lg p-1 gap-1">
           <button onClick={() => setTab("board")}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors ${tab === "board" ? "bg-emerald-500 text-black" : "text-gray-500 hover:text-white"}`}>
-            🔍 상대팀 찾기
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold transition-colors ${tab === "board" ? "bg-emerald-500 text-black" : "text-gray-500 hover:text-white"}`}>
+            <Search size={14} strokeWidth={2} /> 상대팀 찾기
           </button>
           <button onClick={() => setTab("listings")}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors ${tab === "listings" ? "bg-emerald-500 text-black" : "text-gray-500 hover:text-white"}`}>
-            📋 매칭 등록
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold transition-colors ${tab === "listings" ? "bg-emerald-500 text-black" : "text-gray-500 hover:text-white"}`}>
+            <ClipboardList size={14} strokeWidth={2} /> 매칭 등록
           </button>
           <button onClick={() => setTab("requests")}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors relative ${tab === "requests" ? "bg-emerald-500 text-black" : "text-gray-500 hover:text-white"}`}>
-            📬 매칭 신청
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold transition-colors relative ${tab === "requests" ? "bg-emerald-500 text-black" : "text-gray-500 hover:text-white"}`}>
+            <Mail size={14} strokeWidth={2} /> 매칭 신청
             {pendingReceived > 0 && (
               <span className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-black flex items-center justify-center ${tab === "requests" ? "bg-black text-emerald-400" : "bg-red-500 text-white"}`}>
                 {pendingReceived}
@@ -369,7 +374,7 @@ export default function MatchingPage() {
         {tab === "board" && (
           <>
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm">🔍</span>
+              <Search size={15} strokeWidth={2} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
               <input
                 type="text"
                 value={teamSearch}
@@ -384,8 +389,8 @@ export default function MatchingPage() {
                 <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
               </div>
             ) : filteredTeams.length === 0 ? (
-              <div className="bg-gray-900 border border-white/5 rounded-2xl p-10 text-center">
-                <p className="text-4xl mb-3">⚽</p>
+              <div className="bg-gray-900 border border-white/5 rounded-lg p-10 text-center">
+                <Search size={36} strokeWidth={1.5} className="mx-auto mb-3 opacity-30" />
                 <p className="text-gray-400 font-bold">{teamSearch ? "검색 결과가 없어요" : "공개된 팀이 없어요"}</p>
                 <p className="text-gray-600 text-sm mt-1">{teamSearch ? "다른 팀 이름으로 검색해보세요" : "마이페이지에서 매칭 프로필을 설정하고 팀을 공개해보세요"}</p>
               </div>
@@ -393,7 +398,7 @@ export default function MatchingPage() {
               <div className="flex flex-col gap-3">
                 <p className="text-xs text-gray-600 px-1">총 {filteredTeams.length}개 팀</p>
                 {filteredTeams.slice(0, teamPage).map(team => (
-                  <div key={team.id} className="bg-gray-900 border border-white/5 rounded-2xl p-5 flex flex-col gap-3">
+                  <div key={team.id} className="bg-gray-900 border border-white/5 rounded-lg p-5 flex flex-col gap-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-sm"
@@ -416,7 +421,7 @@ export default function MatchingPage() {
                     )}
                     <div className="flex flex-wrap gap-1.5">
                       {team.game_type?.map(g => (
-                        <span key={g} className="text-xs px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-medium">{g}</span>
+                        <span key={g} className="text-xs px-2.5 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 font-medium">{g}</span>
                       ))}
                       {team.preferred_days?.map(d => (
                         <span key={d} className="text-xs px-2 py-1 rounded-full bg-white/5 border border-white/10 text-gray-400">{d}요일</span>
@@ -434,7 +439,7 @@ export default function MatchingPage() {
                       {team.game_type?.includes("풋살") && (
                         <div className="flex-1 bg-gray-800/50 border border-white/5 rounded-xl p-2.5 text-center">
                           <p className="text-[10px] text-gray-500">풋살 매칭</p>
-                          <p className="text-base font-black text-blue-400">{team.futsal_match_count}회</p>
+                          <p className="text-base font-black text-sky-400">{team.futsal_match_count}회</p>
                         </div>
                       )}
                       {team.game_type?.includes("축구") && (
@@ -471,14 +476,14 @@ export default function MatchingPage() {
             {/* 등록 버튼 */}
             <button onClick={() => isTeamNameUnset ? setShowTeamNameWarning(true) : setShowListingForm(true)}
               className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
-              <span>+</span> 매칭 등록하기
+              <Plus size={15} strokeWidth={2} /> 매칭 등록하기
             </button>
 
             {/* 내가 등록한 매칭 */}
             {myListings.length > 0 && (
               <div>
-                <h3 className="text-sm font-bold text-gray-400 mb-2 px-1">
-                  📋 내가 등록한 매칭 <span className="text-gray-600 font-normal">({myListings.length})</span>
+                <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-400 mb-2 px-1">
+                  <ClipboardList size={14} strokeWidth={2} /> 내가 등록한 매칭 <span className="text-gray-600 font-normal">({myListings.length})</span>
                 </h3>
                 <div className="flex flex-col gap-2">
                   {myListings.map(listing => (
@@ -498,12 +503,12 @@ export default function MatchingPage() {
 
             {/* 다른 팀의 매칭 구인 */}
             <div>
-              <h3 className="text-sm font-bold text-gray-400 mb-2 px-1">
-                🏟️ 매칭 구인 중 <span className="text-gray-600 font-normal">({openListings.length})</span>
+              <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-400 mb-2 px-1">
+                <Users size={14} strokeWidth={2} /> 매칭 구인 중 <span className="text-gray-600 font-normal">({openListings.length})</span>
               </h3>
               {openListings.length === 0 ? (
-                <div className="bg-gray-900 border border-white/5 rounded-2xl p-10 text-center">
-                  <p className="text-4xl mb-3">📋</p>
+                <div className="bg-gray-900 border border-white/5 rounded-lg p-10 text-center">
+                  <ClipboardList size={36} strokeWidth={1.5} className="mx-auto mb-3 opacity-30" />
                   <p className="text-gray-400 font-bold">등록된 매칭이 없어요</p>
                   <p className="text-gray-600 text-sm mt-1">가장 먼저 매칭을 등록해보세요!</p>
                 </div>
@@ -530,7 +535,8 @@ export default function MatchingPage() {
         {tab === "requests" && (
           <div className="flex flex-col gap-4">
             <RequestSection
-              title="📥 받은 신청"
+              title="받은 신청"
+              titleIcon={Inbox}
               items={receivedRequests}
               page={receivedPage}
               onMore={() => setReceivedPage(p => p + PAGE)}
@@ -540,7 +546,8 @@ export default function MatchingPage() {
               )}
             />
             <RequestSection
-              title="📤 보낸 신청"
+              title="보낸 신청"
+              titleIcon={Send}
               items={sentRequests}
               page={sentPage}
               onMore={() => setSentPage(p => p + PAGE)}
@@ -554,8 +561,8 @@ export default function MatchingPage() {
                 onClick={() => setShowCancelled(v => !v)}
                 className="w-full flex items-center justify-between px-1 mb-2"
               >
-                <span className="text-sm font-bold text-gray-500">
-                  ❌ 취소된 경기 ({cancelledRequests.length})
+                <span className="flex items-center gap-1.5 text-sm font-bold text-gray-500">
+                  <X size={14} strokeWidth={2} /> 취소된 경기 ({cancelledRequests.length})
                 </span>
                 <span className="text-gray-600 text-xs">{showCancelled ? "▲ 접기" : "▼ 펼치기"}</span>
               </button>
@@ -582,9 +589,9 @@ export default function MatchingPage() {
       {/* ── 매칭 신청 모달 (상대팀 찾기) ── */}
       {selected && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60"><div className="flex min-h-full items-center justify-center px-4 py-6">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-md p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-900 border border-white/10 rounded-lg w-full max-w-md p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-white text-lg">⚽ 매칭 신청</h3>
+              <h3 className="flex items-center gap-2 font-bold text-white text-lg"><Handshake size={18} strokeWidth={1.75} className="text-emerald-400" /> 매칭 신청</h3>
               <button onClick={() => setSelected(null)} className="text-gray-500 hover:text-white text-xl">✕</button>
             </div>
             <p className="text-gray-400 text-sm"><span className="text-white font-bold">{selected.teams.name}</span> 팀에 매칭을 신청해요</p>
@@ -643,9 +650,9 @@ export default function MatchingPage() {
       {/* ── 매칭 등록 폼 모달 ── */}
       {showListingForm && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60"><div className="flex min-h-full items-center justify-center px-4 py-6">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-md p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-900 border border-white/10 rounded-lg w-full max-w-md p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-white text-lg">📋 매칭 등록</h3>
+              <h3 className="flex items-center gap-2 font-bold text-white text-lg"><ClipboardList size={18} strokeWidth={1.75} className="text-emerald-400" /> 매칭 등록</h3>
               <button onClick={() => setShowListingForm(false)} className="text-gray-500 hover:text-white text-xl">✕</button>
             </div>
             <p className="text-gray-500 text-sm">경기 상대를 구하는 공고를 올려요. 다른 팀이 신청할 수 있어요.</p>
@@ -704,9 +711,9 @@ export default function MatchingPage() {
       {/* ── 매칭 등록 신청 모달 ── */}
       {applyListing && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60"><div className="flex min-h-full items-center justify-center px-4 py-6">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-md p-6 flex flex-col gap-4">
+          <div className="bg-gray-900 border border-white/10 rounded-lg w-full max-w-md p-6 flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-white text-lg">⚽ 매칭 신청</h3>
+              <h3 className="flex items-center gap-2 font-bold text-white text-lg"><Handshake size={18} strokeWidth={1.75} className="text-emerald-400" /> 매칭 신청</h3>
               <button onClick={() => { setApplyListing(null); setApplyMessage(""); }} className="text-gray-500 hover:text-white text-xl">✕</button>
             </div>
 
@@ -722,12 +729,12 @@ export default function MatchingPage() {
               </div>
               <div className="flex flex-wrap gap-3 text-xs text-gray-400">
                 {applyListing.preferred_date && (
-                  <span>📅 {applyListing.preferred_date}
+                  <span className="flex items-center gap-1"><Calendar size={12} strokeWidth={2} /> {applyListing.preferred_date}
                     {applyListing.preferred_time ? ` ${applyListing.preferred_time}` : ""}
                     {applyListing.preferred_end_time ? ` ~ ${applyListing.preferred_end_time}` : ""}
                   </span>
                 )}
-                {applyListing.location && <span>📍 {applyListing.location}</span>}
+                {applyListing.location && <span className="flex items-center gap-1"><MapPin size={12} strokeWidth={2} /> {applyListing.location}</span>}
               </div>
               {applyListing.message && (
                 <p className="text-xs text-gray-500 italic">"{applyListing.message}"</p>
@@ -760,9 +767,9 @@ export default function MatchingPage() {
       {/* ── 팀 이름 경고 모달 ── */}
       {showTeamNameWarning && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60"><div className="flex min-h-full items-center justify-center px-4 py-6">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-sm p-6 flex flex-col gap-4">
+          <div className="bg-gray-900 border border-white/10 rounded-lg w-full max-w-sm p-6 flex flex-col gap-4">
             <div className="text-center">
-              <p className="text-4xl mb-3">⚠️</p>
+              <AlertTriangle size={36} strokeWidth={1.5} className="text-amber-400 mx-auto mb-3" />
               <h3 className="font-bold text-white text-lg mb-1">팀 이름을 먼저 설정해주세요</h3>
               <p className="text-gray-400 text-sm">현재 팀 이름이 <span className="text-amber-400 font-bold">"우리팀"</span>으로 설정되어 있어요.<br/>매칭 기능을 이용하려면 팀 이름을 변경해주세요.</p>
             </div>
@@ -782,9 +789,9 @@ export default function MatchingPage() {
       {/* ── 취소 모달 ── */}
       {cancelTarget && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60"><div className="flex min-h-full items-center justify-center px-4 py-6">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-md p-6 flex flex-col gap-4">
+          <div className="bg-gray-900 border border-white/10 rounded-lg w-full max-w-md p-6 flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-white text-lg">❌ 매칭 취소</h3>
+              <h3 className="flex items-center gap-2 font-bold text-white text-lg"><X size={18} strokeWidth={2} className="text-red-400" /> 매칭 취소</h3>
               <button onClick={() => { setCancelTarget(null); setCancelReason(""); }} className="text-gray-500 hover:text-white text-xl">✕</button>
             </div>
             <div className="bg-gray-800/60 border border-white/5 rounded-xl px-4 py-3">
@@ -832,7 +839,7 @@ function ListingCard({ listing, isOwner, onClose, onReopen, onDelete, onApply }:
 }) {
   const isOpen = listing.status === "open";
   return (
-    <div className={`bg-gray-900 border rounded-2xl p-4 flex flex-col gap-2 ${isOpen ? "border-white/5" : "border-white/5 opacity-70"}`}>
+    <div className={`bg-gray-900 border rounded-lg p-4 flex flex-col gap-2 ${isOpen ? "border-white/5" : "border-white/5 opacity-70"}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-black"
@@ -856,12 +863,12 @@ function ListingCard({ listing, isOwner, onClose, onReopen, onDelete, onApply }:
       {(listing.preferred_date || listing.location) && (
         <div className="flex flex-wrap gap-3 text-xs text-gray-400">
           {listing.preferred_date && (
-            <span>📅 {listing.preferred_date}
+            <span className="flex items-center gap-1"><Calendar size={12} strokeWidth={2} /> {listing.preferred_date}
               {listing.preferred_time ? ` ${listing.preferred_time}` : ""}
               {listing.preferred_end_time ? ` ~ ${listing.preferred_end_time}` : ""}
             </span>
           )}
-          {listing.location && <span>📍 {listing.location}</span>}
+          {listing.location && <span className="flex items-center gap-1"><MapPin size={12} strokeWidth={2} /> {listing.location}</span>}
         </div>
       )}
 
@@ -900,9 +907,10 @@ function ListingCard({ listing, isOwner, onClose, onReopen, onDelete, onApply }:
 }
 
 function RequestSection({
-  title, items, page, onMore, emptyText, renderCard,
+  title, titleIcon: TitleIcon, items, page, onMore, emptyText, renderCard,
 }: {
   title: string;
+  titleIcon?: React.ComponentType<{ size?: number; strokeWidth?: number }>;
   items: MatchRequest[];
   page: number;
   onMore: () => void;
@@ -914,12 +922,13 @@ function RequestSection({
   return (
     <div>
       {title && (
-        <h3 className="text-sm font-bold text-gray-400 mb-2 px-1">
+        <h3 className="flex items-center gap-1.5 text-sm font-bold text-gray-400 mb-2 px-1">
+          {TitleIcon && <TitleIcon size={14} strokeWidth={2} />}
           {title} <span className="text-gray-600 font-normal">({items.length})</span>
         </h3>
       )}
       {items.length === 0 ? (
-        <div className="bg-gray-900 border border-white/5 rounded-2xl p-6 text-center text-gray-600 text-sm">{emptyText}</div>
+        <div className="bg-gray-900 border border-white/5 rounded-lg p-6 text-center text-gray-600 text-sm">{emptyText}</div>
       ) : (
         <div className="flex flex-col gap-2">
           {visible.map(r => renderCard(r))}
@@ -947,7 +956,7 @@ function RequestCard({ request, isReceived, myTeamId, onUpdate, onCancel }: {
   const isCancellable = request.status === "pending" || request.status === "accepted";
 
   return (
-    <div className="bg-gray-900 border border-white/5 rounded-2xl p-4 flex flex-col gap-2">
+    <div className="bg-gray-900 border border-white/5 rounded-lg p-4 flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-black"
@@ -963,12 +972,12 @@ function RequestCard({ request, isReceived, myTeamId, onUpdate, onCancel }: {
       {(request.proposed_date || request.proposed_location) && (
         <div className="flex flex-wrap gap-3 text-xs text-gray-500">
           {request.proposed_date && (
-            <span>📅 {request.proposed_date}
+            <span className="flex items-center gap-1"><Calendar size={12} strokeWidth={2} /> {request.proposed_date}
               {request.proposed_time ? ` ${request.proposed_time}` : ""}
               {request.proposed_end_time ? ` ~ ${request.proposed_end_time}` : ""}
             </span>
           )}
-          {request.proposed_location && <span>📍 {request.proposed_location}</span>}
+          {request.proposed_location && <span className="flex items-center gap-1"><MapPin size={12} strokeWidth={2} /> {request.proposed_location}</span>}
         </div>
       )}
 

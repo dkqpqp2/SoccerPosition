@@ -1,6 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import {
+  Users, Trophy, UserCheck, Calendar, AlertTriangle, Store, CheckCircle2,
+  Circle, BarChart3, Eye, Timer, TrendingUp, User as UserIcon, Landmark, IdCard,
+  Smartphone, Bot, Zap, Hammer, KeyRound, ClipboardList, Image as ImageIcon,
+  FlaskConical, FileText, Rocket, type LucideIcon,
+} from "lucide-react";
 import SpmLogo from "@/components/SpmLogo";
 
 const ADMIN_SECRET = "1234";
@@ -26,20 +32,21 @@ interface Stats {
 function StatCard({
   value,
   label,
+  icon: Icon,
   color,
 }: {
   value: number | string;
   label: string;
-  color: "emerald" | "blue" | "amber" | "purple";
+  icon: LucideIcon;
+  color: "emerald" | "sky";
 }) {
   const colors = {
     emerald: "text-emerald-400",
-    blue:    "text-blue-400",
-    amber:   "text-amber-400",
-    purple:  "text-purple-400",
+    sky:     "text-sky-400",
   };
   return (
-    <div className="bg-gray-800 rounded-2xl p-5 text-center">
+    <div className="bg-gray-800 rounded-lg p-5 text-center">
+      <Icon size={18} strokeWidth={1.75} className={`mx-auto mb-2 ${colors[color]}`} />
       <p className={`text-3xl font-black ${colors[color]}`}>{value}</p>
       <p className="text-gray-400 text-sm mt-1">{label}</p>
     </div>
@@ -52,7 +59,7 @@ function StatCard({
 type StepStatus = "done" | "progress" | "wait";
 
 interface RoadmapStep {
-  icon: string;
+  icon: LucideIcon;
   title: string;
   desc: string;
   status: StepStatus;
@@ -61,84 +68,84 @@ interface RoadmapStep {
 
 const ROADMAP_STEPS: RoadmapStep[] = [
   {
-    icon: "🏦",
+    icon: Landmark,
     title: "Google Play 개발자 계정 생성",
     desc: "$25 등록비 결제 완료",
     status: "done",
     detail: "개발자명: SportsPositionManagement",
   },
   {
-    icon: "🪪",
+    icon: IdCard,
     title: "Google 신원 인증 (D-ID)",
     desc: "Google이 신원 서류 검토 중 (수일 소요)",
     status: "progress",
     detail: "승인되면 이메일로 알림 옴 · 완료 후 전화번호 인증 가능",
   },
   {
-    icon: "📱",
+    icon: Smartphone,
     title: "전화번호 인증",
     desc: "신원 인증 완료 후 진행",
     status: "wait",
     detail: "Play Console 계정 설정 → 연락처 인증",
   },
   {
-    icon: "🤖",
+    icon: Bot,
     title: "Android Studio 설치",
     desc: "Android 빌드 도구 설치 완료",
     status: "done",
     detail: "버전: Android Studio Quail 1 | 2026.1.1",
   },
   {
-    icon: "⚡",
+    icon: Zap,
     title: "Capacitor 설정",
     desc: "Next.js → Android 앱 래핑 완료",
     status: "done",
     detail: "appId: com.spm.soccerposition · 라이브 URL 연결 방식",
   },
   {
-    icon: "🔨",
+    icon: Hammer,
     title: "AAB(앱 번들) 빌드",
     desc: "Android Studio에서 Release 빌드 생성",
     status: "wait",
     detail: "Build → Generate Signed Bundle → AAB 선택 → keystore 생성",
   },
   {
-    icon: "🔑",
+    icon: KeyRound,
     title: "앱 서명 키(Keystore) 생성",
     desc: "릴리즈 서명용 키 생성 및 안전한 곳에 백업",
     status: "wait",
     detail: "⚠️ keystore 분실 시 앱 업데이트 불가 — 반드시 백업!",
   },
   {
-    icon: "📋",
+    icon: ClipboardList,
     title: "Play Console 앱 등록",
     desc: "새 앱 만들기 → 앱 이름·카테고리·언어 설정",
     status: "wait",
     detail: "앱 이름: SPM - 팀 포지션 관리 / 카테고리: 스포츠",
   },
   {
-    icon: "🖼️",
+    icon: ImageIcon,
     title: "스토어 등록 정보 작성",
     desc: "설명·스크린샷·아이콘·피처드 이미지 업로드",
     status: "wait",
     detail: "스크린샷 2장 이상 필수 · 아이콘 512×512px · 피처드 1024×500px",
   },
   {
-    icon: "🧪",
+    icon: FlaskConical,
     title: "내부 테스트 트랙 출시",
     desc: "본인 계정으로 먼저 테스트",
     status: "wait",
     detail: "내부 테스터 추가 → 링크로 설치 → 기능 확인",
   },
   {
-    icon: "📝",
+    icon: FileText,
     title: "개인정보처리방침 등록",
     desc: "URL 형태로 제출 필수 (없으면 출시 불가)",
     status: "wait",
     detail: "Vercel에 /privacy 페이지 만들거나 notion 페이지로 대체 가능",
   },
   {
-    icon: "🚀",
+    icon: Rocket,
     title: "프로덕션 출시 신청",
     desc: "Google 심사 → 승인 → Play Store 공개",
     status: "wait",
@@ -159,14 +166,14 @@ function PlayStoreRoadmap() {
   const progress = Math.round((done / total) * 100);
 
   return (
-    <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+    <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
       {/* 헤더 */}
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-6 py-5 hover:bg-white/3 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <span className="text-2xl">🏪</span>
+          <Store size={22} strokeWidth={1.75} className="text-emerald-400" />
           <div className="text-left">
             <h3 className="font-bold text-white text-base">Google Play Store 출시 로드맵</h3>
             <p className="text-gray-500 text-xs mt-0.5">{done} / {total} 완료</p>
@@ -209,8 +216,10 @@ function PlayStoreRoadmap() {
               >
                 {/* 아이콘 + 번호 */}
                 <div className="flex flex-col items-center gap-1 shrink-0">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${cfg.iconBg}`}>
-                    {step.icon}
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${cfg.iconBg} ${
+                    step.status === "done" ? "text-emerald-400" : step.status === "progress" ? "text-amber-400" : "text-gray-500"
+                  }`}>
+                    <step.icon size={18} strokeWidth={1.75} />
                   </div>
                   <span className="text-[10px] text-gray-600 font-mono">{String(i + 1).padStart(2, "0")}</span>
                 </div>
@@ -238,9 +247,9 @@ function PlayStoreRoadmap() {
 
                 {/* 상태 아이콘 */}
                 <div className="shrink-0 self-start mt-1">
-                  {step.status === "done"     && <span className="text-emerald-400 text-lg">✓</span>}
-                  {step.status === "progress" && <span className="text-amber-400 text-lg animate-pulse">●</span>}
-                  {step.status === "wait"     && <span className="text-gray-700 text-lg">○</span>}
+                  {step.status === "done"     && <CheckCircle2 size={18} className="text-emerald-400" />}
+                  {step.status === "progress" && <Circle size={18} className="text-amber-400 fill-amber-400/40 animate-pulse" />}
+                  {step.status === "wait"     && <Circle size={18} className="text-gray-700" />}
                 </div>
               </div>
             );
@@ -280,7 +289,7 @@ export default function AdminPage() {
   if (!authed) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
-        <div className="bg-gray-900 border border-white/5 rounded-2xl p-8 w-full max-w-sm">
+        <div className="bg-gray-900 border border-white/5 rounded-lg p-8 w-full max-w-sm">
           <div className="flex justify-center mb-6">
             <SpmLogo size="md" />
           </div>
@@ -338,15 +347,15 @@ export default function AdminPage() {
 
         {/* 핵심 통계 카드 */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard value={stats.totalUsers}   label="👥 총 가입자"      color="emerald" />
-          <StatCard value={stats.totalTeams}   label="🏆 활성 팀"        color="blue"    />
-          <StatCard value={stats.totalMembers} label="⚽ 등록된 팀원"    color="amber"   />
-          <StatCard value={stats.totalMatches} label="📅 총 경기 수"     color="purple"  />
+          <StatCard value={stats.totalUsers}   label="총 가입자"      icon={Users}     color="emerald" />
+          <StatCard value={stats.totalTeams}   label="활성 팀"        icon={Trophy}    color="sky"     />
+          <StatCard value={stats.totalMembers} label="등록된 팀원"    icon={UserCheck} color="emerald" />
+          <StatCard value={stats.totalMatches} label="총 경기 수"     icon={Calendar}  color="sky"     />
         </div>
         {/* 미설정 팀 안내 */}
         {stats.totalTeamsAll > stats.totalTeams && (
           <div className="bg-gray-900 border border-white/5 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-gray-500">
-            <span>⚠️</span>
+            <AlertTriangle size={15} strokeWidth={1.75} className="text-amber-400" />
             <span>
               팀 이름 미설정 (기본값 &quot;우리팀&quot;) :{" "}
               <span className="text-amber-400 font-bold">{stats.totalTeamsAll - stats.totalTeams}개</span>
@@ -359,10 +368,10 @@ export default function AdminPage() {
         <PlayStoreRoadmap />
 
         {/* Vercel Analytics 안내 */}
-        <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
+        <div className="bg-gray-900 border border-white/5 rounded-lg p-5">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="font-bold text-white">📊 방문자 · 체류시간 분석</h3>
+              <h3 className="font-bold text-white flex items-center gap-2"><BarChart3 size={16} strokeWidth={1.75} className="text-gray-400" /> 방문자 · 체류시간 분석</h3>
               <p className="text-gray-500 text-sm mt-0.5">Vercel Analytics로 자동 수집 중이에요</p>
             </div>
             <a
@@ -376,17 +385,17 @@ export default function AdminPage() {
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-white/3 border border-white/5 rounded-xl p-3 text-center">
-              <p className="text-xl">👁️</p>
+              <Eye size={20} strokeWidth={1.75} className="text-gray-400 mx-auto" />
               <p className="text-xs text-gray-400 mt-1 font-medium">페이지뷰</p>
               <p className="text-[11px] text-gray-600 mt-0.5">Vercel에서 확인</p>
             </div>
             <div className="bg-white/3 border border-white/5 rounded-xl p-3 text-center">
-              <p className="text-xl">🙋</p>
+              <Users size={20} strokeWidth={1.75} className="text-gray-400 mx-auto" />
               <p className="text-xs text-gray-400 mt-1 font-medium">방문자 수</p>
               <p className="text-[11px] text-gray-600 mt-0.5">Vercel에서 확인</p>
             </div>
             <div className="bg-white/3 border border-white/5 rounded-xl p-3 text-center">
-              <p className="text-xl">⏱️</p>
+              <Timer size={20} strokeWidth={1.75} className="text-gray-400 mx-auto" />
               <p className="text-xs text-gray-400 mt-1 font-medium">평균 체류시간</p>
               <p className="text-[11px] text-gray-600 mt-0.5">Vercel에서 확인</p>
             </div>
@@ -394,8 +403,8 @@ export default function AdminPage() {
         </div>
 
         {/* 날짜별 가입자 차트 */}
-        <div className="bg-gray-900 border border-white/5 rounded-2xl p-6">
-          <h3 className="font-bold text-lg mb-4">📈 최근 30일 가입자</h3>
+        <div className="bg-gray-900 border border-white/5 rounded-lg p-6">
+          <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><TrendingUp size={18} strokeWidth={1.75} className="text-gray-400" /> 최근 30일 가입자</h3>
           {signupDays.length === 0 ? (
             <p className="text-gray-600 text-sm text-center py-6">최근 30일 가입자 없음</p>
           ) : (
@@ -415,8 +424,8 @@ export default function AdminPage() {
         </div>
 
         {/* 가입자 목록 */}
-        <div className="bg-gray-900 border border-white/5 rounded-2xl p-6">
-          <h3 className="font-bold text-lg mb-4">👤 가입자 목록 <span className="text-gray-500 text-sm font-normal">({stats.totalUsers}명)</span></h3>
+        <div className="bg-gray-900 border border-white/5 rounded-lg p-6">
+          <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><UserIcon size={18} strokeWidth={1.75} className="text-gray-400" /> 가입자 목록 <span className="text-gray-500 text-sm font-normal">({stats.totalUsers}명)</span></h3>
           <div className="space-y-2">
             {stats.users.map((user, i) => (
               <div
@@ -427,7 +436,7 @@ export default function AdminPage() {
                 {user.image ? (
                   <img src={user.image} alt="" className="w-8 h-8 rounded-full shrink-0" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-sm shrink-0">👤</div>
+                  <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center shrink-0"><UserIcon size={14} className="text-gray-400" /></div>
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm text-white">{user.name || "이름 없음"}</p>

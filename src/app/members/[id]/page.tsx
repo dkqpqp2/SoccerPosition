@@ -3,6 +3,10 @@
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  User, BarChart3, Goal, Target, CalendarCheck, FileText, Check,
+  AlertTriangle, StickyNote, Save,
+} from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import { POSITION_MAP } from "@/lib/positions";
 
@@ -123,14 +127,14 @@ export default function MemberDetailPage() {
         </button>
 
         {/* 프로필 카드 */}
-        <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
+        <div className="bg-gray-900 border border-white/5 rounded-lg p-5">
           <div className="flex items-start justify-between gap-3 mb-4">
             <div>
               <h1 className="text-xl font-black text-white">{member.name}</h1>
               <p className="text-xs text-gray-500 mt-0.5">정규 팀원</p>
             </div>
-            <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xl">
-              ⚽
+            <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <User size={22} className="text-emerald-400" />
             </div>
           </div>
 
@@ -138,23 +142,23 @@ export default function MemberDetailPage() {
           <div className="flex gap-2 flex-wrap">
             {member.position_1st ? (
               <span className="text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full">
-                1️⃣ {member.position_1st} · {POSITION_MAP[member.position_1st]?.description ?? member.position_1st}
+                {member.position_1st} · {POSITION_MAP[member.position_1st]?.description ?? member.position_1st}
               </span>
             ) : (
               <span className="text-xs text-gray-700">1순위 포지션 미설정</span>
             )}
             {member.position_2nd && (
-              <span className="text-xs bg-blue-500/15 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-full">
-                2️⃣ {member.position_2nd} · {POSITION_MAP[member.position_2nd]?.description ?? member.position_2nd}
+              <span className="text-xs bg-sky-500/15 text-sky-400 border border-sky-500/20 px-2.5 py-1 rounded-full">
+                {member.position_2nd} · {POSITION_MAP[member.position_2nd]?.description ?? member.position_2nd}
               </span>
             )}
           </div>
         </div>
 
         {/* 시즌 통계 */}
-        <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
+        <div className="bg-gray-900 border border-white/5 rounded-lg p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-white">📊 시즌 통계</h2>
+            <h2 className="text-sm font-bold text-white flex items-center gap-1.5"><BarChart3 size={15} className="text-gray-400" /> 시즌 통계</h2>
             <div className="flex items-center gap-1">
               <button onClick={() => setYear(y => y - 1)}
                 className="w-7 h-7 flex items-center justify-center bg-white/5 hover:bg-white/10 text-gray-400 rounded-lg text-sm transition-colors">‹</button>
@@ -169,18 +173,18 @@ export default function MemberDetailPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3 text-center">
                   <p className="text-2xl font-black text-emerald-400">{stat.goals}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">🥅 골</p>
+                  <p className="text-xs text-gray-500 mt-0.5 flex items-center justify-center gap-1"><Goal size={12} /> 골</p>
                 </div>
-                <div className="bg-blue-500/5 border border-blue-500/10 rounded-xl p-3 text-center">
-                  <p className="text-2xl font-black text-blue-400">{stat.assists}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">🎯 어시스트</p>
+                <div className="bg-sky-500/5 border border-sky-500/10 rounded-xl p-3 text-center">
+                  <p className="text-2xl font-black text-sky-400">{stat.assists}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 flex items-center justify-center gap-1"><Target size={12} /> 어시스트</p>
                 </div>
               </div>
 
               {/* 참석률 */}
               <div className="bg-white/3 border border-white/5 rounded-xl p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-500 font-semibold">🏃 참석률</span>
+                  <span className="text-xs text-gray-500 font-semibold flex items-center gap-1"><CalendarCheck size={13} /> 참석률</span>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-600">{stat.games_played}/{stat.total_matches}경기</span>
                     <span className={`text-sm font-black ${
@@ -201,9 +205,9 @@ export default function MemberDetailPage() {
         </div>
 
         {/* 장단점 평가 — 관리자(감독·코치·회장·관리자)만 열람 */}
-        {canEdit && <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
+        {canEdit && <div className="bg-gray-900 border border-white/5 rounded-lg p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-white">📝 장단점 평가</h2>
+            <h2 className="text-sm font-bold text-white flex items-center gap-1.5"><FileText size={15} className="text-gray-400" /> 장단점 평가</h2>
             {eval_.updated_at && (
               <span className="text-[11px] text-gray-600">
                 {new Date(eval_.updated_at).toLocaleDateString("ko-KR")} 수정됨
@@ -215,7 +219,7 @@ export default function MemberDetailPage() {
             {/* 장점 */}
             <div>
               <label className="text-xs font-semibold text-emerald-400 mb-1.5 flex items-center gap-1">
-                ✅ 장점
+                <Check size={13} /> 장점
               </label>
               {canEdit ? (
                 <textarea
@@ -237,7 +241,7 @@ export default function MemberDetailPage() {
             {/* 단점 */}
             <div>
               <label className="text-xs font-semibold text-red-400 mb-1.5 flex items-center gap-1">
-                ⚠️ 단점 / 개선점
+                <AlertTriangle size={13} /> 단점 / 개선점
               </label>
               {canEdit ? (
                 <textarea
@@ -259,7 +263,7 @@ export default function MemberDetailPage() {
             {/* 메모 */}
             <div>
               <label className="text-xs font-semibold text-gray-400 mb-1.5 flex items-center gap-1">
-                🗒️ 메모
+                <StickyNote size={13} /> 메모
               </label>
               {canEdit ? (
                 <textarea
@@ -279,8 +283,8 @@ export default function MemberDetailPage() {
             </div>
 
             <button onClick={save} disabled={saving}
-              className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold py-3 rounded-xl transition-colors">
-              {saving ? "저장 중..." : "💾 저장"}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-1.5">
+              {saving ? "저장 중..." : <><Save size={15} /> 저장</>}
             </button>
           </div>
         </div>}
@@ -288,8 +292,8 @@ export default function MemberDetailPage() {
       </div>
 
       {savedToast && (
-        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 border border-white/10 text-white text-sm font-medium px-5 py-3 rounded-2xl shadow-lg whitespace-nowrap">
-          ✅ 저장됐어요!
+        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 border border-white/10 text-white text-sm font-medium px-5 py-3 rounded-lg shadow-lg whitespace-nowrap flex items-center gap-1.5">
+          <Check size={15} className="text-emerald-400" /> 저장됐어요!
         </div>
       )}
     </AppLayout>

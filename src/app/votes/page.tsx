@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import {
+  Vote as VoteIcon, Calendar, Clock, Check, User, MessageCircle,
+} from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import TimeSelect from "@/components/TimeSelect";
 
@@ -253,13 +256,13 @@ export default function VotesPage() {
         {/* 헤더 */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-white">🗳️ 투표</h2>
+            <h2 className="text-lg font-bold text-white flex items-center gap-2"><VoteIcon size={18} strokeWidth={2} className="text-emerald-400" /> 투표</h2>
             <p className="text-xs text-gray-500 mt-0.5">팀 투표를 만들고 참여해요</p>
           </div>
           {isOwner && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs px-4 py-2.5 rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
+              className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs px-4 py-2.5 rounded-xl transition-colors"
             >
               + 투표 만들기
             </button>
@@ -267,7 +270,7 @@ export default function VotesPage() {
         </div>
 
         {/* ── 달력 ── */}
-        <div className="bg-gray-900 border border-white/5 rounded-2xl p-4">
+        <div className="bg-gray-900 border border-white/5 rounded-lg p-4">
           {/* 월 네비게이션 */}
           <div className="flex items-center justify-between mb-3">
             <button
@@ -293,7 +296,7 @@ export default function VotesPage() {
               <div
                 key={d}
                 className={`text-center text-[10px] font-bold py-1 ${
-                  i === 0 ? "text-red-400" : i === 6 ? "text-blue-400" : "text-gray-600"
+                  i === 0 ? "text-red-400" : i === 6 ? "text-sky-400" : "text-gray-600"
                 }`}
               >
                 {d}
@@ -340,7 +343,7 @@ export default function VotesPage() {
                         : dayOfWeek === 0
                         ? "text-red-400"
                         : dayOfWeek === 6
-                        ? "text-blue-400"
+                        ? "text-sky-400"
                         : "text-gray-300"
                     }`}
                   >
@@ -395,8 +398,8 @@ export default function VotesPage() {
         {selectedDate && (
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/30 rounded-full px-3 py-1">
-              <span className="text-xs font-bold text-emerald-400">
-                📅 {formatSelectedDate(selectedDate)}
+              <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                <Calendar size={12} /> {formatSelectedDate(selectedDate)}
               </span>
               <button
                 onClick={() => setSelectedDate(null)}
@@ -418,7 +421,7 @@ export default function VotesPage() {
           </div>
         ) : displayVotes.length === 0 ? (
           <div className="text-center py-14">
-            <div className="text-5xl mb-3 opacity-20">🗳️</div>
+            <VoteIcon size={40} strokeWidth={1.5} className="mx-auto mb-3 opacity-20" />
             <p className="text-gray-600 text-sm">
               {selectedDate ? "이 날 투표가 없어요" : "아직 투표가 없어요"}
             </p>
@@ -460,7 +463,7 @@ export default function VotesPage() {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div className="relative flex min-h-full items-center justify-center py-6">
           <div
-            className="relative bg-gray-900 border border-white/10 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg flex flex-col"
+            className="relative bg-gray-900 border border-white/10 rounded-t-2xl sm:rounded-lg w-full sm:max-w-lg flex flex-col"
             style={{ maxHeight: "92vh" }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -521,7 +524,7 @@ export default function VotesPage() {
 
               {/* 관련 날짜 */}
               <div>
-                <label className="text-xs text-gray-500 font-medium mb-1.5 block">📅 관련 날짜</label>
+                <label className="text-xs text-gray-500 font-medium mb-1.5 flex items-center gap-1"><Calendar size={12} /> 관련 날짜</label>
                 <input
                   type="date"
                   value={form.vote_date}
@@ -533,7 +536,7 @@ export default function VotesPage() {
 
               {/* 마감 날짜 + 시간 */}
               <div>
-                <label className="text-xs text-gray-500 font-medium mb-1.5 block">⏰ 마감 일시 <span className="text-gray-700">(없으면 수동 마감)</span></label>
+                <label className="text-xs text-gray-500 font-medium mb-1.5 flex items-center gap-1"><Clock size={12} /> 마감 일시 <span className="text-gray-700">(없으면 수동 마감)</span></label>
                 <div className="flex gap-2 items-center">
                   <input
                     type="date"
@@ -698,7 +701,7 @@ function VoteCard({
 
   return (
     <div
-      className={`bg-gray-900 border rounded-2xl overflow-hidden transition-all ${
+      className={`bg-gray-900 border rounded-lg overflow-hidden transition-all ${
         isClosed ? "border-white/5" : "border-emerald-500/10"
       }`}
     >
@@ -721,8 +724,8 @@ function VoteCard({
                 </span>
               )}
               {vote.vote_date && (
-                <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full">
-                  📅 {vote.vote_date.slice(5).replace("-", "/")}
+                <span className="text-[10px] text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                  <Calendar size={10} /> {vote.vote_date.slice(5).replace("-", "/")}
                 </span>
               )}
             </div>
@@ -736,15 +739,16 @@ function VoteCard({
             {/* 작성자 + 마감시간 */}
             <div className="flex items-center gap-2 flex-wrap mt-1">
               {vote.created_by_name && (
-                <span className="text-[10px] text-gray-600">
-                  👤 {vote.created_by_name}
+                <span className="text-[10px] text-gray-600 flex items-center gap-1">
+                  <User size={10} /> {vote.created_by_name}
                 </span>
               )}
               {vote.end_at && (
-                <span className={`text-[10px] ${isClosed ? "text-gray-700" : "text-gray-500"}`}>
+                <span className={`text-[10px] flex items-center gap-1 ${isClosed ? "text-gray-700" : "text-gray-500"}`}>
+                  <Clock size={10} />
                   {isClosed
-                    ? `⏰ ${formatEndAt(vote.end_at)} 마감됨`
-                    : `⏰ 마감 ${formatEndAt(vote.end_at)}`}
+                    ? `${formatEndAt(vote.end_at)} 마감됨`
+                    : `마감 ${formatEndAt(vote.end_at)}`}
                 </span>
               )}
             </div>
@@ -756,7 +760,7 @@ function VoteCard({
               {!isClosed && (
                 <button
                   onClick={() => onClose(vote.id)}
-                  className="text-[10px] text-gray-600 hover:text-yellow-400 px-2 py-1 rounded-lg hover:bg-yellow-500/10 transition-colors border border-white/5"
+                  className="text-[10px] text-gray-600 hover:text-amber-400 px-2 py-1 rounded-lg hover:bg-amber-500/10 transition-colors border border-white/5"
                 >
                   마감
                 </button>
@@ -815,7 +819,7 @@ function VoteCard({
                           : "border-white/20 text-transparent"
                       }`}
                     >
-                      ✓
+                      <Check size={10} strokeWidth={3} />
                     </span>
                     <span
                       className={`text-sm truncate ${
@@ -911,7 +915,7 @@ function VoteCard({
               <span className="text-[10px] text-gray-500 font-medium">전체 팀원 참여율</span>
               <span className="text-[10px] font-bold text-gray-400">
                 {vote.total_voters}/{memberCount}명
-                <span className={`ml-1 ${participationPct >= 70 ? "text-emerald-400" : participationPct >= 40 ? "text-yellow-400" : "text-gray-500"}`}>
+                <span className={`ml-1 ${participationPct >= 70 ? "text-emerald-400" : participationPct >= 40 ? "text-amber-400" : "text-gray-500"}`}>
                   ({participationPct}%)
                 </span>
               </span>
@@ -922,7 +926,7 @@ function VoteCard({
                   participationPct >= 70
                     ? "bg-emerald-500"
                     : participationPct >= 40
-                    ? "bg-yellow-500"
+                    ? "bg-amber-500"
                     : "bg-gray-600"
                 }`}
                 style={{ width: `${participationPct}%` }}
@@ -939,7 +943,7 @@ function VoteCard({
           onClick={() => setShowComments((v) => !v)}
           className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-300 transition-colors py-1"
         >
-          <span>💬</span>
+          <MessageCircle size={12} strokeWidth={1.75} />
           <span>댓글 {vote.comments.length > 0 ? `${vote.comments.length}개` : "달기"}</span>
           {vote.comments.length > 0 && (
             <span className="text-gray-700">{showComments ? "▴" : "▾"}</span>

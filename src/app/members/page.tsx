@@ -3,6 +3,10 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  Zap, FileText, Users, AlertTriangle, Coffee, User, Check,
+  StickyNote,
+} from "lucide-react";
 import { POSITION_MAP } from "@/lib/positions";
 import AppLayout from "@/components/AppLayout";
 import PositionSelect from "@/components/PositionSelect";
@@ -176,13 +180,13 @@ export default function MembersPage() {
           정규 팀원 <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${tab === "regular" ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-gray-600"}`}>{regularMembers.length}</span>
         </button>
         <button onClick={() => { setTab("mercenary"); setPage(1); }}
-          className={`flex-1 py-3 text-sm font-bold transition-colors ${tab === "mercenary" ? "text-amber-400 border-b-2 border-amber-400" : "text-gray-600 hover:text-gray-400"}`}>
-          ⚡ 용병 <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${tab === "mercenary" ? "bg-amber-500/20 text-amber-400" : "bg-white/5 text-gray-600"}`}>{mercenaryMembers.length}</span>
+          className={`flex-1 py-3 text-sm font-bold transition-colors flex items-center justify-center gap-1 ${tab === "mercenary" ? "text-amber-400 border-b-2 border-amber-400" : "text-gray-600 hover:text-gray-400"}`}>
+          <Zap size={14} strokeWidth={2} /> 용병 <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${tab === "mercenary" ? "bg-amber-500/20 text-amber-400" : "bg-white/5 text-gray-600"}`}>{mercenaryMembers.length}</span>
         </button>
         {canManage && (
           <button onClick={() => setTab("eval")}
-            className={`flex-1 py-3 text-sm font-bold transition-colors ${tab === "eval" ? "text-purple-400 border-b-2 border-purple-400" : "text-gray-600 hover:text-gray-400"}`}>
-            📝 평가
+            className={`flex-1 py-3 text-sm font-bold transition-colors flex items-center justify-center gap-1 ${tab === "eval" ? "text-sky-400 border-b-2 border-sky-400" : "text-gray-600 hover:text-gray-400"}`}>
+            <FileText size={14} strokeWidth={2} /> 평가
           </button>
         )}
       </div>
@@ -193,11 +197,11 @@ export default function MembersPage() {
         {tab === "eval" ? (
           evalLoading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : evals.length === 0 ? (
             <div className="text-center py-16 text-gray-600">
-              <div className="text-5xl mb-3 opacity-30">📝</div>
+              <FileText size={40} strokeWidth={1.5} className="opacity-30 mx-auto mb-3" />
               <p>팀원이 없어요</p>
             </div>
           ) : (
@@ -218,13 +222,15 @@ export default function MembersPage() {
           <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /></div>
         ) : displayedMembers.length === 0 ? (
           <div className="text-center py-16 text-gray-600">
-            <div className="text-5xl mb-3 opacity-30">{tab === "regular" ? "👥" : "⚡"}</div>
+            {tab === "regular"
+              ? <Users size={40} strokeWidth={1.5} className="opacity-30 mx-auto mb-3" />
+              : <Zap size={40} strokeWidth={1.5} className="opacity-30 mx-auto mb-3" />}
             <p>{tab === "regular" ? "정규 팀원이 없어요" : "용병이 없어요"}</p>
             {canManage && <button onClick={() => { setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: tab === "mercenary", is_cafe_mercenary: false, referrer: "" }); setEditId(null); setShowForm(true); }} className="mt-4 text-sm text-emerald-400 font-bold hover:text-emerald-300">+ 추가하기</button>}
           </div>
         ) : (
           <>
-            <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+            <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
               {displayedMembers.map((member, idx) => (
                 <MemberRow key={member.id} member={member} isLast={idx === displayedMembers.length - 1}
                   onEdit={handleEdit} onDelete={handleDelete} isMercenary={member.is_mercenary}
@@ -261,11 +267,11 @@ export default function MembersPage() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="absolute inset-0 bg-black/70" onClick={() => { setLinkTarget(null); setLinkingId(null); }} />
           <div className="flex min-h-full items-center justify-center px-4 py-6">
-            <div className="relative bg-gray-900 border border-white/10 w-full max-w-md rounded-2xl shadow-2xl p-6 z-10"
+            <div className="relative bg-gray-900 border border-white/10 w-full max-w-md rounded-lg shadow-2xl p-6 z-10"
               onClick={e => e.stopPropagation()}>
               <h2 className="font-bold text-white text-lg mb-1">계정 연결</h2>
               <p className="text-sm text-gray-400 mb-5">
-                <span className="text-orange-400 font-semibold">{linkTarget.name}</span>님을 아래 계정과 연결할게요. 납부 기록이 모두 이전됩니다.
+                <span className="text-sky-400 font-semibold">{linkTarget.name}</span>님을 아래 계정과 연결할게요. 납부 기록이 모두 이전됩니다.
               </p>
 
               {/* 연결 가능한 계정 멤버 목록 */}
@@ -279,21 +285,21 @@ export default function MembersPage() {
                       onClick={() => setLinkingId(m.id)}
                       className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-colors ${
                         linkingId === m.id
-                          ? "border-purple-400/60 bg-purple-500/10"
+                          ? "border-sky-400/60 bg-sky-500/10"
                           : "border-white/10 bg-white/3 hover:bg-white/5"
                       }`}
                     >
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                        linkingId === m.id ? "bg-purple-500/20 text-purple-400" : "bg-white/5 text-gray-400"
+                        linkingId === m.id ? "bg-sky-500/20 text-sky-400" : "bg-white/5 text-gray-400"
                       }`}>
                         {m.name.charAt(0)}
                       </div>
                       <div>
-                        <p className={`text-sm font-semibold ${linkingId === m.id ? "text-purple-300" : "text-white"}`}>{m.name}</p>
+                        <p className={`text-sm font-semibold ${linkingId === m.id ? "text-sky-300" : "text-white"}`}>{m.name}</p>
                         <p className="text-xs text-gray-500">{m.position_1st ?? "포지션 미설정"}</p>
                       </div>
                       {linkingId === m.id && (
-                        <span className="ml-auto text-purple-400 text-sm">✓</span>
+                        <Check size={15} className="ml-auto text-sky-400" />
                       )}
                     </button>
                   ))
@@ -301,8 +307,9 @@ export default function MembersPage() {
               </div>
 
               {linkingId && (
-                <div className="mb-4 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-400">
-                  ⚠️ 연결 후에는 되돌릴 수 없어요. 기존 계정 팀원 항목은 삭제되고, <b>{linkTarget.name}</b>님의 기록이 선택한 계정으로 이전돼요.
+                <div className="mb-4 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-400 flex items-start gap-1.5">
+                  <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                  <span>연결 후에는 되돌릴 수 없어요. 기존 계정 팀원 항목은 삭제되고, <b>{linkTarget.name}</b>님의 기록이 선택한 계정으로 이전돼요.</span>
                 </div>
               )}
 
@@ -310,7 +317,7 @@ export default function MembersPage() {
                 <button
                   onClick={handleLink}
                   disabled={!linkingId || linking}
-                  className="flex-1 bg-purple-500 hover:bg-purple-400 disabled:opacity-40 text-white py-3 rounded-xl font-bold transition-colors"
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-black py-3 rounded-xl font-bold transition-colors"
                 >
                   {linking ? "연결 중..." : "계정 연결"}
                 </button>
@@ -331,12 +338,13 @@ export default function MembersPage() {
         <div className="fixed inset-0 z-50 bg-black/70 overflow-y-auto" onClick={() => { setShowForm(false); setEditId(null); setFormError(null); }}>
           <div className="flex min-h-full items-center justify-center px-4 py-6">
           <form onSubmit={handleSubmit}
-            className="relative bg-gray-900 border border-white/10 w-full max-w-md rounded-2xl shadow-2xl p-6 z-10"
+            className="relative bg-gray-900 border border-white/10 w-full max-w-md rounded-lg shadow-2xl p-6 z-10"
             onClick={e => e.stopPropagation()}>
             <h2 className="font-bold text-white text-lg mb-5">{editId ? "팀원 수정" : "팀원 추가"}</h2>
             {formError && (
-              <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-sm text-red-400 font-medium">
-                ⚠️ {formError}
+              <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-sm text-red-400 font-medium flex items-start gap-1.5">
+                <AlertTriangle size={15} className="shrink-0 mt-0.5" />
+                <span>{formError}</span>
               </div>
             )}
             <div className="flex flex-col gap-4">
@@ -361,7 +369,7 @@ export default function MembersPage() {
                 onClick={() => setForm({ ...form, is_mercenary: !form.is_mercenary, is_cafe_mercenary: false, referrer: "" })}
               >
                 <div>
-                  <p className={`font-medium text-sm ${form.is_mercenary ? "text-amber-400" : "text-gray-400"}`}>⚡ 용병</p>
+                  <p className={`font-medium text-sm flex items-center gap-1 ${form.is_mercenary ? "text-amber-400" : "text-gray-400"}`}><Zap size={14} strokeWidth={2} /> 용병</p>
                   <p className="text-xs text-gray-600">정규 팀원이 아닌 용병</p>
                 </div>
                 <div className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${form.is_mercenary ? "bg-amber-400" : "bg-gray-700"}`}>
@@ -376,7 +384,7 @@ export default function MembersPage() {
                     onClick={() => setForm({ ...form, is_cafe_mercenary: !form.is_cafe_mercenary, referrer: form.is_cafe_mercenary ? form.referrer : "" })}
                   >
                     <div>
-                      <p className={`font-medium text-sm ${form.is_cafe_mercenary ? "text-sky-400" : "text-gray-400"}`}>☕ 카페용병</p>
+                      <p className={`font-medium text-sm flex items-center gap-1 ${form.is_cafe_mercenary ? "text-sky-400" : "text-gray-400"}`}><Coffee size={14} strokeWidth={2} /> 카페용병</p>
                       <p className="text-xs text-gray-600">카페를 통해 구한 용병</p>
                     </div>
                     <div className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${form.is_cafe_mercenary ? "bg-sky-400" : "bg-gray-700"}`}>
@@ -419,13 +427,13 @@ function EvalCard({ ev, canEdit, onEdit }: {
   const hasContent = ev.strengths || ev.weaknesses || ev.notes;
 
   return (
-    <div className={`bg-gray-900 border rounded-2xl p-4 transition-colors ${
+    <div className={`bg-gray-900 border rounded-lg p-4 transition-colors ${
       hasContent ? "border-white/10" : "border-white/5 opacity-60"
     }`}>
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-sm">⚽</div>
+          <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center"><User size={15} className="text-emerald-400" /></div>
           <div>
             <p className="font-bold text-white text-sm">{ev.name}</p>
             <div className="flex gap-1 mt-0.5">
@@ -433,7 +441,7 @@ function EvalCard({ ev, canEdit, onEdit }: {
                 <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded-full">{ev.position_1st}</span>
               )}
               {ev.position_2nd && (
-                <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded-full">{ev.position_2nd}</span>
+                <span className="text-[10px] bg-sky-500/10 text-sky-400 px-1.5 py-0.5 rounded-full">{ev.position_2nd}</span>
               )}
             </div>
           </div>
@@ -446,7 +454,7 @@ function EvalCard({ ev, canEdit, onEdit }: {
           )}
           {canEdit && (
             <button onClick={onEdit}
-              className="text-xs text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 px-2.5 py-1 rounded-lg transition-colors font-semibold">
+              className="text-xs text-sky-400 hover:text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 px-2.5 py-1 rounded-lg transition-colors font-semibold">
               수정
             </button>
           )}
@@ -457,19 +465,19 @@ function EvalCard({ ev, canEdit, onEdit }: {
         <div className="space-y-2">
           {ev.strengths && (
             <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl px-3 py-2.5">
-              <p className="text-[11px] font-bold text-emerald-400 mb-1">✅ 장점</p>
+              <p className="text-[11px] font-bold text-emerald-400 mb-1 flex items-center gap-1"><Check size={11} /> 장점</p>
               <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{ev.strengths}</p>
             </div>
           )}
           {ev.weaknesses && (
             <div className="bg-red-500/5 border border-red-500/10 rounded-xl px-3 py-2.5">
-              <p className="text-[11px] font-bold text-red-400 mb-1">⚠️ 단점 / 개선점</p>
+              <p className="text-[11px] font-bold text-red-400 mb-1 flex items-center gap-1"><AlertTriangle size={11} /> 단점 / 개선점</p>
               <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{ev.weaknesses}</p>
             </div>
           )}
           {ev.notes && (
             <div className="bg-white/3 border border-white/5 rounded-xl px-3 py-2.5">
-              <p className="text-[11px] font-bold text-gray-500 mb-1">🗒️ 메모</p>
+              <p className="text-[11px] font-bold text-gray-500 mb-1 flex items-center gap-1"><StickyNote size={11} /> 메모</p>
               <p className="text-sm text-gray-400 whitespace-pre-wrap leading-relaxed">{ev.notes}</p>
             </div>
           )}
@@ -478,7 +486,7 @@ function EvalCard({ ev, canEdit, onEdit }: {
         <div className="text-center py-3">
           <p className="text-xs text-gray-700">아직 작성된 평가가 없어요</p>
           {canEdit && (
-            <button onClick={onEdit} className="mt-1.5 text-xs text-purple-400 hover:text-purple-300 font-semibold">
+            <button onClick={onEdit} className="mt-1.5 text-xs text-sky-400 hover:text-sky-300 font-semibold">
               + 평가 작성하기
             </button>
           )}
@@ -497,20 +505,20 @@ function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canM
   const isManual = !member.user_id; // 임의 추가된 팀원 (계정 없음)
 
   return (
-    <div className={`px-4 py-3 ${!isLast ? "border-b border-white/5" : ""} ${isManual ? "bg-orange-500/3" : ""}`}>
+    <div className={`px-4 py-3 ${!isLast ? "border-b border-white/5" : ""} ${isManual ? "bg-sky-500/3" : ""}`}>
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
             onClick={() => !isMercenary && onDetail?.(member.id)}
-            className={`text-sm font-semibold transition-colors ${
+            className={`text-sm font-semibold transition-colors flex items-center ${
               isMercenary ? "text-amber-300 cursor-default" : "text-white hover:text-emerald-400"
             }`}
           >
-            {member.name}{isMercenary && <span className="ml-1 text-xs">⚡</span>}
+            {member.name}{isMercenary && <Zap size={11} strokeWidth={2} className="ml-1" />}
           </button>
           {/* 임의 추가 배지 */}
           {isManual && (
-            <span className="text-[10px] text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded-full font-medium">임의추가</span>
+            <span className="text-[10px] text-sky-400 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded-full font-medium">임의추가</span>
           )}
           {!isMercenary && !isManual && (
             age
@@ -518,7 +526,7 @@ function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canM
               : <span className="text-xs text-gray-700">나이 미설정</span>
           )}
           {isMercenary && member.is_cafe_mercenary && (
-            <span className="text-xs text-sky-400 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded-full">☕ 카페용병</span>
+            <span className="text-xs text-sky-400 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded-full flex items-center gap-1"><Coffee size={11} /> 카페용병</span>
           )}
           {isMercenary && !member.is_cafe_mercenary && member.referrer && (
             <span className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">{member.referrer}지인</span>
@@ -528,18 +536,18 @@ function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canM
           {!isMercenary && (
             <button onClick={() => onDetail?.(member.id)}
               className="text-xs text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded-lg hover:bg-emerald-500/10 transition-colors font-semibold">
-              📝
+              <FileText size={13} />
             </button>
           )}
           {canManage && (
             <>
               {isManual && !isMercenary && onLink && (
                 <button onClick={() => onLink(member)}
-                  className="text-xs text-purple-400 hover:text-purple-300 px-2 py-1 rounded-lg hover:bg-purple-500/10 transition-colors font-semibold">
+                  className="text-xs text-sky-400 hover:text-sky-300 px-2 py-1 rounded-lg hover:bg-sky-500/10 transition-colors font-semibold">
                   연결
                 </button>
               )}
-              <button onClick={() => onEdit(member)} className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded-lg hover:bg-blue-500/10 transition-colors">수정</button>
+              <button onClick={() => onEdit(member)} className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10 transition-colors">수정</button>
               <button onClick={() => onDelete(member.id)} className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors">삭제</button>
             </>
           )}
@@ -548,14 +556,14 @@ function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canM
       <div className="flex gap-1.5 flex-wrap">
         {member.position_1st ? (
           <span className="text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-            1️⃣ {member.position_1st} · {POSITION_MAP[member.position_1st]?.description}
+            {member.position_1st} · {POSITION_MAP[member.position_1st]?.description}
           </span>
         ) : (
           <span className="text-xs text-gray-700">1순위 미설정</span>
         )}
         {member.position_2nd && (
-          <span className="text-xs bg-blue-500/15 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full">
-            2️⃣ {member.position_2nd} · {POSITION_MAP[member.position_2nd]?.description}
+          <span className="text-xs bg-sky-500/15 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded-full">
+            {member.position_2nd} · {POSITION_MAP[member.position_2nd]?.description}
           </span>
         )}
       </div>

@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
 import { notFound } from "next/navigation";
+import { Target, MapPin, Users, Zap, Coffee, ClipboardList } from "lucide-react";
 import CaptureButton from "@/components/CaptureButton";
 
 interface Member {
@@ -86,11 +87,11 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
         </a>
       </div>
       <div className="max-w-2xl mx-auto px-4 py-6">
-        <div id="capture-area" className="bg-gray-950 p-4 rounded-2xl">
+        <div id="capture-area" className="bg-gray-950 p-4 rounded-lg">
 
           {/* 헤더 */}
           <div className="text-center mb-5">
-            <p className="text-emerald-400 font-bold text-base">⚽ {data.team_name}</p>
+            <p className="flex items-center justify-center gap-1.5 text-emerald-400 font-bold text-base"><Target size={15} /> {data.team_name}</p>
             {match_info && (
               <div className="mt-1">
                 <p className="text-white font-bold text-lg">{formatDate(match_info.match_date)}</p>
@@ -101,10 +102,10 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
                   </p>
                 )}
                 {match_info.title && <p className="text-gray-400 text-sm">{match_info.title}</p>}
-                {match_info.location && <p className="text-gray-500 text-sm">📍 {match_info.location}</p>}
+                {match_info.location && <p className="flex items-center justify-center gap-1 text-gray-500 text-sm"><MapPin size={12} /> {match_info.location}</p>}
               </div>
             )}
-            <div className="mt-3 inline-block bg-emerald-500 text-black font-black text-xl px-5 py-2 rounded-2xl shadow-lg shadow-emerald-500/20">
+            <div className="mt-3 inline-block bg-emerald-500 text-black font-black text-xl px-5 py-2 rounded-lg">
               오늘 참가 인원 · {members.length}명
             </div>
           </div>
@@ -113,9 +114,9 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
           <div className={`grid gap-3 mb-4 items-start ${regularOverflow ? "grid-cols-3" : "grid-cols-2"}`}>
 
             {/* 정규 팀원 (1번째 칸) */}
-            <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+            <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
               <div className="bg-emerald-500/20 border-b border-emerald-500/20 px-3 py-2">
-                <p className="text-emerald-400 text-sm font-bold">👥 정규 {regular.length}명{regularOverflow ? " (1)" : ""}</p>
+                <p className="flex items-center gap-1.5 text-emerald-400 text-sm font-bold"><Users size={14} /> 정규 {regular.length}명{regularOverflow ? " (1)" : ""}</p>
               </div>
               <div className="divide-y divide-white/5">
                 {regular1.map((m, i) => (
@@ -139,9 +140,9 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
 
             {/* 정규 팀원 (2번째 칸, 10명 초과 시만 표시) */}
             {regularOverflow && (
-              <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+              <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
                 <div className="bg-emerald-500/20 border-b border-emerald-500/20 px-3 py-2">
-                  <p className="text-emerald-400 text-sm font-bold">👥 정규 {regular.length}명 (2)</p>
+                  <p className="flex items-center gap-1.5 text-emerald-400 text-sm font-bold"><Users size={14} /> 정규 {regular.length}명 (2)</p>
                 </div>
                 <div className="divide-y divide-white/5">
                   {regular2.map((m, i) => (
@@ -164,9 +165,9 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
             )}
 
             {/* 용병 */}
-            <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+            <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
               <div className="bg-amber-500/20 border-b border-amber-500/20 px-3 py-2">
-                <p className="text-amber-400 text-sm font-bold">⚡ 용병 · {mercenary.length}명</p>
+                <p className="flex items-center gap-1.5 text-amber-400 text-sm font-bold"><Zap size={14} /> 용병 · {mercenary.length}명</p>
               </div>
               <div className="divide-y divide-white/5">
                 {mercenary.map((m, i) => (
@@ -176,7 +177,7 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
                       <div className="flex items-center gap-1 flex-wrap">
                         <p className="text-sm font-semibold text-amber-300">{m.name}</p>
                         {m.is_cafe_mercenary
-                          ? <span className="text-[10px] text-sky-400 bg-sky-500/10 px-1 py-0.5 rounded shrink-0">☕카페</span>
+                          ? <span className="inline-flex items-center gap-0.5 text-[10px] text-sky-400 bg-sky-500/10 px-1 py-0.5 rounded shrink-0"><Coffee size={9} />카페</span>
                           : m.referrer
                           ? <span className="text-[10px] text-amber-500 bg-amber-500/10 px-1 py-0.5 rounded shrink-0">{m.referrer}지인</span>
                           : null}
@@ -197,8 +198,8 @@ export default async function ShareAttendeesPage({ params }: { params: Promise<{
           </div>
 
           {/* 공지사항 */}
-          <div className="bg-gray-900 border border-white/5 rounded-2xl p-4">
-            <p className="font-bold text-white mb-3">📋 공지사항</p>
+          <div className="bg-gray-900 border border-white/5 rounded-lg p-4">
+            <p className="flex items-center gap-1.5 font-bold text-white mb-3"><ClipboardList size={16} /> 공지사항</p>
             <ol className="flex flex-col gap-2.5">
               {match_info?.match_time && (
                 <li className="flex gap-2 text-sm text-gray-300">

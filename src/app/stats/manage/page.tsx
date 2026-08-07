@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Users, Lightbulb, Footprints, Plus, Goal, Target, Calendar, Save, Check } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 
 interface Entry {
@@ -135,15 +136,15 @@ export default function StatsManagePage() {
           </div>
         ) : entries.length === 0 ? (
           <div className="text-center py-20">
-            <div className="text-4xl mb-3 opacity-20">👥</div>
+            <Users size={40} strokeWidth={1.5} className="mx-auto mb-3 opacity-20" />
             <p className="text-gray-600 text-sm">팀원이 없어요</p>
           </div>
         ) : (
-          <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+          <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
 
             {/* 안내 배너 */}
             <div className="px-4 py-3 bg-emerald-500/5 border-b border-emerald-500/10 flex items-start gap-2">
-              <span className="text-emerald-400 shrink-0 mt-0.5">💡</span>
+              <Lightbulb size={14} strokeWidth={1.75} className="text-emerald-400 shrink-0 mt-0.5" />
               <p className="text-[11px] text-emerald-300/70 leading-relaxed">
                 <span className="font-bold text-emerald-400">골·어시는 경기관리에서 자동 집계</span>됩니다.
                 여기서는 앱에 등록되지 않은 경기의 추가 기록만 입력하세요.
@@ -153,10 +154,10 @@ export default function StatsManagePage() {
             {/* 컬럼 헤더 */}
             <div className="grid grid-cols-[1fr_60px_80px_100px_100px] items-center px-4 py-2.5 border-b border-white/10 bg-white/3">
               <span className="text-xs text-gray-500 font-semibold">선수</span>
-              <span className="text-xs text-gray-400 font-semibold text-center">🏃 자동</span>
-              <span className="text-xs text-amber-400 font-semibold text-center">➕ 추가출전</span>
-              <span className="text-xs text-emerald-400 font-semibold text-center">🥅 골</span>
-              <span className="text-xs text-blue-400 font-semibold text-center">🎯 어시</span>
+              <span className="flex items-center justify-center gap-1 text-xs text-gray-400 font-semibold text-center"><Footprints size={12} strokeWidth={2} /> 자동</span>
+              <span className="flex items-center justify-center gap-1 text-xs text-amber-400 font-semibold text-center"><Plus size={12} strokeWidth={2} /> 추가출전</span>
+              <span className="flex items-center justify-center gap-1 text-xs text-emerald-400 font-semibold text-center"><Goal size={12} strokeWidth={2} /> 골</span>
+              <span className="flex items-center justify-center gap-1 text-xs text-sky-400 font-semibold text-center"><Target size={12} strokeWidth={2} /> 어시</span>
             </div>
 
             {/* 선수별 행 */}
@@ -200,13 +201,13 @@ export default function StatsManagePage() {
                   {/* 어시: 자동(읽기전용) + 추가(수동) */}
                   <div className="flex flex-col items-center gap-0.5">
                     {entry.auto_assists > 0 && (
-                      <span className="text-[10px] text-blue-500/60 font-semibold">자동 {entry.auto_assists}도움</span>
+                      <span className="text-[10px] text-sky-500/60 font-semibold">자동 {entry.auto_assists}도움</span>
                     )}
                     <div className="flex items-center gap-0.5">
                       <Counter
                         value={entry.extra_assists}
                         onChange={d => updateEntry(entry.member_id, "extra_assists", d)}
-                        color="blue"
+                        color="sky"
                       />
                     </div>
                     {entry.extra_assists > 0 && (
@@ -219,11 +220,11 @@ export default function StatsManagePage() {
 
             {/* 총 경기수 섹션 */}
             <div className="border-t border-white/10 px-4 py-4 bg-white/3 flex flex-col gap-2.5">
-              <p className="text-xs font-semibold text-gray-400">📅 총 경기수 · 참석률 계산 기준</p>
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-gray-400"><Calendar size={13} strokeWidth={2} /> 총 경기수 · 참석률 계산 기준</p>
 
               {/* 자동 안내 */}
               <div className="bg-white/3 border border-white/5 rounded-xl px-3 py-2">
-                <p className="text-[11px] text-gray-500 mb-1.5 font-semibold">🏃 자동 출전 수 계산 방식</p>
+                <p className="flex items-center gap-1.5 text-[11px] text-gray-500 mb-1.5 font-semibold"><Footprints size={12} strokeWidth={2} /> 자동 출전 수 계산 방식</p>
                 <p className="text-[11px] text-gray-600">경기 배정 페이지에서 참석 체크 시 자동 반영돼요</p>
               </div>
 
@@ -261,12 +262,12 @@ export default function StatsManagePage() {
 
             {/* 저장 버튼 */}
             <div className="px-4 py-4 border-t border-white/10">
-              <p className="text-[11px] text-gray-600 mb-3 text-center">
-                💡 골·어시는 경기관리에서 자동 반영 · 미등록 경기 추가분과 추가출전만 저장돼요
+              <p className="flex items-center justify-center gap-1.5 text-[11px] text-gray-600 mb-3 text-center">
+                <Lightbulb size={12} strokeWidth={1.75} /> 골·어시는 경기관리에서 자동 반영 · 미등록 경기 추가분과 추가출전만 저장돼요
               </p>
               <button onClick={save} disabled={saving}
-                className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold py-3 rounded-xl transition-colors">
-                {saving ? "저장 중..." : "💾 저장"}
+                className="w-full flex items-center justify-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold py-3 rounded-xl transition-colors">
+                {saving ? "저장 중..." : <><Save size={15} strokeWidth={2} /> 저장</>}
               </button>
             </div>
           </div>
@@ -274,8 +275,8 @@ export default function StatsManagePage() {
       </div>
 
       {savedToast && (
-        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 border border-white/10 text-white text-sm font-medium px-5 py-3 rounded-2xl shadow-lg whitespace-nowrap">
-          ✅ 저장됐어요!
+        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 border border-white/10 text-white text-sm font-medium px-5 py-3 rounded-lg shadow-lg whitespace-nowrap flex items-center gap-1.5">
+          <Check size={15} strokeWidth={2} className="text-emerald-400" /> 저장됐어요!
         </div>
       )}
     </AppLayout>
@@ -286,19 +287,19 @@ export default function StatsManagePage() {
 function Counter({ value, onChange, color }: {
   value: number;
   onChange: (delta: number) => void;
-  color: "gray" | "emerald" | "blue" | "amber";
+  color: "gray" | "emerald" | "sky" | "amber";
 }) {
   const numColor = {
     gray:    value > 0 ? "text-white"       : "text-gray-700",
     emerald: value > 0 ? "text-emerald-400" : "text-gray-700",
-    blue:    value > 0 ? "text-blue-400"    : "text-gray-700",
+    sky:     value > 0 ? "text-sky-400"     : "text-gray-700",
     amber:   value > 0 ? "text-amber-400"   : "text-gray-700",
   }[color];
 
   const plusCls = {
     gray:    "bg-white/5 hover:bg-white/10 text-gray-400",
     emerald: "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400",
-    blue:    "bg-blue-500/20 hover:bg-blue-500/30 text-blue-400",
+    sky:     "bg-sky-500/20 hover:bg-sky-500/30 text-sky-400",
     amber:   "bg-amber-500/20 hover:bg-amber-500/30 text-amber-400",
   }[color];
 

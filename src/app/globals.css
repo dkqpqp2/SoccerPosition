@@ -8,8 +8,16 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: var(--font-geist-mono);
+}
+
+/* 포인트 컬러 실험: 기본 Tailwind emerald(민트톤, AI 툴 기본값 느낌) → 채도 낮춘 잔디/포레스트 그린 */
+@theme {
+  --color-emerald-300: #a3c9ac;
+  --color-emerald-400: #5f9e78;
+  --color-emerald-500: #3f7f5c;
+  --color-emerald-600: #2f6548;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,7 +30,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 @keyframes slideInLeft {

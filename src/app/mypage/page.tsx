@@ -3,6 +3,10 @@
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  Bell, User, Handshake, Target, Home, Zap, ClipboardList, Check,
+  AlertTriangle, StickyNote, X, Vote, Calendar, Wallet, Mail, LogOut, Trash2,
+} from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import PositionSelect from "@/components/PositionSelect";
 
@@ -197,7 +201,7 @@ export default function MyPage() {
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between px-1">
               <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                🔔 알림
+                <Bell size={15} strokeWidth={2} /> 알림
                 {notifications.filter(n => !n.is_read).length > 0 && (
                   <span className="bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
                     {notifications.filter(n => !n.is_read).length}
@@ -216,10 +220,13 @@ export default function MyPage() {
             </div>
             {(showAllNotifs ? notifications : notifications.slice(0, 2)).map(n => (
               <div key={n.id}
-                className={`rounded-2xl border p-4 flex gap-3 transition-colors ${n.is_read ? "bg-gray-900 border-white/5 opacity-60" : "bg-emerald-500/5 border-emerald-500/20"}`}
+                className={`rounded-lg border p-4 flex gap-3 transition-colors ${n.is_read ? "bg-gray-900 border-white/5 opacity-60" : "bg-emerald-500/5 border-emerald-500/20"}`}
               >
-                <span className="text-xl shrink-0 mt-0.5">
-                  {n.type === "vote_created" ? "🗳️" : n.type === "dues_request" ? "💰" : n.type === "match_created" ? "📅" : "⚽"}
+                <span className={`shrink-0 mt-0.5 ${n.is_read ? "text-gray-500" : "text-emerald-400"}`}>
+                  {n.type === "vote_created" ? <Vote size={18} strokeWidth={1.75} />
+                    : n.type === "dues_request" ? <Wallet size={18} strokeWidth={1.75} />
+                    : n.type === "match_created" ? <Calendar size={18} strokeWidth={1.75} />
+                    : <Target size={18} strokeWidth={1.75} />}
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-bold mb-0.5 ${n.is_read ? "text-gray-400" : "text-white"}`}>{n.title}</p>
@@ -235,9 +242,9 @@ export default function MyPage() {
                 </div>
                 <button
                   onClick={() => dismissNotification(n.id)}
-                  className="text-gray-600 hover:text-gray-400 text-lg shrink-0 self-start transition-colors"
+                  className="text-gray-600 hover:text-gray-400 shrink-0 self-start transition-colors"
                 >
-                  ✕
+                  <X size={16} strokeWidth={2} />
                 </button>
               </div>
             ))}
@@ -253,17 +260,17 @@ export default function MyPage() {
         )}
 
         {/* 탭 바 */}
-        <div className="flex bg-gray-900 border border-white/5 rounded-2xl p-1 gap-1">
+        <div className="flex bg-gray-900 border border-white/5 rounded-lg p-1 gap-1">
           <button
             onClick={() => setMyTab("info")}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors ${myTab === "info" ? "bg-emerald-500 text-black" : "text-gray-500 hover:text-white"}`}>
-            👤 내 정보
+            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-1.5 ${myTab === "info" ? "bg-emerald-500 text-black" : "text-gray-500 hover:text-white"}`}>
+            <User size={15} strokeWidth={2} /> 내 정보
           </button>
           {isManager && (
             <button
               onClick={() => setMyTab("matching")}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors ${myTab === "matching" ? "bg-emerald-500 text-black" : "text-gray-500 hover:text-white"}`}>
-              🤝 팀 프로필
+              className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-1.5 ${myTab === "matching" ? "bg-emerald-500 text-black" : "text-gray-500 hover:text-white"}`}>
+              <Handshake size={15} strokeWidth={2} /> 팀 프로필
             </button>
           )}
         </div>
@@ -272,12 +279,14 @@ export default function MyPage() {
         {myTab === "info" && <>
 
         {/* 프로필 카드 */}
-        <div className="bg-gray-900 border border-white/5 rounded-2xl p-5 flex items-center justify-between gap-4">
+        <div className="bg-gray-900 border border-white/5 rounded-lg p-5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             {profile.image ? (
               <img src={profile.image.replace(/^http:\/\//, 'https://')} alt="프로필" className="w-14 h-14 rounded-full ring-2 ring-emerald-400/30" />
             ) : (
-              <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-2xl">👤</div>
+              <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                <User size={24} className="text-emerald-400" strokeWidth={1.75} />
+              </div>
             )}
             <div>
               <p className="font-bold text-white text-lg">{profile.name}</p>
@@ -285,7 +294,7 @@ export default function MyPage() {
               <p className="text-xs text-emerald-400 mt-1 font-medium">카카오 계정 연동됨</p>
             </div>
           </div>
-          <span className="shrink-0 text-xs font-bold bg-blue-500/15 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-full whitespace-nowrap">
+          <span className="shrink-0 text-xs font-bold bg-sky-500/15 text-sky-400 border border-sky-500/20 px-2.5 py-1 rounded-full whitespace-nowrap">
             {isManager ? "내가 만든 팀" : "가입한 팀"}
           </span>
         </div>
@@ -294,8 +303,8 @@ export default function MyPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
         {/* 내 기본 정보 */}
-        <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
-          <h2 className="font-bold text-white mb-4 flex items-center gap-2">👤 내 기본 정보</h2>
+        <div className="bg-gray-900 border border-white/5 rounded-lg p-5">
+          <h2 className="font-bold text-white mb-4 flex items-center gap-2"><User size={16} strokeWidth={1.75} className="text-gray-400" /> 내 기본 정보</h2>
           <div className="flex flex-col gap-4">
             {/* 이름 */}
             <div>
@@ -351,9 +360,9 @@ export default function MyPage() {
         </div>
 
         {/* 내 포지션 선호도 */}
-        <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
+        <div className="bg-gray-900 border border-white/5 rounded-lg p-5">
           <h2 className="font-bold text-white mb-1 flex items-center gap-2">
-            🎯 내 포지션 선호도
+            <Target size={16} strokeWidth={1.75} className="text-gray-400" /> 내 포지션 선호도
           </h2>
           <p className="text-xs text-gray-600 mb-4">팀 가입 시 자동으로 팀원 명단에 추가돼요</p>
           <div className="flex flex-col gap-3">
@@ -373,7 +382,7 @@ export default function MyPage() {
                   </span>
                 )}
                 {position2nd && (
-                  <span className="text-xs bg-blue-500/15 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-full font-medium">
+                  <span className="text-xs bg-sky-500/15 text-sky-400 border border-sky-500/20 px-2.5 py-1 rounded-full font-medium">
                     2순위 · {position2nd}
                   </span>
                 )}
@@ -383,8 +392,8 @@ export default function MyPage() {
         </div>
 
         {/* 팀 정보 */}
-        <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
-          <h2 className="font-bold text-white mb-4 flex items-center gap-2">⚽ 내 팀</h2>
+        <div className="bg-gray-900 border border-white/5 rounded-lg p-5">
+          <h2 className="font-bold text-white mb-4 flex items-center gap-2"><Home size={16} strokeWidth={1.75} className="text-gray-400" /> 내 팀</h2>
           <div>
             <label className="text-xs text-gray-500 mb-1.5 block uppercase tracking-widest">우리팀</label>
             {canManageTeam ? (
@@ -410,9 +419,9 @@ export default function MyPage() {
         </div>
 
         {/* 용병 등록 */}
-        <div className="bg-gray-900 border border-white/5 rounded-2xl p-5 opacity-60">
+        <div className="bg-gray-900 border border-white/5 rounded-lg p-5 opacity-60">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="font-bold text-white flex items-center gap-2">⚡ 용병 등록</h2>
+            <h2 className="font-bold text-white flex items-center gap-2"><Zap size={16} strokeWidth={1.75} className="text-gray-400" /> 용병 등록</h2>
             <span className="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full font-medium">추후 개발</span>
           </div>
           <p className="text-xs text-gray-600 mb-4">용병으로 다른 팀 경기에 참여할 수 있는 기능이에요</p>
@@ -432,9 +441,9 @@ export default function MyPage() {
 
         {/* 내 평가 섹션 */}
         {myEval !== "loading" && (
-          <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
+          <div className="bg-gray-900 border border-white/5 rounded-lg p-5">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-white flex items-center gap-2">📋 나에 대한 평가</h2>
+              <h2 className="font-bold text-white flex items-center gap-2"><ClipboardList size={16} strokeWidth={1.75} className="text-gray-400" /> 나에 대한 평가</h2>
               {myEval?.updated_at && (
                 <span className="text-[11px] text-gray-600">
                   {new Date(myEval.updated_at).toLocaleDateString("ko-KR")} 수정됨
@@ -446,26 +455,26 @@ export default function MyPage() {
               <div className="space-y-2.5">
                 {myEval.strengths && (
                   <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl px-4 py-3">
-                    <p className="text-[11px] font-bold text-emerald-400 mb-1.5">✅ 장점</p>
+                    <p className="text-[11px] font-bold text-emerald-400 mb-1.5 flex items-center gap-1"><Check size={12} strokeWidth={2.5} /> 장점</p>
                     <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{myEval.strengths}</p>
                   </div>
                 )}
                 {myEval.weaknesses && (
                   <div className="bg-red-500/5 border border-red-500/15 rounded-xl px-4 py-3">
-                    <p className="text-[11px] font-bold text-red-400 mb-1.5">⚠️ 단점 / 개선점</p>
+                    <p className="text-[11px] font-bold text-red-400 mb-1.5 flex items-center gap-1"><AlertTriangle size={12} strokeWidth={2.5} /> 단점 / 개선점</p>
                     <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{myEval.weaknesses}</p>
                   </div>
                 )}
                 {myEval.notes && (
                   <div className="bg-white/3 border border-white/5 rounded-xl px-4 py-3">
-                    <p className="text-[11px] font-bold text-gray-500 mb-1.5">🗒️ 메모</p>
+                    <p className="text-[11px] font-bold text-gray-500 mb-1.5 flex items-center gap-1"><StickyNote size={12} strokeWidth={2.5} /> 메모</p>
                     <p className="text-sm text-gray-400 whitespace-pre-wrap leading-relaxed">{myEval.notes}</p>
                   </div>
                 )}
               </div>
             ) : (
               <div className="text-center py-5 space-y-2">
-                <p className="text-3xl opacity-30">📋</p>
+                <ClipboardList size={30} strokeWidth={1.5} className="opacity-30 mx-auto" />
                 <p className="text-sm text-gray-500 font-medium">아직 평가된 게 없어요</p>
                 <p className="text-xs text-gray-600 leading-relaxed">감독과 코치에게 평가해달라고 요청해보세요</p>
               </div>
@@ -477,18 +486,18 @@ export default function MyPage() {
         <button
           onClick={save}
           disabled={saving}
-          className={`w-full py-3 rounded-xl font-bold transition-colors ${saved ? "bg-blue-500 text-white" : "bg-emerald-500 hover:bg-emerald-400 text-black"}`}
+          className="w-full py-3 rounded-xl font-bold transition-colors bg-emerald-500 hover:bg-emerald-400 text-black"
         >
-          {saved ? "✓ 저장됐어요!" : saving ? "저장 중..." : "저장"}
+          {saved ? <span className="inline-flex items-center justify-center gap-1"><Check size={15} /> 저장됐어요!</span> : saving ? "저장 중..." : "저장"}
         </button>
 
         </>}{/* end 내 정보 탭 */}
 
         {/* ── 팀 매칭 탭 (팀장/부팀장만) ── */}
-        {myTab === "matching" && isManager && <div className="bg-gray-900 border border-white/5 rounded-2xl p-5 flex flex-col gap-4">
+        {myTab === "matching" && isManager && <div className="bg-gray-900 border border-white/5 rounded-lg p-5 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-bold text-white flex items-center gap-2">🤝 팀 매칭 프로필</h2>
+              <h2 className="font-bold text-white flex items-center gap-2"><Handshake size={16} strokeWidth={1.75} className="text-gray-400" /> 팀 매칭 프로필</h2>
               <p className="text-xs text-gray-500 mt-0.5">공개 설정 시 다른 팀과 매칭을 할 수 있어요</p>
             </div>
             <div className="flex items-center gap-2">
@@ -560,7 +569,7 @@ export default function MyPage() {
             <div className="flex gap-2 flex-wrap">
               {PLAYER_BACKGROUNDS.map(b => (
                 <button key={b} onClick={() => setMatchingProfile(p => ({ ...p, player_background: b }))}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${matchingProfile.player_background === b ? "bg-purple-500/20 border-purple-500/40 text-purple-400" : "bg-white/5 border-white/10 text-gray-500 hover:bg-white/10"}`}>
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${matchingProfile.player_background === b ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" : "bg-white/5 border-white/10 text-gray-500 hover:bg-white/10"}`}>
                   {b}
                 </button>
               ))}
@@ -573,7 +582,7 @@ export default function MyPage() {
             <div className="flex gap-2">
               {GAME_TYPES.map(g => (
                 <button key={g} onClick={() => setMatchingProfile(p => ({ ...p, game_type: toggleArrayItem(p.game_type, g) }))}
-                  className={`flex-1 py-1.5 rounded-xl text-xs font-medium border transition-colors ${matchingProfile.game_type.includes(g) ? "bg-blue-500/20 border-blue-500/40 text-blue-400" : "bg-white/5 border-white/10 text-gray-500 hover:bg-white/10"}`}>
+                  className={`flex-1 py-1.5 rounded-xl text-xs font-medium border transition-colors ${matchingProfile.game_type.includes(g) ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" : "bg-white/5 border-white/10 text-gray-500 hover:bg-white/10"}`}>
                   {g}
                 </button>
               ))}
@@ -634,11 +643,11 @@ export default function MyPage() {
           {/* 전적 (읽기 전용) */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-gray-800/50 border border-white/5 rounded-xl p-3 text-center">
-              <p className="text-xs text-gray-500 mb-1">⚡ 풋살 매칭</p>
-              <p className="text-xl font-black text-blue-400">{matchingProfile.futsal_match_count}회</p>
+              <p className="text-xs text-gray-500 mb-1 flex items-center justify-center gap-1"><Zap size={11} strokeWidth={2} /> 풋살 매칭</p>
+              <p className="text-xl font-black text-sky-400">{matchingProfile.futsal_match_count}회</p>
             </div>
             <div className="bg-gray-800/50 border border-white/5 rounded-xl p-3 text-center">
-              <p className="text-xs text-gray-500 mb-1">⚽ 축구 전적</p>
+              <p className="text-xs text-gray-500 mb-1 flex items-center justify-center gap-1"><Target size={11} strokeWidth={2} /> 축구 전적</p>
               <p className="text-sm font-black">
                 <span className="text-emerald-400">{matchingProfile.soccer_wins}승</span>
                 <span className="text-gray-500 mx-1">{matchingProfile.soccer_draws}무</span>
@@ -651,37 +660,37 @@ export default function MyPage() {
           <button
             onClick={saveMatchingProfile}
             disabled={matchingSaving}
-            className={`w-full py-3 rounded-xl font-bold transition-colors ${matchingSaved ? "bg-blue-500 text-white" : "bg-emerald-500 hover:bg-emerald-400 text-black"}`}
+            className="w-full py-3 rounded-xl font-bold transition-colors bg-emerald-500 hover:bg-emerald-400 text-black"
           >
-            {matchingSaved ? "✓ 저장됐어요!" : matchingSaving ? "저장 중..." : "매칭 프로필 저장"}
+            {matchingSaved ? <span className="inline-flex items-center justify-center gap-1"><Check size={15} /> 저장됐어요!</span> : matchingSaving ? "저장 중..." : "매칭 프로필 저장"}
           </button>
         </div>}{/* end 팀 매칭 탭 */}
 
         {/* 로그아웃 */}
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
-          className="w-full bg-gray-900 border border-white/5 rounded-2xl p-4 text-red-400 hover:text-red-300 hover:border-red-500/20 font-medium transition-colors"
+          className="w-full bg-gray-900 border border-white/5 rounded-lg p-4 text-red-400 hover:text-red-300 hover:border-red-500/20 font-medium transition-colors"
         >
           로그아웃
         </button>
 
         {/* 문의 및 탈퇴 */}
-        <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
+        <div className="bg-gray-900 border border-white/5 rounded-lg p-5">
           <h2 className="font-bold text-white mb-3 text-sm">고객 지원</h2>
           <div className="flex flex-col gap-2">
             <a
               href="mailto:dkqpqp3@gmail.com"
               className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
             >
-              <span>✉️</span>
+              <Mail size={15} strokeWidth={1.75} />
               <span>문의하기: dkqpqp3@gmail.com</span>
             </a>
             {!profile?.is_owner && (
               <button
                 onClick={() => setShowLeaveConfirm(true)}
-                className="flex items-center gap-2 text-sm text-gray-600 hover:text-orange-400 transition-colors mt-1"
+                className="flex items-center gap-2 text-sm text-gray-600 hover:text-amber-400 transition-colors mt-1"
               >
-                <span>🚪</span>
+                <LogOut size={15} strokeWidth={1.75} />
                 <span>팀 나가기</span>
               </button>
             )}
@@ -689,7 +698,7 @@ export default function MyPage() {
               onClick={() => setShowDeleteConfirm(true)}
               className="flex items-center gap-2 text-sm text-gray-600 hover:text-red-400 transition-colors mt-1"
             >
-              <span>🗑️</span>
+              <Trash2 size={15} strokeWidth={1.75} />
               <span>회원 탈퇴</span>
             </button>
           </div>
@@ -700,9 +709,9 @@ export default function MyPage() {
       {showLeaveConfirm && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setShowLeaveConfirm(false)}>
           <div className="flex min-h-full items-center justify-center px-4 py-6">
-            <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <div className="bg-gray-900 border border-white/10 rounded-lg shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
               <div className="text-center mb-5">
-                <span className="text-4xl">🚪</span>
+                <LogOut size={36} strokeWidth={1.5} className="text-amber-400 mx-auto" />
                 <h3 className="font-black text-white text-lg mt-2">팀을 나갈까요?</h3>
                 <p className="text-xs text-gray-500 mt-2 leading-relaxed">
                   팀을 나가면 팀 데이터에 접근할 수 없어요.<br />
@@ -725,7 +734,7 @@ export default function MyPage() {
                     }
                   }}
                   disabled={leaving}
-                  className="flex-1 bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-white py-3 rounded-xl font-bold transition-colors"
+                  className="flex-1 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black py-3 rounded-xl font-bold transition-colors"
                 >
                   {leaving ? "처리 중..." : "나가기"}
                 </button>
@@ -745,9 +754,9 @@ export default function MyPage() {
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setShowDeleteConfirm(false)}>
           <div className="flex min-h-full items-center justify-center px-4 py-6">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+          <div className="bg-gray-900 border border-white/10 rounded-lg shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
             <div className="text-center mb-5">
-              <span className="text-4xl">⚠️</span>
+              <AlertTriangle size={36} strokeWidth={1.5} className="text-red-400 mx-auto" />
               <h3 className="font-black text-white text-lg mt-2">정말 탈퇴할까요?</h3>
               <p className="text-xs text-gray-500 mt-2 leading-relaxed">
                 탈퇴 시 계정 및 모든 개인 데이터가 삭제되며<br />복구할 수 없어요.

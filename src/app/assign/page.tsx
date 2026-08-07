@@ -3,6 +3,11 @@
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef, Suspense } from "react";
+import {
+  Calendar, AlertTriangle, ClipboardList, BarChart3, Pencil, Check, X,
+  Zap, Coffee, Dices, Trophy, Save, Link2, Users, Footprints, Goal,
+  type LucideIcon,
+} from "lucide-react";
 import { supabaseClient } from "@/lib/supabaseClient";
 import { FORMATIONS, Formation, PositionSlot, SOCCER_FORMATIONS, FUTSAL_FORMATIONS } from "@/lib/formations";
 import KakaoShare from "@/components/KakaoShare";
@@ -426,8 +431,8 @@ function AssignContent() {
       <div className="flex items-center px-4 py-2 border-b border-white/5 bg-gray-900/60 backdrop-blur-sm sticky top-0 z-10 gap-3">
         <button onClick={() => matchId ? router.push("/matches") : router.push("/dashboard")} className="text-gray-500 hover:text-white text-sm shrink-0 transition-colors">← 뒤로</button>
         {matchInfo && (
-          <p className="text-xs text-gray-500 truncate">
-            📅 {new Date(matchInfo.match_date).toLocaleDateString("ko-KR", { month: "numeric", day: "numeric", weekday: "short" })}
+          <p className="text-xs text-gray-500 truncate flex items-center gap-1">
+            <Calendar size={12} strokeWidth={2} /> {new Date(matchInfo.match_date).toLocaleDateString("ko-KR", { month: "numeric", day: "numeric", weekday: "short" })}
             {matchInfo.title && ` · ${matchInfo.title}`}
           </p>
         )}
@@ -437,8 +442,8 @@ function AssignContent() {
 
         {/* 동시 편집 경고 */}
         {otherEditors.length > 0 && (
-          <div className="mb-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl px-4 py-3 flex items-start gap-2.5">
-            <span className="text-base shrink-0 mt-0.5">⚠️</span>
+          <div className="mb-4 bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3 flex items-start gap-2.5">
+            <AlertTriangle size={16} strokeWidth={2} className="text-amber-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-bold text-amber-300">
                 {otherEditors.join(", ")}님이 지금 이 배정 페이지에 있어요
@@ -458,7 +463,7 @@ function AssignContent() {
                 className="lg:hidden flex items-center justify-between bg-gray-900 border border-white/5 rounded-xl px-4 py-3"
                 onClick={() => setShowHistoryMobile(p => !p)}
               >
-                <span className="text-sm font-bold text-white">📋 배정 이력 ({savedAssignments.length})</span>
+                <span className="text-sm font-bold text-white flex items-center gap-1.5"><ClipboardList size={14} strokeWidth={2} /> 배정 이력 ({savedAssignments.length})</span>
                 <span className="text-gray-400 text-sm">{showHistoryMobile ? "▲" : "▼"}</span>
               </button>
 
@@ -489,7 +494,7 @@ function AssignContent() {
                     className="w-full flex items-center justify-between bg-gray-900 border border-white/5 rounded-xl px-4 py-3 hover:border-white/10 transition-colors group"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-base">📊</span>
+                      <BarChart3 size={16} strokeWidth={2} className="text-gray-400" />
                       <div className="text-left">
                         <p className="text-sm font-bold text-white">참여 현황</p>
                         <p className="text-xs text-gray-600">{savedAssignments.length}쿼터</p>
@@ -517,14 +522,14 @@ function AssignContent() {
               {/* 오른쪽: 참가자 + 배정 버튼 */}
               <div className="w-full lg:w-60 lg:shrink-0 flex flex-col gap-3 lg:sticky lg:top-20">
                 {members.length === 0 ? (
-                  <div className="bg-gray-900 border border-white/5 rounded-2xl p-5 text-center">
+                  <div className="bg-gray-900 border border-white/5 rounded-lg p-5 text-center">
                     <p className="text-sm text-gray-500">팀원이 없어요!</p>
                     <button onClick={() => router.push("/members")} className="mt-2 text-emerald-400 underline text-sm">팀원 추가하러 가기</button>
                   </div>
                 ) : (
                   <>
                     {/* 참가 인원 카드 */}
-                    <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+                    <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
                       <div className="px-4 py-3 border-b border-white/5 flex flex-col gap-2">
                         <p className="text-sm font-bold text-white">
                           오늘 참가 인원
@@ -536,7 +541,7 @@ function AssignContent() {
                             <button onClick={() => shareAttendees(attendingMembers)} className="flex-1 text-xs bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 font-semibold py-2 rounded-lg border border-blue-500/20 transition-colors">공유</button>
                           )}
                           {canManage && (
-                            <button onClick={() => setShowAttendModal(true)} className="flex-1 text-xs bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-2 rounded-lg transition-colors">✏️ 설정</button>
+                            <button onClick={() => setShowAttendModal(true)} className="flex-1 flex items-center justify-center gap-1 text-xs bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-2 rounded-lg transition-colors"><Pencil size={12} /> 설정</button>
                           )}
                         </div>
                         {canManage && matchId && rsvpAttendingUserIds.length > 0 && (
@@ -552,9 +557,9 @@ function AssignContent() {
                                 return merged;
                               });
                             }}
-                            className="w-full text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold py-2 rounded-lg border border-amber-500/20 transition-colors"
+                            className="w-full flex items-center justify-center gap-1 text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold py-2 rounded-lg border border-amber-500/20 transition-colors"
                           >
-                            ✅ 참석자 추가하기 ({rsvpAttendingUserIds.length}명)
+                            <Users size={12} /> 참석자 추가하기 ({rsvpAttendingUserIds.length}명)
                           </button>
                         )}
                       </div>
@@ -589,13 +594,13 @@ function AssignContent() {
                             const mercenary = attendingMembers.filter(m => m.is_mercenary);
                             return mercenary.length > 0 ? (
                               <div className="border-t border-white/5">
-                                <p className="text-xs font-semibold text-amber-400 px-4 pt-3 pb-1">⚡ 용병 ({mercenary.length}명)</p>
+                                <p className="flex items-center gap-1 text-xs font-semibold text-amber-400 px-4 pt-3 pb-1"><Zap size={12} /> 용병 ({mercenary.length}명)</p>
                                 <div className="flex flex-col px-3 pb-3 gap-0.5">
                                   {mercenary.map(m => (
                                     <div key={m.id} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-amber-500/5 border border-amber-500/10">
                                       <div className="flex items-center gap-1.5 flex-wrap">
                                         <span className="text-sm font-medium text-amber-300">{m.name}</span>
-                                        {m.is_cafe_mercenary ? <span className="text-xs text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded-full">☕카페</span>
+                                        {m.is_cafe_mercenary ? <span className="flex items-center gap-0.5 text-xs text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded-full"><Coffee size={10} />카페</span>
                                           : m.referrer ? <span className="text-xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full">{m.referrer}지인</span> : null}
                                       </div>
                                       <div className="flex gap-1">
@@ -616,9 +621,9 @@ function AssignContent() {
                       <button
                         onClick={autoAssign}
                         disabled={attendingIds.size === 0}
-                        className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-800 disabled:text-gray-600 text-black py-4 rounded-2xl font-bold text-base transition-colors shadow-lg shadow-emerald-500/20"
+                        className="w-full flex items-center justify-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-800 disabled:text-gray-600 text-black py-4 rounded-lg font-bold text-base transition-colors"
                       >
-                        🎲 자동 배정 시작
+                        <Dices size={18} /> 자동 배정 시작
                         {attendingIds.size > 0 && <span className="text-sm font-normal ml-1 opacity-70">({attendingIds.size}명)</span>}
                       </button>
                     )}
@@ -632,13 +637,13 @@ function AssignContent() {
         {/* STEP 2: 충돌 해결 */}
         {step === "conflict" && (
           <div className="max-w-lg mx-auto">
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 mb-4">
-              <h2 className="font-bold text-amber-400 text-sm mb-0.5">⚠️ 포지션 겹침!</h2>
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 mb-4">
+              <h2 className="flex items-center gap-1.5 font-bold text-amber-400 text-sm mb-0.5"><AlertTriangle size={14} /> 포지션 겹침!</h2>
               <p className="text-amber-300/70 text-xs">슬롯보다 희망자가 많아요. 우선순위 1명만 선택해주세요. 나머지는 자동 배정돼요.</p>
             </div>
             <div className="flex flex-col gap-3">
               {conflicts.map(conflict => (
-                <div key={conflict.label} className="bg-gray-900 border border-white/5 rounded-2xl p-4">
+                <div key={conflict.label} className="bg-gray-900 border border-white/5 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-lg text-sm font-bold">{conflict.label}</span>
                     <span className="text-sm text-gray-500">슬롯 {conflict.slotIds.length}개 · 희망자 {conflict.candidates.length}명</span>
@@ -647,7 +652,7 @@ function AssignContent() {
                     {conflict.candidates.map(m => (
                       <button key={m.id} onClick={() => setConflictChoices(prev => ({ ...prev, [conflict.label]: m.id }))}
                         className={`px-4 py-2 rounded-xl text-sm font-medium border-2 transition-colors ${conflictChoices[conflict.label] === m.id ? "border-emerald-500 bg-emerald-500/10 text-emerald-400" : "border-white/10 hover:border-white/20 text-gray-300 bg-white/5"}`}>
-                        {m.name}{conflictChoices[conflict.label] === m.id && <span className="ml-1">✓</span>}
+                        {m.name}{conflictChoices[conflict.label] === m.id && <Check size={12} className="inline ml-1" />}
                       </button>
                     ))}
                   </div>
@@ -670,7 +675,7 @@ function AssignContent() {
                 ← 배정으로 돌아가기
               </button>
               <button className="lg:hidden flex items-center justify-between bg-gray-900 border border-white/5 rounded-xl px-4 py-3" onClick={() => setShowHistoryMobile(p => !p)}>
-                <span className="text-sm font-bold text-white">📋 배정 이력 ({savedAssignments.length})</span>
+                <span className="text-sm font-bold text-white flex items-center gap-1.5"><ClipboardList size={14} strokeWidth={2} /> 배정 이력 ({savedAssignments.length})</span>
                 <span className="text-gray-400 text-sm">{showHistoryMobile ? "▲" : "▼"}</span>
               </button>
               <div className={`${showHistoryMobile ? "flex" : "hidden"} lg:flex flex-col gap-3`}>
@@ -694,7 +699,7 @@ function AssignContent() {
                 {savedAssignments.length > 0 && (
                   <button onClick={() => setShowStatsModal(true)} className="w-full flex items-center justify-between bg-gray-900 border border-white/5 rounded-xl px-4 py-3 hover:border-white/10 transition-colors">
                     <div className="flex items-center gap-2">
-                      <span>📊</span>
+                      <BarChart3 size={16} strokeWidth={2} className="text-gray-400" />
                       <div className="text-left"><p className="text-sm font-bold text-white">참여 현황</p><p className="text-xs text-gray-600">{savedAssignments.length}쿼터</p></div>
                     </div>
                     <span className="text-xs text-emerald-400 font-semibold">보기 →</span>
@@ -707,7 +712,7 @@ function AssignContent() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-white">🏆 {formation.name}</p>
+                    <p className="flex items-center gap-1.5 text-sm font-bold text-white"><Trophy size={14} className="text-amber-400" /> {formation.name}</p>
                     {canManage && (
                       <button
                         onClick={() => setShowFormationChange(v => !v)}
@@ -742,26 +747,26 @@ function AssignContent() {
                   return (
                     <>
                       {regular.length > 0 && (
-                        <div className="bg-gray-900 border border-white/5 rounded-2xl p-4">
+                        <div className="bg-gray-900 border border-white/5 rounded-lg p-4">
                           <p className="text-xs font-bold text-gray-600 mb-2 uppercase tracking-wider">정규 팀원 ({regular.length}명)</p>
                           <div className="flex flex-col gap-1">
                             {regular.map(m => (
                               <div key={m.id} className={`flex items-center justify-between px-2 py-1.5 rounded-lg ${assignedIds.has(m.id) ? "bg-emerald-500/10" : "bg-amber-500/5 border border-amber-500/10"}`}>
                                 <span className={`text-sm font-medium ${assignedIds.has(m.id) ? "text-white" : "text-amber-400"}`}>{m.name}</span>
-                                {assignedIds.has(m.id) ? <span className="text-xs text-emerald-400">✓</span> : <span className="text-xs text-amber-400">미배정</span>}
+                                {assignedIds.has(m.id) ? <Check size={12} className="text-emerald-400" /> : <span className="text-xs text-amber-400">미배정</span>}
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
                       {mercenary.length > 0 && (
-                        <div className="bg-gray-900 border border-amber-500/20 rounded-2xl p-4">
-                          <p className="text-xs font-bold text-amber-400 mb-2 uppercase tracking-wider">⚡ 용병 ({mercenary.length}명)</p>
+                        <div className="bg-gray-900 border border-amber-500/20 rounded-lg p-4">
+                          <p className="flex items-center gap-1 text-xs font-bold text-amber-400 mb-2 uppercase tracking-wider"><Zap size={11} /> 용병 ({mercenary.length}명)</p>
                           <div className="flex flex-col gap-1">
                             {mercenary.map(m => (
                               <div key={m.id} className={`flex items-center justify-between px-2 py-1.5 rounded-lg ${assignedIds.has(m.id) ? "bg-emerald-500/10" : "bg-amber-500/5"}`}>
                                 <span className={`text-sm font-medium ${assignedIds.has(m.id) ? "text-amber-300" : "text-amber-400/60"}`}>{m.name}</span>
-                                {assignedIds.has(m.id) ? <span className="text-xs text-emerald-400">✓</span> : <span className="text-xs text-amber-400/50">미배정</span>}
+                                {assignedIds.has(m.id) ? <Check size={12} className="text-emerald-400" /> : <span className="text-xs text-amber-400/50">미배정</span>}
                               </div>
                             ))}
                           </div>
@@ -773,9 +778,9 @@ function AssignContent() {
                 {canManage && (
                   <button
                     onClick={() => { if (!loadedAssignmentId) setSaveSessionName(`${savedAssignments.length + 1}쿼터`); setShowSaveModal(true); }}
-                    className="w-full bg-emerald-500 hover:bg-emerald-400 text-black py-3 rounded-xl font-bold transition-colors shadow-lg shadow-emerald-500/20"
+                    className="w-full flex items-center justify-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black py-3 rounded-xl font-bold transition-colors"
                   >
-                    💾 이 배정 저장
+                    <Save size={15} /> 이 배정 저장
                   </button>
                 )}
                 {loadedAssignmentId && (
@@ -794,7 +799,7 @@ function AssignContent() {
                       }}
                       className={`shrink-0 px-4 py-3 rounded-xl font-bold text-sm transition-colors border whitespace-nowrap ${linkCopied ? "bg-blue-500/20 border-blue-500/40 text-blue-400" : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-400"}`}
                     >
-                      {linkCopied ? "✓" : "🔗"} 링크
+                      <span className="inline-flex items-center gap-1">{linkCopied ? <Check size={13} /> : <Link2 size={13} />} 링크</span>
                     </button>
                   </div>
                 )}
@@ -823,9 +828,9 @@ function AssignContent() {
         return (
           <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setShowStatsModal(false)}>
             <div className="flex min-h-full items-center justify-center px-4 py-6">
-            <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="bg-gray-900 border border-white/10 rounded-lg shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-                <div><h3 className="font-bold text-white text-lg">📊 참여 현황</h3><p className="text-xs text-gray-500 mt-0.5">총 {total}쿼터 · {sorted.length}명</p></div>
+                <div><h3 className="flex items-center gap-1.5 font-bold text-white text-lg"><BarChart3 size={16} /> 참여 현황</h3><p className="text-xs text-gray-500 mt-0.5">총 {total}쿼터 · {sorted.length}명</p></div>
                 <button onClick={() => setShowStatsModal(false)} className="text-gray-500 hover:text-white text-xl font-bold">✕</button>
               </div>
               <div className="px-6 pt-4 pb-2">
@@ -845,7 +850,7 @@ function AssignContent() {
                     return (
                       <div key={idx} className="flex items-center gap-2 py-2 border-b border-white/5 last:border-0">
                         <span className={`text-sm font-medium w-24 shrink-0 truncate ${p.isMercenary ? "text-amber-400" : "text-white"}`}>
-                          {p.name}{p.isMercenary && <span className="text-xs ml-0.5">⚡</span>}
+                          {p.name}{p.isMercenary && <Zap size={10} className="inline ml-0.5" />}
                         </span>
                         <div className="flex gap-1.5 flex-wrap flex-1">
                           {p.quarters.map((played, i) => played
@@ -877,7 +882,7 @@ function AssignContent() {
       {showAttendModal && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setShowAttendModal(false)}>
           <div className="flex min-h-full items-center justify-center px-4 py-6">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="bg-gray-900 border border-white/10 rounded-lg shadow-2xl w-full max-w-sm max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-white text-base">참가 인원 선택</h3>
@@ -900,7 +905,7 @@ function AssignContent() {
                         <button key={m.id} onClick={() => toggleAttending(m.id)}
                           className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-colors ${checked ? "bg-emerald-500/5" : "hover:bg-white/3"}`}>
                           <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${checked ? "bg-emerald-500 border-emerald-500" : "border-gray-600"}`}>
-                            {checked && <span className="text-black text-[10px] font-bold">✓</span>}
+                            {checked && <Check size={11} strokeWidth={3} className="text-black" />}
                           </div>
                           <span className={`text-sm font-medium flex-1 ${checked ? "text-white" : "text-gray-500"}`}>{m.name}</span>
                           <div className="flex gap-1 shrink-0">
@@ -917,18 +922,18 @@ function AssignContent() {
                 const mercenary = members.filter(m => m.is_mercenary);
                 return mercenary.length > 0 ? (
                   <div className="border-t border-white/5 mt-1">
-                    <p className="text-xs font-bold text-amber-400 px-5 pt-4 pb-2 uppercase tracking-wide">⚡ 용병 ({mercenary.length}명)</p>
+                    <p className="flex items-center gap-1 text-xs font-bold text-amber-400 px-5 pt-4 pb-2 uppercase tracking-wide"><Zap size={11} /> 용병 ({mercenary.length}명)</p>
                     {mercenary.map(m => {
                       const checked = attendingIds.has(m.id);
                       return (
                         <button key={m.id} onClick={() => toggleAttending(m.id)}
                           className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-colors ${checked ? "bg-amber-500/5" : "hover:bg-white/3"}`}>
                           <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${checked ? "bg-amber-400 border-amber-400" : "border-gray-600"}`}>
-                            {checked && <span className="text-black text-[10px] font-bold">✓</span>}
+                            {checked && <Check size={11} strokeWidth={3} className="text-black" />}
                           </div>
                           <div className="flex items-center gap-1.5 flex-1 min-w-0">
                             <span className={`text-sm font-medium ${checked ? "text-amber-300" : "text-gray-500"}`}>{m.name}</span>
-                            {m.is_cafe_mercenary ? <span className="text-xs text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded-full shrink-0">☕카페</span>
+                            {m.is_cafe_mercenary ? <span className="flex items-center gap-0.5 text-xs text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded-full shrink-0"><Coffee size={10} />카페</span>
                               : m.referrer ? <span className="text-xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full shrink-0">{m.referrer}지인</span> : null}
                           </div>
                           <div className="flex gap-1 shrink-0">
@@ -954,8 +959,8 @@ function AssignContent() {
 
       {/* 공유 토스트 */}
       {shareToast && (
-        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 border border-white/10 text-white text-sm font-medium px-5 py-3 rounded-2xl shadow-lg">
-          🔗 공유 링크가 복사됐어요!
+        <div className="flex items-center gap-1.5 fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 border border-white/10 text-white text-sm font-medium px-5 py-3 rounded-lg shadow-lg">
+          <Link2 size={14} /> 공유 링크가 복사됐어요!
         </div>
       )}
 
@@ -963,7 +968,7 @@ function AssignContent() {
       {showSaveModal && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setShowSaveModal(false)}>
           <div className="flex min-h-full items-center justify-center px-6 py-6">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+          <div className="bg-gray-900 border border-white/10 rounded-lg shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-white mb-4">{loadedAssignmentId ? `"${saveSessionName}" 업데이트` : "배정 저장"}</h3>
             {loadedAssignmentId ? (
               <div className="mb-4 bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3">
@@ -998,9 +1003,9 @@ function AssignContent() {
       {conflictAlert && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setConflictAlert(null)}>
           <div className="flex min-h-full items-center justify-center px-4 py-6">
-          <div className="bg-gray-900 border border-amber-500/30 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+          <div className="bg-gray-900 border border-amber-500/30 rounded-lg shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
             <div className="text-center mb-5">
-              <span className="text-4xl">⚠️</span>
+              <AlertTriangle size={36} className="text-amber-400 mx-auto" />
               <h3 className="font-black text-white text-lg mt-2">다른 사람이 배정 중이에요</h3>
               <p className="text-sm text-gray-400 mt-2 leading-relaxed">
                 <b className="text-amber-300">{conflictAlert.join(", ")}</b>님이 지금 이 경기의 배정 작업을 하고 있어요.<br />
@@ -1020,7 +1025,7 @@ function AssignContent() {
       {popup && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setPopup(null)}>
           <div className="flex min-h-full items-center justify-center px-6 py-6">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+          <div className="bg-gray-900 border border-white/10 rounded-lg shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-white mb-1">
               <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded-lg mr-2 text-sm">{popup.label}</span>
               포지션
@@ -1056,7 +1061,7 @@ function AssignContent() {
                   <>
                     {regular.length > 0 && (
                       <>
-                        <p className="text-xs font-bold text-gray-600 px-1">👥 정규팀원</p>
+                        <p className="flex items-center gap-1 text-xs font-bold text-gray-600 px-1"><Users size={11} /> 정규팀원</p>
                         {regular.map(m => {
                           const currentSlot = memberSlotLabel(m.id);
                           return (
@@ -1079,7 +1084,7 @@ function AssignContent() {
                     )}
                     {mercenary.length > 0 && (
                       <>
-                        <p className="text-xs font-bold text-amber-400 px-1 mt-1">⚡ 용병</p>
+                        <p className="flex items-center gap-1 text-xs font-bold text-amber-400 px-1 mt-1"><Zap size={11} /> 용병</p>
                         {mercenary.map(m => {
                           const currentSlot = memberSlotLabel(m.id);
                           return (
@@ -1087,7 +1092,7 @@ function AssignContent() {
                             className="flex flex-col px-4 py-2.5 rounded-xl border border-amber-500/20 hover:border-amber-400/50 hover:bg-amber-500/5 transition-colors text-left w-full">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="font-medium text-amber-300">{m.name}</span>
-                              {m.is_cafe_mercenary ? <span className="text-xs text-sky-400">☕카페</span> : m.referrer ? <span className="text-xs text-amber-400">{m.referrer}지인</span> : null}
+                              {m.is_cafe_mercenary ? <span className="flex items-center gap-0.5 text-xs text-sky-400"><Coffee size={10} />카페</span> : m.referrer ? <span className="text-xs text-amber-400">{m.referrer}지인</span> : null}
                               {currentSlot && <span className="text-xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">{currentSlot}에서 스왑</span>}
                             </div>
                             {(m.position_1st || m.position_2nd) && (
@@ -1124,13 +1129,13 @@ export default function AssignPage() {
 
 function FormationSelect({ value, onChange, customFormations }: { value: string; onChange: (v: string) => void; customFormations: CustomFormation[] }) {
   const [open, setOpen] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({ "⚽ 축구": true });
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({ "축구": true });
   const [expandedFutsal, setExpandedFutsal] = useState<Record<string, boolean>>({});
   const [futsalOpen, setFutsalOpen] = useState(false);
 
-  const groups: { label: string; keys: string[] }[] = [
-    { label: "⚽ 축구", keys: SOCCER_FORMATIONS },
-    ...(customFormations.length > 0 ? [{ label: "✏️ 내 커스텀 포메이션", keys: customFormations.map(f => f.id) }] : []),
+  const groups: { label: string; icon: LucideIcon; keys: string[] }[] = [
+    { label: "축구", icon: Goal, keys: SOCCER_FORMATIONS },
+    ...(customFormations.length > 0 ? [{ label: "내 커스텀 포메이션", icon: Pencil, keys: customFormations.map(f => f.id) }] : []),
   ];
 
   const displayName = (key: string) => customFormations.find(f => f.id === key)?.name ?? key;
@@ -1151,13 +1156,13 @@ function FormationSelect({ value, onChange, customFormations }: { value: string;
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 right-0 top-full mt-1 bg-gray-800 border border-white/10 rounded-2xl shadow-2xl z-40 overflow-hidden max-h-80 overflow-y-auto">
+          <div className="absolute left-0 right-0 top-full mt-1 bg-gray-800 border border-white/10 rounded-lg shadow-2xl z-40 overflow-hidden max-h-80 overflow-y-auto">
             {/* 축구 + 커스텀 그룹 */}
             {groups.map(group => (
               <div key={group.label}>
                 <button type="button" onClick={() => toggleGroup(group.label)}
                   className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-900/50 hover:bg-gray-900 transition-colors">
-                  <span className="text-sm font-bold text-gray-400">{group.label}</span>
+                  <span className="flex items-center gap-1.5 text-sm font-bold text-gray-400"><group.icon size={13} /> {group.label}</span>
                   <span className={`text-xs text-gray-600 transition-transform ${expandedGroups[group.label] ? "rotate-180" : ""}`}>▼</span>
                 </button>
                 {expandedGroups[group.label] && (
@@ -1165,7 +1170,7 @@ function FormationSelect({ value, onChange, customFormations }: { value: string;
                     {group.keys.map(key => (
                       <button key={key} type="button" onClick={() => { onChange(key); setOpen(false); }}
                         className={`w-full text-left px-6 py-2.5 text-sm transition-colors flex items-center gap-2 ${value === key ? "bg-emerald-500/10 text-emerald-400 font-semibold" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}>
-                        {value === key && <span className="text-emerald-400 text-xs">✓</span>}
+                        {value === key && <Check size={12} className="text-emerald-400" />}
                         <span className={value === key ? "" : "pl-4"}>{displayName(key)}</span>
                       </button>
                     ))}
@@ -1178,7 +1183,7 @@ function FormationSelect({ value, onChange, customFormations }: { value: string;
             <div>
               <button type="button" onClick={() => setFutsalOpen(o => !o)}
                 className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-900/50 hover:bg-gray-900 transition-colors">
-                <span className="text-sm font-bold text-gray-400">🏃 풋살</span>
+                <span className="flex items-center gap-1.5 text-sm font-bold text-gray-400"><Footprints size={13} /> 풋살</span>
                 <span className={`text-xs text-gray-600 transition-transform ${futsalOpen ? "rotate-180" : ""}`}>▼</span>
               </button>
               {futsalOpen && Object.entries(FUTSAL_FORMATIONS).map(([size, keys]) => (
@@ -1191,7 +1196,7 @@ function FormationSelect({ value, onChange, customFormations }: { value: string;
                   {expandedFutsal[size] && keys.map(key => (
                     <button key={key} type="button" onClick={() => { onChange(key); setOpen(false); }}
                       className={`w-full text-left px-8 py-2 text-sm transition-colors flex items-center gap-2 ${value === key ? "bg-emerald-500/10 text-emerald-400 font-semibold" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}>
-                      {value === key && <span className="text-emerald-400 text-xs">✓</span>}
+                      {value === key && <Check size={12} className="text-emerald-400" />}
                       <span className={value === key ? "" : "pl-4"}>{key.replace(/^풋살 \d+vs\d+ /, "")}</span>
                     </button>
                   ))}
@@ -1242,7 +1247,7 @@ function FieldView({ formation, assigned, preview = false, onSlotClick, mercenar
   mercenaryIds?: Set<string>;
 }) {
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden" style={{ paddingBottom: "110%", background: "linear-gradient(180deg, #166534 0%, #14532d 40%, #15803d 60%, #166534 100%)" }}>
+    <div className="relative w-full rounded-lg overflow-hidden" style={{ paddingBottom: "110%", background: "linear-gradient(180deg, #166534 0%, #14532d 40%, #15803d 60%, #166534 100%)" }}>
       {/* 필드 라인 */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute border border-white/20 inset-[3%] rounded-sm" />

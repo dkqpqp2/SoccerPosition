@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
+import { Camera, Megaphone, Pencil, X, type LucideIcon } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -48,6 +49,11 @@ interface Post {
 }
 
 const inputCls = "w-full bg-gray-800 border border-white/10 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600";
+
+const TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
+  { key: "gallery", label: "사진", icon: Camera },
+  { key: "board", label: "건의함", icon: Megaphone },
+];
 
 /** 사진 배열을 group_id 기준으로 묶기 (없으면 photo.id가 키) */
 function groupPhotos(photos: Photo[]): PhotoGroup[] {
@@ -257,11 +263,13 @@ export default function BoardPage() {
 
         {/* 탭 */}
         <div className="flex bg-gray-900 border border-white/5 rounded-xl p-1 mb-5">
-          {([["gallery", "📸 사진"], ["board", "📢 건의함"]] as [Tab, string][]).map(([key, label]) => (
+          {TABS.map(({ key, label, icon: Icon }) => (
             <button key={key} onClick={() => setTab(key)}
-              className={`flex-1 text-sm font-bold py-2 rounded-lg transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-1.5 text-sm font-bold py-2 rounded-lg transition-colors ${
                 tab === key ? "bg-emerald-500 text-black" : "text-gray-500 hover:text-white"
-              }`}>{label}</button>
+              }`}>
+              <Icon size={14} strokeWidth={2} /> {label}
+            </button>
           ))}
         </div>
 
@@ -296,7 +304,7 @@ export default function BoardPage() {
 
             {filteredGroups.length === 0 ? (
               <div className="text-center py-20">
-                <div className="text-5xl mb-3 opacity-20">📸</div>
+                <Camera size={44} strokeWidth={1.5} className="opacity-20 mx-auto mb-3" />
                 <p className="text-gray-600">{galleryYear}년 사진이 없어요</p>
                 <button onClick={() => setShowUpload(true)}
                   className="mt-3 text-sm text-emerald-400 hover:underline">첫 사진 올리기 →</button>
@@ -322,7 +330,7 @@ export default function BoardPage() {
                       {/* 사진 장수 배지 (2장 이상일 때만) */}
                       {group.photos.length > 1 && (
                         <span className="absolute top-2 right-2 text-[10px] font-bold bg-black/70 text-white px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                          <span>📷</span>{group.photos.length}
+                          <Camera size={10} />{group.photos.length}
                         </span>
                       )}
 
@@ -344,14 +352,14 @@ export default function BoardPage() {
           <div>
             <div className="flex justify-end mb-4">
               <button onClick={() => setShowWrite(true)}
-                className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2 rounded-xl text-sm transition-colors">
-                ✏️ 건의하기
+                className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2 rounded-xl text-sm transition-colors">
+                <Pencil size={14} /> 건의하기
               </button>
             </div>
 
             {posts.length === 0 ? (
               <div className="text-center py-20">
-                <div className="text-5xl mb-3 opacity-20">📢</div>
+                <Megaphone size={44} strokeWidth={1.5} className="opacity-20 mx-auto mb-3" />
                 <p className="text-gray-600">아직 건의 사항이 없어요</p>
                 <button onClick={() => setShowWrite(true)}
                   className="mt-3 text-sm text-emerald-400 hover:underline">첫 건의 남기기 →</button>
@@ -362,7 +370,7 @@ export default function BoardPage() {
                   const canDelete = isStaff || post.member_id === myMemberId;
                   const expanded  = expandedId === post.id;
                   return (
-                    <div key={post.id} className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+                    <div key={post.id} className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
                       <button className="w-full text-left px-4 py-4 hover:bg-white/3 transition-colors"
                         onClick={() => setExpandedId(expanded ? null : post.id)}>
                         <div className="flex items-start justify-between gap-2">
@@ -399,16 +407,16 @@ export default function BoardPage() {
           onClick={() => !uploading && resetUpload()}>
           <div className="flex min-h-full items-center justify-center px-4 py-6">
           <form onSubmit={uploadPhotos}
-            className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[85vh]"
+            className="bg-gray-900 border border-white/10 rounded-lg shadow-2xl w-full max-w-sm flex flex-col max-h-[85vh]"
             onClick={e => e.stopPropagation()}>
 
             <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between shrink-0">
               <div>
-                <h3 className="font-bold text-white">📸 사진 올리기</h3>
+                <h3 className="font-bold text-white flex items-center gap-2"><Camera size={16} /> 사진 올리기</h3>
                 <p className="text-[11px] text-gray-600 mt-0.5">최대 {MAX_PHOTOS}장까지 선택 가능</p>
               </div>
               <button type="button" onClick={() => !uploading && resetUpload()}
-                className="text-gray-500 hover:text-white text-xl font-bold">✕</button>
+                className="text-gray-500 hover:text-white"><X size={20} /></button>
             </div>
 
             <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1">
@@ -428,7 +436,7 @@ export default function BoardPage() {
                 {upPreviews.length === 0 ? (
                   <button type="button" onClick={() => fileRef.current?.click()}
                     className="w-full h-36 border-2 border-dashed border-white/10 hover:border-emerald-500/40 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-500 hover:text-emerald-400 transition-colors">
-                    <span className="text-3xl">📷</span>
+                    <Camera size={28} strokeWidth={1.5} />
                     <span className="text-xs font-medium">이미지 선택 (1~{MAX_PHOTOS}장)</span>
                   </button>
                 ) : (
@@ -438,7 +446,7 @@ export default function BoardPage() {
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={src} alt="" className="w-full h-full object-cover" />
                         <button type="button" onClick={() => removeFile(i)}
-                          className="absolute top-1 right-1 w-5 h-5 bg-black/70 text-white rounded-full text-[10px] flex items-center justify-center hover:bg-red-500/80 transition-colors">✕</button>
+                          className="absolute top-1 right-1 w-5 h-5 bg-black/70 text-white rounded-full flex items-center justify-center hover:bg-red-500/80 transition-colors"><X size={11} /></button>
                         <span className="absolute bottom-1 left-1 text-[9px] font-bold bg-black/60 text-white px-1 py-0.5 rounded-full">{i + 1}</span>
                       </div>
                     ))}
@@ -498,12 +506,12 @@ export default function BoardPage() {
           onClick={() => setShowWrite(false)}>
           <div className="flex min-h-full items-center justify-center px-4 py-6">
           <form onSubmit={submitPost}
-            className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+            className="bg-gray-900 border border-white/10 rounded-lg shadow-2xl w-full max-w-sm overflow-hidden"
             onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
-              <h3 className="font-bold text-white">📢 건의하기</h3>
+              <h3 className="font-bold text-white flex items-center gap-2"><Megaphone size={16} /> 건의하기</h3>
               <button type="button" onClick={() => setShowWrite(false)}
-                className="text-gray-500 hover:text-white text-xl font-bold">✕</button>
+                className="text-gray-500 hover:text-white"><X size={20} /></button>
             </div>
             <div className="px-5 py-4 space-y-3">
               <input type="text" value={pTitle} onChange={e => setPTitle(e.target.value)}
@@ -554,8 +562,8 @@ export default function BoardPage() {
                   </button>
                 )}
                 <button onClick={() => setDetailGroup(null)}
-                  className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white rounded-full transition-colors text-lg">
-                  ✕
+                  className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white rounded-full transition-colors">
+                  <X size={16} />
                 </button>
               </div>
             </div>

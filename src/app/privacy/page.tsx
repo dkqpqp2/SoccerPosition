@@ -136,7 +136,7 @@ export default function PrivacyPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="bg-gray-900 border border-white/5 rounded-2xl p-6 space-y-3">
+    <section className="bg-gray-900 border border-white/5 rounded-lg p-6 space-y-3">
       <h2 className="font-bold text-emerald-400 text-base">{title}</h2>
       <div className="text-gray-300 text-sm leading-relaxed space-y-2">{children}</div>
     </section>

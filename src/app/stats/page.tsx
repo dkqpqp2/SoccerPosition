@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Goal, Target, Footprints, BarChart3, Trophy, Pencil, Medal, type LucideIcon } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 
 interface PlayerStat {
@@ -30,12 +31,12 @@ type MainTab = "stats" | "records";
 const CURRENT_YEAR = new Date().getFullYear();
 const PAGE_SIZE    = 10;
 
-const SORT_LABELS: Record<SortKey, string> = {
-  goals:           "🥅 골",
-  assists:         "🎯 어시",
-  attendance_rate: "🏃 참석률",
-  name:            "가나다",
-};
+const SORT_OPTIONS: { key: SortKey; icon: LucideIcon | null; label: string }[] = [
+  { key: "goals",           icon: Goal,       label: "골" },
+  { key: "assists",         icon: Target,     label: "어시" },
+  { key: "attendance_rate", icon: Footprints, label: "참석률" },
+  { key: "name",            icon: null,       label: "가나다" },
+];
 
 export default function StatsPage() {
   const { status } = useSession();
@@ -147,12 +148,12 @@ export default function StatsPage() {
         {/* ── 메인 탭 (개인통계 / 팀 전적) ── */}
         <div className="flex gap-1 bg-gray-900 border border-white/5 rounded-xl p-1 mb-5">
           <button onClick={() => setMainTab("stats")}
-            className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${mainTab === "stats" ? "bg-emerald-500 text-black shadow" : "text-gray-500 hover:text-white"}`}>
-            📊 개인 통계
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold transition-all ${mainTab === "stats" ? "bg-emerald-500 text-black shadow" : "text-gray-500 hover:text-white"}`}>
+            <BarChart3 size={15} strokeWidth={2} /> 개인 통계
           </button>
           <button onClick={() => setMainTab("records")}
-            className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${mainTab === "records" ? "bg-blue-500 text-white shadow" : "text-gray-500 hover:text-white"}`}>
-            🏆 팀 전적
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold transition-all ${mainTab === "records" ? "bg-sky-500 text-white shadow" : "text-gray-500 hover:text-white"}`}>
+            <Trophy size={15} strokeWidth={2} /> 팀 전적
           </button>
         </div>
 
@@ -167,7 +168,7 @@ export default function StatsPage() {
           </div>
         ) : mainTab === "stats" && stats.length === 0 ? (
           <div className="text-center py-20">
-            <div className="text-5xl mb-3 opacity-20">📊</div>
+            <BarChart3 size={48} strokeWidth={1.5} className="mx-auto mb-3 opacity-20" />
             <p className="text-gray-600">팀원 데이터가 없어요</p>
           </div>
         ) : mainTab === "stats" ? (
@@ -181,19 +182,20 @@ export default function StatsPage() {
               {canManageStats && (
                 <button onClick={() => router.push("/stats/manage")}
                   className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors">
-                  ✏️ 기록 관리
+                  <Pencil size={13} strokeWidth={2} /> 기록 관리
                 </button>
               )}
             </div>
 
             {/* ── 정렬 탭 ── */}
             <div className="flex gap-1.5 mb-5 bg-gray-900 border border-white/5 rounded-xl p-1.5">
-              {(Object.keys(SORT_LABELS) as SortKey[]).map(key => (
-                <button key={key} onClick={() => { setSort(key); setListPage(0); }}
-                  className={`flex-1 text-xs font-semibold py-1.5 rounded-lg transition-colors ${
-                    sort === key ? "bg-white/10 text-white" : "text-gray-600 hover:text-gray-400"
+              {SORT_OPTIONS.map(opt => (
+                <button key={opt.key} onClick={() => { setSort(opt.key); setListPage(0); }}
+                  className={`flex-1 flex items-center justify-center gap-1 text-xs font-semibold py-1.5 rounded-lg transition-colors ${
+                    sort === opt.key ? "bg-white/10 text-white" : "text-gray-600 hover:text-gray-400"
                   }`}>
-                  {SORT_LABELS[key]}
+                  {opt.icon && <opt.icon size={13} strokeWidth={2} />}
+                  {opt.label}
                 </button>
               ))}
             </div>
@@ -224,7 +226,7 @@ export default function StatsPage() {
                 <p className="text-[11px] text-gray-600 font-semibold uppercase tracking-widest mb-2">
                   {sort !== "name" ? "전체 순위" : "팀원 목록"}
                 </p>
-                <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+                <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
                   <div className="divide-y divide-white/5">
                     {pagedList.map(p => (
                       <CompactRow key={p.id} player={p} rank={sort !== "name" ? rankMap[p.id] : null} sortKey={sort} />
@@ -263,13 +265,13 @@ function RecordsTab({ results, loading }: { results: MatchResult[]; loading: boo
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
-      <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   if (results.length === 0) return (
     <div className="text-center py-20 text-gray-600 text-sm">
-      <p className="text-4xl mb-3">🏆</p>
+      <Trophy size={40} strokeWidth={1.5} className="mx-auto mb-3 opacity-30" />
       <p className="font-semibold">아직 기록된 경기 결과가 없어요</p>
       <p className="text-xs text-gray-700 mt-1">경기 관리에서 결과를 입력하면 여기에 표시돼요</p>
     </div>
@@ -302,7 +304,7 @@ function RecordsTab({ results, loading }: { results: MatchResult[]; loading: boo
   return (
     <div className="space-y-4">
       {/* 전체 요약 */}
-      <div className="bg-gray-900 rounded-2xl p-5 border border-white/5">
+      <div className="bg-gray-900 rounded-lg p-5 border border-white/5">
         <p className="text-[10px] text-gray-600 uppercase tracking-widest font-semibold mb-3">전체 전적 · {results.length}경기</p>
         <div className="flex items-center gap-3 mb-4">
           <div className="flex-1 text-center">
@@ -310,7 +312,7 @@ function RecordsTab({ results, loading }: { results: MatchResult[]; loading: boo
             <p className="text-xs text-gray-500 mt-0.5">승</p>
           </div>
           <div className="flex-1 text-center">
-            <p className="text-3xl font-black text-yellow-400">{draws}</p>
+            <p className="text-3xl font-black text-amber-400">{draws}</p>
             <p className="text-xs text-gray-500 mt-0.5">무</p>
           </div>
           <div className="flex-1 text-center">
@@ -321,7 +323,7 @@ function RecordsTab({ results, loading }: { results: MatchResult[]; loading: boo
         {/* 승률 바 */}
         <div className="flex h-2.5 rounded-full overflow-hidden gap-px mb-3">
           {wins > 0   && <div className="bg-emerald-400 transition-all" style={{ flex: wins }} />}
-          {draws > 0  && <div className="bg-yellow-400 transition-all" style={{ flex: draws }} />}
+          {draws > 0  && <div className="bg-amber-400 transition-all" style={{ flex: draws }} />}
           {losses > 0 && <div className="bg-red-400 transition-all"    style={{ flex: losses }} />}
         </div>
         <div className="grid grid-cols-3 gap-2 text-center">
@@ -343,7 +345,7 @@ function RecordsTab({ results, loading }: { results: MatchResult[]; loading: boo
       </div>
 
       {/* 상대팀별 전적 */}
-      <div className="bg-gray-900 rounded-2xl border border-white/5 overflow-hidden">
+      <div className="bg-gray-900 rounded-lg border border-white/5 overflow-hidden">
         <div className="px-4 py-3 border-b border-white/5">
           <p className="text-[10px] text-gray-600 uppercase tracking-widest font-semibold">상대팀별 전적</p>
         </div>
@@ -357,7 +359,7 @@ function RecordsTab({ results, loading }: { results: MatchResult[]; loading: boo
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span className="text-[10px] font-bold text-emerald-400">{rec.w}승</span>
                   <span className="text-[10px] text-gray-600">·</span>
-                  <span className="text-[10px] font-bold text-yellow-400">{rec.d}무</span>
+                  <span className="text-[10px] font-bold text-amber-400">{rec.d}무</span>
                   <span className="text-[10px] text-gray-600">·</span>
                   <span className="text-[10px] font-bold text-red-400">{rec.l}패</span>
                   <span className="text-[10px] text-gray-600 ml-1">({rec.gf}-{rec.ga})</span>
@@ -371,7 +373,7 @@ function RecordsTab({ results, loading }: { results: MatchResult[]; loading: boo
                   return (
                     <span key={i} title={`${m.score_us}-${m.score_them}`}
                       className={`w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center ${
-                        isW ? "bg-emerald-500/20 text-emerald-400" : isD ? "bg-yellow-500/20 text-yellow-400" : "bg-red-500/20 text-red-400"
+                        isW ? "bg-emerald-500/20 text-emerald-400" : isD ? "bg-amber-500/20 text-amber-400" : "bg-red-500/20 text-red-400"
                       }`}>
                       {isW ? "W" : isD ? "D" : "L"}
                     </span>
@@ -381,7 +383,7 @@ function RecordsTab({ results, loading }: { results: MatchResult[]; loading: boo
               {/* 승률 바 */}
               <div className="flex h-1 rounded-full overflow-hidden gap-px">
                 {rec.w > 0 && <div className="bg-emerald-400" style={{ flex: rec.w }} />}
-                {rec.d > 0 && <div className="bg-yellow-400" style={{ flex: rec.d }} />}
+                {rec.d > 0 && <div className="bg-amber-400" style={{ flex: rec.d }} />}
                 {rec.l > 0 && <div className="bg-red-400"    style={{ flex: rec.l }} />}
               </div>
               <p className="text-[10px] text-gray-600 mt-1">승률 {winRate}% · 골득실 {rec.gf - rec.ga > 0 ? "+" : ""}{rec.gf - rec.ga}</p>
@@ -391,7 +393,7 @@ function RecordsTab({ results, loading }: { results: MatchResult[]; loading: boo
       </div>
 
       {/* 최근 경기 결과 */}
-      <div className="bg-gray-900 rounded-2xl border border-white/5 overflow-hidden">
+      <div className="bg-gray-900 rounded-lg border border-white/5 overflow-hidden">
         <div className="px-4 py-3 border-b border-white/5">
           <p className="text-[10px] text-gray-600 uppercase tracking-widest font-semibold">최근 경기 결과</p>
         </div>
@@ -400,7 +402,7 @@ function RecordsTab({ results, loading }: { results: MatchResult[]; loading: boo
           const isD = r.score_us === r.score_them;
           const badge = isW
             ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
-            : isD ? "bg-yellow-500/15 border-yellow-500/30 text-yellow-300"
+            : isD ? "bg-amber-500/15 border-amber-500/30 text-amber-300"
             : "bg-red-500/15 border-red-500/30 text-red-300";
           const label = isW ? "승" : isD ? "무" : "패";
           const d = new Date(r.match_date);
@@ -435,16 +437,16 @@ function MyCard({ player, rank, sortKey, totalPlayers }: {
 }) {
   const rate     = player.attendance_rate;
   const barColor = rate >= 80 ? "bg-emerald-500" : rate >= 50 ? "bg-amber-400" : "bg-red-500";
-  const rankMedal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
+  const isMedalRank = rank !== null && rank <= 3;
 
   return (
-    <div className="bg-emerald-500/5 border-2 border-emerald-500/30 rounded-2xl px-4 py-4">
+    <div className="bg-emerald-500/5 border-2 border-emerald-500/30 rounded-lg px-4 py-4">
       <div className="flex items-center gap-3 mb-3">
         {/* 순위 */}
         {rank !== null && (
-          <div className="shrink-0 text-center w-8">
-            {rankMedal ? (
-              <span className="text-2xl">{rankMedal}</span>
+          <div className="shrink-0 text-center w-8 flex items-center justify-center">
+            {isMedalRank ? (
+              <Medal size={24} strokeWidth={1.75} className={rank === 1 ? "text-emerald-400" : "text-gray-500"} />
             ) : (
               <span className="text-lg font-black text-gray-500">{rank}</span>
             )}
@@ -462,15 +464,17 @@ function MyCard({ player, rank, sortKey, totalPlayers }: {
 
         {/* 스탯 뱃지 */}
         <div className="flex items-center gap-1.5 shrink-0">
-          <StatBadge emoji="🥅" value={player.goals}   unit="골"  active={sortKey === "goals"}   color="emerald" size="lg" />
-          <StatBadge emoji="🎯" value={player.assists} unit="도움" active={sortKey === "assists"} color="blue"    size="lg" />
+          <StatBadge icon={Goal}   value={player.goals}   unit="골"  active={sortKey === "goals"}   color="emerald" size="lg" />
+          <StatBadge icon={Target} value={player.assists} unit="도움" active={sortKey === "assists"} color="sky"     size="lg" />
         </div>
       </div>
 
       {/* 참석률 바 */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <span className={`text-xs font-semibold ${sortKey === "attendance_rate" ? "text-amber-400" : "text-gray-500"}`}>🏃 참석률</span>
+          <span className={`flex items-center gap-1 text-xs font-semibold ${sortKey === "attendance_rate" ? "text-amber-400" : "text-gray-500"}`}>
+            <Footprints size={12} strokeWidth={2} /> 참석률
+          </span>
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] text-gray-600">{player.games_played}/{player.total_matches}경기</span>
             <span className={`text-sm font-black ${
@@ -493,9 +497,9 @@ function MyCard({ player, rank, sortKey, totalPlayers }: {
    포디엄 카드 (TOP 3)
 ═══════════════════════════════════════ */
 const PODIUM_STYLES = [
-  { border: "border-yellow-400/40",  bg: "bg-yellow-400/5",  medal: "🥇", nameColor: "text-yellow-300", label: "1위" },
-  { border: "border-gray-400/40",    bg: "bg-gray-400/5",    medal: "🥈", nameColor: "text-gray-300",   label: "2위" },
-  { border: "border-amber-700/40",   bg: "bg-amber-700/5",   medal: "🥉", nameColor: "text-amber-600",  label: "3위" },
+  { border: "border-emerald-500/40", bg: "bg-emerald-500/5", medalColor: "text-emerald-400", nameColor: "text-emerald-300", label: "1위" },
+  { border: "border-white/10",       bg: "bg-white/5",       medalColor: "text-gray-500",    nameColor: "text-gray-300",    label: "2위" },
+  { border: "border-white/10",       bg: "bg-white/5",       medalColor: "text-gray-500",    nameColor: "text-gray-400",    label: "3위" },
 ];
 
 function PodiumCard({ player, rank, sortKey }: {
@@ -512,8 +516,8 @@ function PodiumCard({ player, rank, sortKey }: {
   const barColor = rate >= 80 ? "bg-emerald-500" : rate >= 50 ? "bg-amber-400" : "bg-red-500";
 
   return (
-    <div className={`rounded-2xl border ${s.border} ${s.bg} p-3 flex flex-col items-center gap-1.5`}>
-      <span className="text-2xl">{s.medal}</span>
+    <div className={`rounded-lg border ${s.border} ${s.bg} p-3 flex flex-col items-center gap-1.5`}>
+      <Medal size={22} strokeWidth={1.75} className={s.medalColor} />
       <p className={`text-xs font-black truncate w-full text-center ${s.nameColor}`}>
         {player.name}
         {player.is_me && <span className="ml-1 text-[9px] bg-emerald-500/30 text-emerald-400 px-1 py-0.5 rounded-full">나</span>}
@@ -559,8 +563,8 @@ function CompactRow({ player, rank, sortKey }: {
 
       {/* 스탯 */}
       <div className="flex items-center gap-1.5 shrink-0">
-        <StatBadge emoji="🥅" value={player.goals}   unit="골"  active={sortKey === "goals"}   color="emerald" size="sm" />
-        <StatBadge emoji="🎯" value={player.assists} unit="도움" active={sortKey === "assists"} color="blue"    size="sm" />
+        <StatBadge icon={Goal}   value={player.goals}   unit="골"  active={sortKey === "goals"}   color="emerald" size="sm" />
+        <StatBadge icon={Target} value={player.assists} unit="도움" active={sortKey === "assists"} color="sky"     size="sm" />
       </div>
 
       {/* 참석률 */}
@@ -584,20 +588,20 @@ function CompactRow({ player, rank, sortKey }: {
 /* ═══════════════════════════════════════
    공통 스탯 뱃지
 ═══════════════════════════════════════ */
-function StatBadge({ emoji, value, unit, active, color, size = "sm" }: {
-  emoji: string; value: number; unit: string;
-  active: boolean; color: "emerald" | "blue";
+function StatBadge({ icon: Icon, value, unit, active, color, size = "sm" }: {
+  icon: LucideIcon; value: number; unit: string;
+  active: boolean; color: "emerald" | "sky";
   size?: "sm" | "lg";
 }) {
   const cls = {
     emerald: active ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-white/5 text-gray-500 border-white/5",
-    blue:    active ? "bg-blue-500/20    text-blue-400    border-blue-500/30"    : "bg-white/5 text-gray-500 border-white/5",
+    sky:     active ? "bg-sky-500/20     text-sky-400     border-sky-500/30"     : "bg-white/5 text-gray-500 border-white/5",
   }[color];
   return (
     <div className={`flex items-center gap-0.5 border rounded-lg font-bold ${cls} ${
       size === "lg" ? "px-2.5 py-1 text-xs" : "px-1.5 py-0.5 text-[11px]"
     }`}>
-      <span>{emoji}</span><span>{value}{unit}</span>
+      <Icon size={size === "lg" ? 13 : 11} strokeWidth={2} /><span>{value}{unit}</span>
     </div>
   );
 }

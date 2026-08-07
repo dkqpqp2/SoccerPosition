@@ -3,6 +3,9 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  FileText, Frown, Check, Camera, Shield, HeartPulse, type LucideIcon,
+} from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 
 type MemberStatus = "active" | "injured" | "personal";
@@ -129,9 +132,9 @@ export default function StatusPage() {
             {myMember && (
               <button
                 onClick={() => openEdit(myMember)}
-                className="w-full bg-gray-900 border border-white/5 rounded-2xl p-4 flex items-center gap-3 text-left hover:bg-white/5 transition-colors"
+                className="w-full bg-gray-900 border border-white/5 rounded-lg p-4 flex items-center gap-3 text-left hover:bg-white/5 transition-colors"
               >
-                <span className="text-xl shrink-0">📝</span>
+                <FileText size={20} strokeWidth={1.75} className="text-gray-400 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-white">내 상태 변경하기</p>
                   <p className="text-xs text-gray-500 mt-0.5">
@@ -145,7 +148,7 @@ export default function StatusPage() {
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setTab("available")}
-                className={`rounded-2xl p-4 text-center transition-colors border ${
+                className={`rounded-lg p-4 text-center transition-colors border ${
                   tab === "available"
                     ? "bg-emerald-500/10 border-emerald-500/30"
                     : "bg-gray-900 border-white/5 hover:bg-white/5"
@@ -156,7 +159,7 @@ export default function StatusPage() {
               </button>
               <button
                 onClick={() => setTab("unavailable")}
-                className={`rounded-2xl p-4 text-center transition-colors border ${
+                className={`rounded-lg p-4 text-center transition-colors border ${
                   tab === "unavailable"
                     ? "bg-amber-500/10 border-amber-500/30"
                     : "bg-gray-900 border-white/5 hover:bg-white/5"
@@ -171,7 +174,7 @@ export default function StatusPage() {
             {tab === "available" && (
               <MemberListSection
                 title=""
-                emptyIcon="🙁"
+                emptyIcon={Frown}
                 emptyText="참여가능 인원이 없어요"
                 members={available}
                 myMemberId={myMemberId}
@@ -184,7 +187,7 @@ export default function StatusPage() {
             {tab === "unavailable" && (
               <MemberListSection
                 title=""
-                emptyIcon="✅"
+                emptyIcon={Check}
                 emptyText="부상·개인사정 인원이 없어요"
                 members={unavailable}
                 myMemberId={myMemberId}
@@ -197,9 +200,9 @@ export default function StatusPage() {
             {canManage && (
               <button
                 onClick={() => setShowShareView(true)}
-                className="w-full mt-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-gray-300 hover:text-white font-semibold py-3 rounded-2xl transition-colors"
+                className="w-full mt-1 flex items-center justify-center gap-2 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-gray-300 hover:text-white font-semibold py-3 rounded-lg transition-colors"
               >
-                📸 공유용 화면 보기
+                <Camera size={15} strokeWidth={1.75} /> 공유용 화면 보기
               </button>
             )}
           </>
@@ -210,15 +213,15 @@ export default function StatusPage() {
       {showShareView && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-950">
           <div className="max-w-md mx-auto px-4 py-6">
-            <div className="bg-gray-950 p-4 rounded-2xl">
+            <div className="bg-gray-950 p-4 rounded-lg">
               <div className="text-center mb-4">
-                <p className="text-emerald-400 font-bold text-base">⚽ {teamName}</p>
+                <p className="text-emerald-400 font-bold text-base flex items-center justify-center gap-1.5"><Shield size={15} /> {teamName}</p>
                 <p className="text-gray-500 text-xs mt-0.5">{todayLabel()} 기준 팀 현황</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+                <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
                   <div className="bg-emerald-500/20 border-b border-emerald-500/20 px-3 py-2">
-                    <p className="text-emerald-400 text-sm font-bold">✅ 참여가능 {available.length}명</p>
+                    <p className="text-emerald-400 text-sm font-bold flex items-center gap-1.5"><Check size={13} /> 참여가능 {available.length}명</p>
                   </div>
                   <div className="divide-y divide-white/5">
                     {available.map((m, i) => (
@@ -230,9 +233,9 @@ export default function StatusPage() {
                     {available.length === 0 && <p className="text-xs text-gray-700 px-3 py-3">없음</p>}
                   </div>
                 </div>
-                <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+                <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
                   <div className="bg-amber-500/20 border-b border-amber-500/20 px-3 py-2">
-                    <p className="text-amber-400 text-sm font-bold">🩹 부상·개인사정 {unavailable.length}명</p>
+                    <p className="text-amber-400 text-sm font-bold flex items-center gap-1.5"><HeartPulse size={13} /> 부상·개인사정 {unavailable.length}명</p>
                   </div>
                   <div className="divide-y divide-white/5">
                     {unavailable.map((m, i) => {
@@ -265,7 +268,7 @@ export default function StatusPage() {
             <p className="text-center text-xs text-gray-500 mt-4">화면을 캡쳐(스크린샷)해서 카톡에 공유해주세요</p>
             <button
               onClick={() => setShowShareView(false)}
-              className="w-full mt-4 bg-white/5 border border-white/10 text-gray-400 font-bold py-3 rounded-2xl hover:bg-white/10 transition-colors"
+              className="w-full mt-4 bg-white/5 border border-white/10 text-gray-400 font-bold py-3 rounded-lg hover:bg-white/10 transition-colors"
             >
               닫기
             </button>
@@ -278,7 +281,7 @@ export default function StatusPage() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="fixed inset-0 bg-black/60" onClick={() => setEditTarget(null)} />
           <div className="relative min-h-screen flex items-center justify-center p-4">
-            <div className="relative bg-gray-900 border border-white/10 rounded-2xl p-5 w-full max-w-sm space-y-4">
+            <div className="relative bg-gray-900 border border-white/10 rounded-lg p-5 w-full max-w-sm space-y-4">
               <p className="text-base font-bold text-white">{editTarget.name}님 상태 변경</p>
 
               <div className="flex gap-2">
@@ -335,7 +338,7 @@ export default function StatusPage() {
 
 function MemberListSection({
   title,
-  emptyIcon,
+  emptyIcon: EmptyIcon,
   emptyText,
   members,
   myMemberId,
@@ -343,7 +346,7 @@ function MemberListSection({
   onEdit,
 }: {
   title: string;
-  emptyIcon: string;
+  emptyIcon: LucideIcon;
   emptyText: string;
   members: Member[];
   myMemberId: string | null;
@@ -353,10 +356,10 @@ function MemberListSection({
   return (
     <div>
       {title && <p className="text-sm font-bold text-white mb-2">{title}</p>}
-      <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+      <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
         {members.length === 0 ? (
           <div className="text-center py-10 text-gray-600">
-            <div className="text-4xl mb-2 opacity-30">{emptyIcon}</div>
+            <EmptyIcon size={32} strokeWidth={1.5} className="opacity-30 mx-auto mb-2" />
             <p className="text-sm">{emptyText}</p>
           </div>
         ) : (

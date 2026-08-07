@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { MapPin, X, LocateFixed, Map, Car, Bus, Footprints } from "lucide-react";
 import { loadKakaoSDK } from "@/lib/kakao";
 
 interface Place {
@@ -15,9 +16,9 @@ interface Props {
 }
 
 const ROUTE_MODES = [
-  { icon: "🚗", label: "자동차" },
-  { icon: "🚌", label: "대중교통" },
-  { icon: "🚶", label: "도보" },
+  { icon: Car, label: "자동차" },
+  { icon: Bus, label: "대중교통" },
+  { icon: Footprints, label: "도보" },
 ] as const;
 
 export default function KakaoMapModal({ place, onClose }: Props) {
@@ -73,15 +74,15 @@ export default function KakaoMapModal({ place, onClose }: Props) {
   return (
     <div className="fixed inset-0 bg-black/80 z-50 overflow-y-auto" onClick={onClose}>
       <div className="flex min-h-full items-end sm:items-center justify-center">
-      <div className="bg-gray-900 rounded-t-3xl sm:rounded-2xl border border-white/10 w-full max-w-md overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-900 rounded-t-3xl sm:rounded-lg border border-white/10 w-full max-w-md overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
 
         {/* 헤더 */}
         <div className="px-5 pt-5 pb-3 flex items-start justify-between">
           <div>
-            <h3 className="font-bold text-white">📍 {place.name}</h3>
+            <h3 className="flex items-center gap-1.5 font-bold text-white"><MapPin size={15} /> {place.name}</h3>
             <p className="text-xs text-gray-500 mt-0.5">경기 장소</p>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white text-xl font-bold w-8 h-8 flex items-center justify-center">✕</button>
+          <button onClick={onClose} className="text-gray-500 hover:text-white w-8 h-8 flex items-center justify-center"><X size={20} /></button>
         </div>
 
         {/* 지도 */}
@@ -102,14 +103,14 @@ export default function KakaoMapModal({ place, onClose }: Props) {
               className="w-full text-xs text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 py-3 rounded-xl transition-colors flex items-center justify-center gap-2 font-semibold disabled:opacity-50">
               {locLoading
                 ? <><span className="w-4 h-4 border border-gray-400 border-t-transparent rounded-full animate-spin" /> 내 위치 가져오는 중...</>
-                : <>📡 내 위치로 길찾기</>}
+                : <><LocateFixed size={14} /> 내 위치로 길찾기</>}
             </button>
           ) : (
             <div className="grid grid-cols-3 gap-2">
-              {ROUTE_MODES.map(({ icon, label }) => (
+              {ROUTE_MODES.map(({ icon: Icon, label }) => (
                 <a key={label} href={routeUrl()} target="_blank" rel="noopener noreferrer"
                   className="bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white text-xs py-3 rounded-xl font-semibold transition-colors flex flex-col items-center gap-1.5">
-                  <span className="text-xl">{icon}</span>
+                  <Icon size={20} strokeWidth={1.75} />
                   <span>{label}</span>
                 </a>
               ))}
@@ -119,7 +120,7 @@ export default function KakaoMapModal({ place, onClose }: Props) {
           {/* 카카오내비 */}
           <button onClick={openKakaoNavi}
             className="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm">
-            🗺️ 카카오내비 시작
+            <Map size={16} /> 카카오내비 시작
           </button>
 
           {/* 카카오맵에서 보기 */}

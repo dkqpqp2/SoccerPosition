@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MapPin, X } from "lucide-react";
 
 export interface SelectedPlace {
   name: string;
@@ -69,14 +70,14 @@ export default function KakaoPlaceSearch({ selected, onSelect, onClear }: Props)
     return (
       <div className="flex items-center gap-2">
         <div className="flex-1 bg-gray-800 border border-emerald-500/30 rounded-lg px-3 py-2 text-sm truncate">
-          <span className="text-emerald-400 font-medium">📍 {selected.name}</span>
+          <span className="inline-flex items-center gap-1 text-emerald-400 font-medium"><MapPin size={13} /> {selected.name}</span>
         </div>
         <button
           type="button"
           onClick={onClear}
-          className="shrink-0 text-gray-500 hover:text-white text-sm px-2.5 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+          className="shrink-0 text-gray-500 hover:text-white px-2.5 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors flex items-center justify-center"
         >
-          ✕
+          <X size={15} />
         </button>
       </div>
     );

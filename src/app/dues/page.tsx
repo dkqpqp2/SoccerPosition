@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import {
+  Check, X, Settings, AlertTriangle, CreditCard, Receipt, Wallet,
+  Users, MessageCircle, User, Trash2,
+} from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 
 interface DueMember {
@@ -46,12 +50,12 @@ interface Summary {
 }
 
 const EXPENSE_CATEGORY_COLORS: Record<string, string> = {
-  장비: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-  "간식/식비": "bg-orange-500/20 text-orange-300 border-orange-500/30",
-  경기장: "bg-green-500/20 text-green-300 border-green-500/30",
-  유니폼: "bg-purple-500/20 text-purple-300 border-purple-500/30",
-  대회: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
-  기타: "bg-gray-500/20 text-gray-300 border-gray-500/30",
+  장비: "bg-white/5 text-gray-300 border-white/10",
+  "간식/식비": "bg-white/5 text-gray-300 border-white/10",
+  경기장: "bg-white/5 text-gray-300 border-white/10",
+  유니폼: "bg-white/5 text-gray-300 border-white/10",
+  대회: "bg-white/5 text-gray-300 border-white/10",
+  기타: "bg-white/5 text-gray-300 border-white/10",
 };
 
 const INCOME_CATEGORY_COLORS: Record<string, string> = {
@@ -62,15 +66,15 @@ const INCOME_CATEGORY_COLORS: Record<string, string> = {
 
 const STATUS_OPTIONS = [
   { value: null,     label: "정상",  color: "bg-gray-700 text-gray-300 border-gray-600" },
-  { value: "부상자", label: "부상자", color: "bg-orange-500/20 text-orange-300 border-orange-500/40" },
-  { value: "취준생", label: "취준생", color: "bg-blue-500/20 text-blue-300 border-blue-500/40" },
-  { value: "기타",   label: "기타",  color: "bg-purple-500/20 text-purple-300 border-purple-500/40" },
+  { value: "부상자", label: "부상자", color: "bg-amber-500/20 text-amber-300 border-amber-500/40" },
+  { value: "취준생", label: "취준생", color: "bg-sky-500/20 text-sky-300 border-sky-500/40" },
+  { value: "기타",   label: "기타",  color: "bg-white/10 text-gray-300 border-white/20" },
 ];
 
 const STATUS_BADGE: Record<string, string> = {
-  부상자: "bg-orange-500/15 text-orange-400 border-orange-500/30",
-  취준생: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  기타:   "bg-purple-500/15 text-purple-400 border-purple-500/30",
+  부상자: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+  취준생: "bg-sky-500/15 text-sky-400 border-sky-500/30",
+  기타:   "bg-white/10 text-gray-400 border-white/20",
 };
 
 const MIN_MONTH = "2026-01";
@@ -132,7 +136,7 @@ function MemberPanel({
                 : "bg-gray-700/50 text-gray-500 border-white/10 hover:border-white/20"
             }`}
           >
-            {opt.label}{status === opt.value && " ✓"}
+            <span className="inline-flex items-center gap-1">{opt.label}{status === opt.value && <Check size={11} strokeWidth={2.5} />}</span>
           </button>
         ))}
       </div>
@@ -405,12 +409,12 @@ export default function DuesPage() {
         >
           {/* 납부 여부 표시 / 미납자는 체크박스 */}
           {m.paid ? (
-            <span className="text-base shrink-0 text-emerald-400">✅</span>
+            <Check size={16} strokeWidth={2.5} className="shrink-0 text-emerald-400" />
           ) : canManage && !m.is_former ? (
             <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
               isChecked ? "border-emerald-400 bg-emerald-400" : "border-gray-600"
             }`}>
-              {isChecked && <span className="text-[10px] text-gray-900 font-black">✓</span>}
+              {isChecked && <Check size={11} strokeWidth={3} className="text-gray-900" />}
             </span>
           ) : (
             <span className="text-base shrink-0 text-gray-700">○</span>
@@ -421,7 +425,7 @@ export default function DuesPage() {
               {m.name}
             </span>
             {m.is_manual && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 bg-orange-500/15 text-orange-400 border-orange-500/30">
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 bg-sky-500/15 text-sky-400 border-sky-500/30">
                 임의
               </span>
             )}
@@ -452,13 +456,13 @@ export default function DuesPage() {
           {canManage && !m.is_manual && !m.is_former && (
             <button onClick={e => { e.stopPropagation(); setOpenPanel(isOpen ? null : rowKey); }}
               title="상태 및 개인 금액 설정"
-              className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-colors shrink-0 ${
+              className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
                 isOpen ? "bg-emerald-500/20 text-emerald-400"
                   : (m.status || m.custom_amount !== null)
-                    ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                     : "text-gray-600 hover:text-gray-400 hover:bg-white/5"
               }`}>
-              ⚙️
+              <Settings size={14} strokeWidth={2} />
             </button>
           )}
         </div>
@@ -475,7 +479,7 @@ export default function DuesPage() {
   };
 
   return (
-    <AppLayout title="💰 회비 관리" helpContent={{ items: [
+    <AppLayout title="회비 관리" helpContent={{ items: [
       { icon: "💵", title: "월별 회비 설정", desc: "상단 설정 버튼으로 월별 회비 금액을 지정해요. 팀원별로 납부 여부를 관리할 수 있어요." },
       { icon: "✅", title: "납부 완료 처리", desc: "미납자 이름을 눌러 체크한 뒤 하단 '납부완료' 버튼으로 한 번에 처리해요." },
       { icon: "☑️", title: "전체 선택", desc: "'전체 선택' 버튼으로 미납자 전원을 한 번에 체크하고 납부 처리할 수 있어요." },
@@ -485,7 +489,7 @@ export default function DuesPage() {
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
 
         {/* 기본 회비 설정 카드 */}
-        <div className="bg-gray-900 rounded-2xl p-4 border border-white/5">
+        <div className="bg-gray-900 rounded-lg p-4 border border-white/5">
           <div className="flex items-center justify-between mb-2">
             <div>
               <p className="text-xs text-gray-500 font-semibold uppercase tracking-widest">기본 회비</p>
@@ -522,8 +526,9 @@ export default function DuesPage() {
                 <button onClick={() => setEditingDefault(false)} className="px-3 py-2.5 text-gray-500 hover:text-white text-sm">취소</button>
               </div>
               {defaultAmount > 0 && (
-                <p className="text-[11px] text-amber-400/80 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
-                  ⚠️ 변경 시 <span className="font-bold">다음 달부터</span> 적용돼요. 이미 납부 처리된 이번 달은 취소 후 다시 납부해야 새 금액이 반영돼요.
+                <p className="text-[11px] text-amber-400/80 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 flex items-start gap-1.5">
+                  <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+                  <span>변경 시 <span className="font-bold">다음 달부터</span> 적용돼요. 이미 납부 처리된 이번 달은 취소 후 다시 납부해야 새 금액이 반영돼요.</span>
                 </p>
               )}
             </div>
@@ -535,7 +540,7 @@ export default function DuesPage() {
         </div>
 
         {/* 월 네비게이션 */}
-        <div className="flex items-center justify-between bg-gray-900 rounded-2xl px-4 py-3 border border-white/5">
+        <div className="flex items-center justify-between bg-gray-900 rounded-lg px-4 py-3 border border-white/5">
           <button onClick={() => setMonth(p => { const pr = prevM(p); return pr < MIN_MONTH ? p : pr; })}
             disabled={month <= MIN_MONTH}
             className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 disabled:opacity-30 transition-colors text-lg">‹</button>
@@ -566,13 +571,14 @@ export default function DuesPage() {
         {/* 탭 */}
         <div className="flex gap-1 bg-gray-900 rounded-xl p-1 border border-white/5">
           {([
-            { key: "payments", label: "💳 납부 현황" },
-            { key: "expenses", label: "📋 수입·지출" },
-            { key: "balance",  label: "💵 잔액 현황" },
+            { key: "payments", label: "납부 현황", icon: CreditCard },
+            { key: "expenses", label: "수입·지출", icon: Receipt },
+            { key: "balance",  label: "잔액 현황", icon: Wallet },
           ] as const).map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === tab.key ? "bg-emerald-500 text-white shadow" : "text-gray-500 hover:text-white"}`}>
+              <tab.icon size={13} strokeWidth={2} />
               {tab.label}
             </button>
           ))}
@@ -585,8 +591,8 @@ export default function DuesPage() {
           <div className="space-y-3">
             {/* 납부 요청 알림 배너 (미납자 본인) */}
             {duesNotif && (
-              <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/25 rounded-2xl px-4 py-3">
-                <span className="text-xl shrink-0">💰</span>
+              <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/25 rounded-lg px-4 py-3">
+                <Wallet size={20} strokeWidth={1.75} className="shrink-0 text-amber-400" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-amber-300">납부 요청 알림이 왔어요</p>
                   <p className="text-xs text-amber-400/70 mt-0.5">{getMonthLabel(month)} 회비를 납부해주세요.</p>
@@ -616,9 +622,9 @@ export default function DuesPage() {
               </div>
             )}
 
-          <div className="bg-gray-900 rounded-2xl border border-white/5 overflow-hidden">
+          <div className="bg-gray-900 rounded-lg border border-white/5 overflow-hidden">
             {members.length === 0 ? (
-              <div className="text-center py-12 text-gray-600 text-sm"><p className="text-2xl mb-2">👥</p><p>팀원이 없어요</p></div>
+              <div className="text-center py-12 text-gray-600 text-sm"><Users size={26} strokeWidth={1.5} className="mx-auto mb-2 opacity-40" /><p>팀원이 없어요</p></div>
             ) : (
               <>
                 {paid.length > 0 && (
@@ -653,7 +659,13 @@ export default function DuesPage() {
                               : "bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20"
                           }`}
                         >
-                          {notifying ? "전송 중..." : notifySent ? "알림 전송됨 ✓" : "💬 납부 요청 알림"}
+                          {notifying ? (
+                            "전송 중..."
+                          ) : notifySent ? (
+                            <span className="inline-flex items-center gap-1"><Check size={11} strokeWidth={2.5} /> 알림 전송됨</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1"><MessageCircle size={11} strokeWidth={2} /> 납부 요청 알림</span>
+                          )}
                         </button>
                       )}
                     </div>
@@ -725,7 +737,7 @@ export default function DuesPage() {
             {income.length > 0 && (
               <div>
                 <p className="text-[10px] text-gray-600 uppercase tracking-widest font-semibold px-1 mb-1.5">기타 수입</p>
-                <div className="bg-gray-900 rounded-2xl border border-white/5 overflow-hidden">
+                <div className="bg-gray-900 rounded-lg border border-white/5 overflow-hidden">
                   {income.map((inc, i) => (
                     <div key={inc.id} className={`flex items-start gap-3 px-4 py-3.5 ${i < income.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
                       <div className="flex-1 min-w-0">
@@ -739,12 +751,12 @@ export default function DuesPage() {
                         </div>
                         <p className="text-sm font-semibold text-white">{inc.title}</p>
                         {inc.memo && <p className="text-xs text-gray-500 mt-0.5">{inc.memo}</p>}
-                        {inc.created_by_name && <p className="text-[10px] text-gray-600 mt-1">👤 {inc.created_by_name}</p>}
+                        {inc.created_by_name && <p className="text-[10px] text-gray-600 mt-1 flex items-center gap-1"><User size={10} /> {inc.created_by_name}</p>}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="text-sm font-black text-emerald-400">+{fmt(inc.amount)}</span>
                         {canManage && (
-                          <button onClick={() => deleteIncome(inc.id)} className="text-gray-700 hover:text-red-400 transition-colors text-sm">🗑️</button>
+                          <button onClick={() => deleteIncome(inc.id)} className="text-gray-700 hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
                         )}
                       </div>
                     </div>
@@ -757,7 +769,7 @@ export default function DuesPage() {
             {expenses.length > 0 && (
               <div>
                 <p className="text-[10px] text-gray-600 uppercase tracking-widest font-semibold px-1 mb-1.5">지출</p>
-                <div className="bg-gray-900 rounded-2xl border border-white/5 overflow-hidden">
+                <div className="bg-gray-900 rounded-lg border border-white/5 overflow-hidden">
                   {expenses.map((exp, i) => (
                     <div key={exp.id} className={`flex items-start gap-3 px-4 py-3.5 ${i < expenses.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
                       <div className="flex-1 min-w-0">
@@ -771,12 +783,12 @@ export default function DuesPage() {
                         </div>
                         <p className="text-sm font-semibold text-white">{exp.title}</p>
                         {exp.memo && <p className="text-xs text-gray-500 mt-0.5">{exp.memo}</p>}
-                        {exp.created_by_name && <p className="text-[10px] text-gray-600 mt-1">👤 {exp.created_by_name}</p>}
+                        {exp.created_by_name && <p className="text-[10px] text-gray-600 mt-1 flex items-center gap-1"><User size={10} /> {exp.created_by_name}</p>}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="text-sm font-black text-red-400">-{fmt(exp.amount)}</span>
                         {canManage && (
-                          <button onClick={() => deleteExpense(exp.id)} className="text-gray-700 hover:text-red-400 transition-colors text-sm">🗑️</button>
+                          <button onClick={() => deleteExpense(exp.id)} className="text-gray-700 hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
                         )}
                       </div>
                     </div>
@@ -786,7 +798,7 @@ export default function DuesPage() {
             )}
 
             {income.length === 0 && expenses.length === 0 && (
-              <div className="text-center py-16 text-gray-600 text-sm"><p className="text-3xl mb-2">📋</p><p>아직 내역이 없어요</p></div>
+              <div className="text-center py-16 text-gray-600 text-sm"><Receipt size={28} strokeWidth={1.5} className="mx-auto mb-2 opacity-30" /><p>아직 내역이 없어요</p></div>
             )}
           </div>
         )}
@@ -794,21 +806,21 @@ export default function DuesPage() {
         {/* ── 잔액 현황 탭 ── */}
         {!loading && activeTab === "balance" && (
           <div className="space-y-3">
-            <div className="bg-gray-900 rounded-2xl p-5 border border-white/5">
+            <div className="bg-gray-900 rounded-lg p-5 border border-white/5">
               <p className="text-xs text-gray-500 mb-1">현재 잔액</p>
               <p className={`text-4xl font-black mb-4 ${summary.balance >= 0 ? "text-emerald-400" : "text-red-400"}`}>{fmt(summary.balance)}</p>
               <div>
                 <div className="flex items-center justify-between py-3 border-t border-white/5">
-                  <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-teal-400 shrink-0" /><span className="text-sm text-gray-400">초기 보유 금액</span></div>
-                  <span className="text-sm font-bold text-teal-400">+{fmt(summary.initial_balance)}</span>
+                  <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-gray-400 shrink-0" /><span className="text-sm text-gray-400">초기 보유 금액</span></div>
+                  <span className="text-sm font-bold text-gray-300">+{fmt(summary.initial_balance)}</span>
                 </div>
                 <div className="flex items-center justify-between py-3 border-t border-white/5">
                   <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" /><span className="text-sm text-gray-400">회비 납부 합계</span></div>
                   <span className="text-sm font-bold text-emerald-400">+{fmt(summary.total_collected)}</span>
                 </div>
                 <div className="flex items-center justify-between py-3 border-t border-white/5">
-                  <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-green-400 shrink-0" /><span className="text-sm text-gray-400">기타 수입 (벌금·찬조금 등)</span></div>
-                  <span className="text-sm font-bold text-green-400">+{fmt(summary.total_income)}</span>
+                  <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" /><span className="text-sm text-gray-400">기타 수입 (벌금·찬조금 등)</span></div>
+                  <span className="text-sm font-bold text-emerald-400">+{fmt(summary.total_income)}</span>
                 </div>
                 <div className="flex items-center justify-between py-3 border-t border-white/5">
                   <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-400 shrink-0" /><span className="text-sm text-gray-400">총 지출</span></div>
@@ -822,7 +834,7 @@ export default function DuesPage() {
             </div>
 
             {canManage && (
-              <div className="bg-gray-900 rounded-2xl p-4 border border-white/5">
+              <div className="bg-gray-900 rounded-lg p-4 border border-white/5">
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <p className="text-sm font-semibold text-white">초기 보유 금액</p>
@@ -830,7 +842,7 @@ export default function DuesPage() {
                   </div>
                   {!editingInitial && (
                     <button onClick={() => { setInitialInput(String(summary.initial_balance)); setEditingInitial(true); }}
-                      className="text-xs text-teal-400 hover:text-teal-300 font-semibold">수정</button>
+                      className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold">수정</button>
                   )}
                 </div>
                 {editingInitial ? (
@@ -838,17 +850,17 @@ export default function DuesPage() {
                     <div className="relative flex-1">
                       <input type="number" value={initialInput} onChange={e => setInitialInput(e.target.value)}
                         placeholder="0" autoFocus
-                        className="w-full bg-gray-800 border border-teal-500/40 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none pr-8" />
+                        className="w-full bg-gray-800 border border-emerald-500/40 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none pr-8" />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">원</span>
                     </div>
                     <button onClick={saveInitial} disabled={initialSaving || initialInput === ""}
-                      className="px-4 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-600 disabled:opacity-40 text-white text-sm font-bold whitespace-nowrap">
+                      className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white text-sm font-bold whitespace-nowrap">
                       {initialSaving ? "..." : "저장"}
                     </button>
                     <button onClick={() => setEditingInitial(false)} className="px-3 py-2.5 text-gray-500 hover:text-white text-sm">취소</button>
                   </div>
                 ) : (
-                  <p className="text-2xl font-black text-teal-400 mt-1">{fmt(summary.initial_balance)}</p>
+                  <p className="text-2xl font-black text-white mt-1">{fmt(summary.initial_balance)}</p>
                 )}
               </div>
             )}
@@ -860,7 +872,7 @@ export default function DuesPage() {
       {selected.size > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-6 pt-3 bg-gradient-to-t from-gray-950 via-gray-950/95 to-transparent pointer-events-none">
           <div className="max-w-2xl mx-auto pointer-events-auto">
-            <div className="flex items-center gap-3 bg-gray-900 border border-white/10 rounded-2xl px-4 py-3 shadow-2xl">
+            <div className="flex items-center gap-3 bg-gray-900 border border-white/10 rounded-lg px-4 py-3 shadow-2xl">
               <div className="flex-1">
                 {selected.size === 0 ? (
                   <p className="text-sm text-gray-500">미납자를 선택하세요</p>
@@ -881,7 +893,9 @@ export default function DuesPage() {
                 disabled={selected.size === 0 || bulkPaying}
                 className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white text-sm font-black transition-colors whitespace-nowrap"
               >
-                {bulkPaying ? "처리 중..." : `납부완료 ✓`}
+                {bulkPaying ? "처리 중..." : (
+                  <span className="inline-flex items-center gap-1">납부완료 <Check size={14} strokeWidth={3} /></span>
+                )}
               </button>
             </div>
           </div>
@@ -892,10 +906,10 @@ export default function DuesPage() {
       {showIncomeModal && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-          <div className="bg-gray-900 rounded-2xl w-full max-w-md border border-white/10 overflow-hidden">
+          <div className="bg-gray-900 rounded-lg w-full max-w-md border border-white/10 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
               <h2 className="text-base font-bold text-white">기타 수입 추가</h2>
-              <button onClick={() => setShowIncomeModal(false)} className="text-gray-500 hover:text-white text-xl">✕</button>
+              <button onClick={() => setShowIncomeModal(false)} className="text-gray-500 hover:text-white"><X size={18} /></button>
             </div>
             <div className="p-5 space-y-4">
               <div>
@@ -955,10 +969,10 @@ export default function DuesPage() {
       {showExpenseModal && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4">
-          <div className="bg-gray-900 rounded-2xl w-full max-w-md border border-white/10 overflow-hidden">
+          <div className="bg-gray-900 rounded-lg w-full max-w-md border border-white/10 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
               <h2 className="text-base font-bold text-white">지출 내역 추가</h2>
-              <button onClick={() => setShowExpenseModal(false)} className="text-gray-500 hover:text-white text-xl">✕</button>
+              <button onClick={() => setShowExpenseModal(false)} className="text-gray-500 hover:text-white"><X size={18} /></button>
             </div>
             <div className="p-5 space-y-4">
               <div>
@@ -1014,9 +1028,9 @@ export default function DuesPage() {
       {showResetConfirm && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60">
           <div className="flex min-h-full items-center justify-center px-4 py-6">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-sm p-6 flex flex-col gap-4">
+          <div className="bg-gray-900 border border-white/10 rounded-lg w-full max-w-sm p-6 flex flex-col gap-4">
             <div className="text-center">
-              <p className="text-4xl mb-3">⚠️</p>
+              <AlertTriangle size={36} strokeWidth={1.5} className="mx-auto mb-3 text-red-400" />
               <h3 className="font-bold text-white text-lg mb-1">회비 초기화</h3>
               <p className="text-gray-400 text-sm leading-relaxed">
                 기본 회비가 <span className="text-white font-bold">0원</span>으로 초기화되고,<br />

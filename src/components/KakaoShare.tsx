@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Check } from "lucide-react";
 
 interface Props {
   assignmentId: string;
@@ -53,7 +54,7 @@ export default function KakaoShare({ assignmentId }: Props) {
             : "bg-yellow-400 hover:bg-yellow-500 text-gray-900"
         }`}
       >
-        <span className="text-lg">{state === "copied" ? "✓" : "💬"}</span>
+        {state === "copied" ? <Check size={18} /> : <span className="text-lg">💬</span>}
         {state === "copied" ? "링크 복사됨!" : "카카오 공유"}
       </button>
     </div>

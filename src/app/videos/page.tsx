@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Clapperboard } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import { extractYouTubeId, ytThumb, ytEmbed, VIDEO_CATEGORIES, VideoCategory } from "@/lib/youtube";
 
@@ -135,7 +136,7 @@ export default function VideosPage() {
           </div>
         ) : videos.length === 0 ? (
           <div className="text-center py-20">
-            <div className="text-5xl mb-3 opacity-20">🎬</div>
+            <Clapperboard size={44} strokeWidth={1.5} className="opacity-20 mx-auto mb-3" />
             <p className="text-gray-600">아직 추천된 영상이 없어요</p>
             <p className="text-sm text-gray-700 mt-1">유용한 영상을 팀원들과 공유해보세요!</p>
           </div>
@@ -144,7 +145,7 @@ export default function VideosPage() {
             {videos.map(v => (
               <div
                 key={v.id}
-                className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-colors group"
+                className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden hover:border-white/10 transition-colors group"
               >
                 {/* 썸네일 */}
                 <div className="relative aspect-video bg-gray-800 cursor-pointer" onClick={() => setPlayingId(v.id)}>
@@ -223,8 +224,8 @@ export default function VideosPage() {
       {showAdd && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setShowAdd(false)}>
           <div className="flex min-h-full items-center justify-center px-4 py-6">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-white text-lg mb-5">🎬 영상 추천</h3>
+          <div className="bg-gray-900 border border-white/10 rounded-lg shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-white text-lg mb-5 flex items-center gap-2"><Clapperboard size={18} /> 영상 추천</h3>
 
             <div className="flex flex-col gap-3">
               {/* YouTube URL */}

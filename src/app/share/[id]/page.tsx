@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Target, Coffee } from "lucide-react";
 import { FORMATIONS, Formation, PositionSlot } from "@/lib/formations";
 import CaptureButton from "@/components/CaptureButton";
 
@@ -51,7 +52,7 @@ export default function SharePage() {
   if (notFound) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950">
       <div className="text-center">
-        <div className="text-5xl mb-4 opacity-30">⚽</div>
+        <Target size={40} strokeWidth={1.5} className="opacity-30 mx-auto mb-4" />
         <p className="text-lg font-bold text-white">공유된 배정을 찾을 수 없어요</p>
         <p className="text-sm text-gray-500 mt-2">링크가 만료됐거나 잘못된 주소예요</p>
       </div>
@@ -107,11 +108,11 @@ export default function SharePage() {
       <div className="max-w-2xl mx-auto px-3 py-6">
 
         {/* ── 캡쳐 영역 시작 ── */}
-        <div id="capture-area" className="bg-gray-950 rounded-2xl">
+        <div id="capture-area" className="bg-gray-950 rounded-lg">
 
           {/* 헤더 */}
           <div className="px-2 pb-4 text-center">
-            <div className="text-3xl mb-2">⚽</div>
+            <Target size={28} strokeWidth={1.75} className="text-emerald-400 mx-auto mb-2" />
             <h1 className="text-xl font-bold text-white">{sessionName}</h1>
             {match && (
               <p className="text-gray-400 text-sm mt-1">
@@ -127,7 +128,7 @@ export default function SharePage() {
             {/* 그라운드 (왼쪽 55%) */}
             <div className="w-[55%] shrink-0">
               <div
-                className="relative w-full rounded-2xl overflow-hidden shadow-2xl"
+                className="relative w-full rounded-lg overflow-hidden shadow-2xl"
                 style={{ paddingBottom: "140%", background: "linear-gradient(180deg, #166534 0%, #14532d 40%, #15803d 60%, #166534 100%)" }}
               >
                 <div className="absolute inset-0 pointer-events-none">
@@ -193,14 +194,14 @@ export default function SharePage() {
             <div className="flex-1 flex flex-col gap-2">
 
               {/* 총 인원 카드 */}
-              <div className="bg-gray-900 border border-white/5 rounded-2xl p-3 text-center">
+              <div className="bg-gray-900 border border-white/5 rounded-lg p-3 text-center">
                 <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">참여 현황</p>
                 <p className="text-3xl font-black text-emerald-400">{totalCount}</p>
                 <p className="text-[10px] text-gray-500 mt-0.5">총 참가인원</p>
               </div>
 
               {/* 출전/대기 분리 */}
-              <div className="bg-gray-900 border border-white/5 rounded-2xl p-3 flex flex-col gap-2">
+              <div className="bg-gray-900 border border-white/5 rounded-lg p-3 flex flex-col gap-2">
                 {/* 출전 */}
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-gray-500">출전</span>
@@ -228,14 +229,14 @@ export default function SharePage() {
 
               {/* 용병 있으면 표시 */}
               {mercenaryStarters.length > 0 && (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3 text-center">
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-center">
                   <p className="text-[10px] text-amber-400/70 mb-0.5">용병</p>
                   <p className="text-xl font-black text-amber-400">{mercenaryStarters.length}명</p>
                 </div>
               )}
 
               {/* 포메이션 슬롯 수 */}
-              <div className="bg-gray-900 border border-white/5 rounded-2xl p-3 text-center">
+              <div className="bg-gray-900 border border-white/5 rounded-lg p-3 text-center">
                 <p className="text-[10px] text-gray-500 mb-0.5">슬롯</p>
                 <p className="text-lg font-black text-white">{formation.slots.length}명</p>
                 <p className="text-[9px] text-gray-600 mt-0.5">{data!.formation_name}</p>
@@ -247,7 +248,7 @@ export default function SharePage() {
           <div className="grid grid-cols-2 gap-2.5">
 
             {/* 출전 명단 (정규 + 용병 모두, 한 줄 통일) */}
-            <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+            <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
               <div className="px-3 py-2 border-b border-white/5">
                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">출전 명단</p>
               </div>
@@ -271,7 +272,7 @@ export default function SharePage() {
                     {mercenaryStarters.map(slot => {
                       const member = assigned[slot.id]!;
                       const badge = member.is_cafe_mercenary
-                        ? <span className="text-[9px] text-sky-400 shrink-0">☕카페</span>
+                        ? <span className="inline-flex items-center gap-0.5 text-[9px] text-sky-400 shrink-0"><Coffee size={9} />카페</span>
                         : member.referrer
                         ? <span className="text-[9px] text-amber-500 shrink-0">{member.referrer}지인</span>
                         : <span className="text-[9px] text-amber-500/60 shrink-0">용병</span>;
@@ -289,7 +290,7 @@ export default function SharePage() {
             </div>
 
             {/* 교체 가능 (한 줄 통일) */}
-            <div className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+            <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
               <div className="px-3 py-2 border-b border-white/5">
                 <p className="text-[10px] font-bold text-sky-400 uppercase tracking-widest">교체 가능</p>
               </div>
@@ -305,7 +306,7 @@ export default function SharePage() {
                     const posText = [m.position_1st, m.position_2nd].filter(Boolean).join("·");
                     const mercBadge = m.is_mercenary
                       ? (m.is_cafe_mercenary
-                          ? <span className="text-[9px] text-sky-400 shrink-0">☕카페</span>
+                          ? <span className="inline-flex items-center gap-0.5 text-[9px] text-sky-400 shrink-0"><Coffee size={9} />카페</span>
                           : m.referrer
                           ? <span className="text-[9px] text-amber-500 shrink-0">{m.referrer}지인</span>
                           : <span className="text-[9px] text-amber-400 shrink-0">용병</span>)
@@ -324,7 +325,7 @@ export default function SharePage() {
             </div>
           </div>
 
-          <p className="text-center text-gray-700 text-xs mt-4 pb-2">⚽ Soccer Position Management</p>
+          <p className="flex items-center justify-center gap-1 text-gray-700 text-xs mt-4 pb-2"><Target size={12} /> Soccer Position Management</p>
         </div>
         {/* ── 캡쳐 영역 끝 ── */}
 

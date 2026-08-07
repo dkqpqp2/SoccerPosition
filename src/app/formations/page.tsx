@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
+import { LayoutGrid } from "lucide-react";
 import PositionSelect from "@/components/PositionSelect";
 import AppLayout from "@/components/AppLayout";
 import { PositionSlot } from "@/lib/formations";
@@ -168,14 +169,14 @@ export default function FormationsPage() {
               <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /></div>
             ) : formations.length === 0 ? (
               <div className="text-center py-16">
-                <div className="text-5xl mb-3 opacity-30">🟩</div>
+                <LayoutGrid size={40} strokeWidth={1.5} className="opacity-30 mx-auto mb-3" />
                 <p className="text-gray-600">아직 커스텀 포메이션이 없어요</p>
                 <p className="text-sm text-gray-700 mt-1">직접 만들어보세요!</p>
               </div>
             ) : (
               <div className="flex flex-col gap-2">
                 {formations.map(f => (
-                  <div key={f.id} className="bg-gray-900 border border-white/5 rounded-2xl px-5 py-4 flex items-center justify-between hover:border-white/10 transition-colors">
+                  <div key={f.id} className="bg-gray-900 border border-white/5 rounded-lg px-5 py-4 flex items-center justify-between hover:border-white/10 transition-colors">
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-white">{f.name}</p>
                       <p className="text-xs text-gray-600 mt-0.5">{f.slots.length}명 · {f.slots.map(s => s.label).join(" - ")}</p>
@@ -192,7 +193,7 @@ export default function FormationsPage() {
         ) : (
           <>
             {/* 포메이션 입력 */}
-            <div className="bg-gray-900 border border-white/5 rounded-2xl p-5 mb-5">
+            <div className="bg-gray-900 border border-white/5 rounded-lg p-5 mb-5">
               <label className="text-xs text-gray-500 mb-2 block uppercase tracking-widest font-bold">
                 {editingFormationId ? "포메이션 수정" : "포메이션 입력"}
               </label>
@@ -218,7 +219,7 @@ export default function FormationsPage() {
               <>
                 <div
                   ref={fieldRef}
-                  className="relative w-full rounded-2xl overflow-hidden mb-4 select-none"
+                  className="relative w-full rounded-lg overflow-hidden mb-4 select-none"
                   style={{ paddingBottom: "130%", background: "linear-gradient(180deg, #166534 0%, #14532d 40%, #15803d 60%, #166534 100%)" }}
                 >
                   <div className="absolute inset-0 pointer-events-none">
@@ -253,7 +254,7 @@ export default function FormationsPage() {
 
                 {/* 선택된 슬롯 편집 */}
                 {selectedSlot && (
-                  <div className="bg-gray-900 border border-white/5 rounded-2xl p-4 mb-4 flex items-center gap-3">
+                  <div className="bg-gray-900 border border-white/5 rounded-lg p-4 mb-4 flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${selectedSlot.id === "GK" ? "bg-amber-400 text-gray-900" : "bg-yellow-400 text-gray-900"}`}>
                       {selectedSlot.label}
                     </div>

@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
+import { Calendar, Check, Link2, Trophy, User, Clapperboard } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import { extractYouTubeId, ytThumb, ytEmbed, VIDEO_CATEGORIES, VideoCategory } from "@/lib/youtube";
 
@@ -120,7 +121,7 @@ function FeedbackContent() {
     const url = `${window.location.origin}/share/feedback/${id}`;
     const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
     if (isMobile && navigator.share) await navigator.share({ title: "경기 피드백", url });
-    else { await navigator.clipboard.writeText(url); setShareToast("🔗 공유 링크가 복사됐어요!"); setTimeout(() => setShareToast(""), 3000); }
+    else { await navigator.clipboard.writeText(url); setShareToast("공유 링크가 복사됐어요!"); setTimeout(() => setShareToast(""), 3000); }
     setSharing(false);
   }
 
@@ -132,8 +133,8 @@ function FeedbackContent() {
       { icon: "🏠", title: "홈에서 확인", desc: "홈 화면 하단에서 가장 최근 경기의 피드백을 바로 확인할 수 있어요." },
     ]}}>
       {shareToast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gray-800 border border-white/10 text-white px-5 py-3 rounded-2xl shadow-lg text-sm font-semibold">
-          {shareToast}
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gray-800 border border-white/10 text-white px-5 py-3 rounded-lg shadow-lg text-sm font-semibold flex items-center gap-2">
+          <Link2 size={15} className="text-emerald-400" /> {shareToast}
         </div>
       )}
 
@@ -153,8 +154,8 @@ function FeedbackContent() {
             </div>
 
             {matches.length === 0 ? (
-              <div className="bg-gray-900 border border-white/5 rounded-2xl text-center py-12">
-                <div className="text-4xl mb-2 opacity-30">📅</div>
+              <div className="bg-gray-900 border border-white/5 rounded-lg text-center py-12">
+                <Calendar size={32} strokeWidth={1.5} className="opacity-30 mx-auto mb-2" />
                 <p className="text-sm text-gray-600">등록된 경기가 없어요</p>
               </div>
             ) : (() => {
@@ -168,8 +169,8 @@ function FeedbackContent() {
               const sortedKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
 
               if (sortedKeys.length === 0) return (
-                <div className="bg-gray-900 border border-white/5 rounded-2xl text-center py-12">
-                  <div className="text-4xl mb-2 opacity-30">📅</div>
+                <div className="bg-gray-900 border border-white/5 rounded-lg text-center py-12">
+                  <Calendar size={32} strokeWidth={1.5} className="opacity-30 mx-auto mb-2" />
                   <p className="text-sm text-gray-600">{selectedYear}년 경기가 없어요</p>
                 </div>
               );
@@ -182,7 +183,7 @@ function FeedbackContent() {
                     const isOpen = openMonths.has(monthKey);
                     const isCurrentMonth = monthKey === currentMonthKey;
                     return (
-                      <div key={monthKey} className="bg-gray-900 border border-white/5 rounded-2xl overflow-hidden">
+                      <div key={monthKey} className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
                         <button
                           className={`w-full flex items-center justify-between px-4 py-3.5 hover:bg-white/3 transition-colors ${isOpen ? "border-b border-white/5" : ""}`}
                           onClick={() => setOpenMonths(prev => {
@@ -260,21 +261,21 @@ function FeedbackContent() {
                 {canWrite && (
                   <button onClick={save} disabled={saving}
                     className={`px-5 py-2 rounded-xl font-bold text-sm transition-colors ${saved ? "bg-blue-500 text-white" : "bg-emerald-500 hover:bg-emerald-400 text-black"}`}>
-                    {saved ? "✓ 저장됨" : saving ? "저장 중..." : "저장"}
+                    {saved ? <span className="inline-flex items-center gap-1"><Check size={14} /> 저장됨</span> : saving ? "저장 중..." : "저장"}
                   </button>
                 )}
                 <button onClick={shareFeedback} disabled={sharing}
                   className="px-5 py-2 rounded-xl font-bold text-sm bg-white/5 hover:bg-white/10 text-gray-400 border border-white/10 transition-colors">
-                  {sharing ? "..." : "🔗 공유"}
+                  {sharing ? "..." : <span className="inline-flex items-center gap-1.5"><Link2 size={14} /> 공유</span>}
                 </button>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* 팀 전체 피드백 */}
-              <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
+              <div className="bg-gray-900 border border-white/5 rounded-lg p-5">
                 <p className="font-bold text-white mb-3 flex items-center gap-2">
-                  <span>🏆</span> 팀 전체 피드백
+                  <Trophy size={15} className="text-gray-400" /> 팀 전체 피드백
                 </p>
                 {canWrite ? (
                   <textarea
@@ -292,9 +293,9 @@ function FeedbackContent() {
               </div>
 
               {/* 개인 피드백 */}
-              <div className="bg-gray-900 border border-white/5 rounded-2xl p-5">
+              <div className="bg-gray-900 border border-white/5 rounded-lg p-5">
                 <p className="font-bold text-white mb-3 flex items-center gap-2">
-                  <span>👤</span> 개인 피드백
+                  <User size={15} className="text-gray-400" /> 개인 피드백
                 </p>
                 {quarterFeedbacks.length === 0 ? (
                   <p className="text-sm text-gray-600">배정된 쿼터가 없어요</p>
@@ -310,10 +311,12 @@ function FeedbackContent() {
                             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
                               activeTab === i ? "bg-emerald-500 text-black" : "bg-white/5 text-gray-500 hover:bg-white/10"
                             }`}>
-                            {q.session_name}
-                            {hasFeedback && (
-                              <span className={`ml-1 ${activeTab === i ? "text-black/60" : "text-emerald-400"}`}>✓</span>
-                            )}
+                            <span className="inline-flex items-center gap-1">
+                              {q.session_name}
+                              {hasFeedback && (
+                                <Check size={11} className={activeTab === i ? "text-black/60" : "text-emerald-400"} />
+                              )}
+                            </span>
                           </button>
                         );
                       })}
@@ -361,9 +364,9 @@ function FeedbackContent() {
               </div>
             </div>
             {/* 추천 영상 섹션 */}
-            <div className="mt-4 bg-gray-900 border border-white/5 rounded-2xl p-5">
+            <div className="mt-4 bg-gray-900 border border-white/5 rounded-lg p-5">
               <div className="flex items-center justify-between mb-4">
-                <p className="font-bold text-white flex items-center gap-2"><span>🎬</span> 추천 영상</p>
+                <p className="font-bold text-white flex items-center gap-2"><Clapperboard size={15} className="text-gray-400" /> 추천 영상</p>
                 {canWrite && (
                   <button
                     onClick={() => { setShowVideoAdd(true); setVideoFormError(""); setVideoForm({ url: "", title: "", description: "", category: "etc" }); }}
@@ -428,8 +431,8 @@ function FeedbackContent() {
       {showVideoAdd && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setShowVideoAdd(false)}>
           <div className="flex min-h-full items-center justify-center px-4 py-6">
-          <div className="bg-gray-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="font-bold text-white text-base mb-4">🎬 영상 추가</h3>
+          <div className="bg-gray-900 border border-white/10 rounded-lg shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-white text-base mb-4 flex items-center gap-2"><Clapperboard size={16} className="text-gray-400" /> 영상 추가</h3>
             <div className="flex flex-col gap-3">
               <div>
                 <label className="text-xs text-gray-500 mb-1.5 block">YouTube URL *</label>
