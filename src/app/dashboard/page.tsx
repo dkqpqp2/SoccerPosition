@@ -425,6 +425,7 @@ export default function Dashboard() {
 
   const joinedTeam = myTeams.find(t => !t.is_mine);
   const myOwnTeam = myTeams.find(t => t.is_mine);
+  const activeTeamColor = myTeams.find(t => t.is_active)?.color || "#10b981";
 
   return (
     <AppLayout title="홈">
@@ -514,8 +515,11 @@ export default function Dashboard() {
           <div className="bg-gray-900 rounded-lg border border-white/5 p-5">
             <div className="flex items-center gap-4">
               {/* 팀 로고 */}
-              <div className="w-14 h-14 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                <span className="text-emerald-400 font-black text-xl">{team.name[0]}</span>
+              <div
+                className="w-14 h-14 rounded-lg border flex items-center justify-center shrink-0"
+                style={{ backgroundColor: `${activeTeamColor}1A`, borderColor: `${activeTeamColor}40` }}
+              >
+                <span className="font-black text-xl" style={{ color: activeTeamColor }}>{team.name[0]}</span>
               </div>
               {/* 팀 정보 */}
               <div className="flex-1 min-w-0">
@@ -573,13 +577,14 @@ export default function Dashboard() {
               <div className="bg-gray-900 rounded-lg border border-white/5 p-5 text-center">
                 <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-3">다가오는 경기</p>
                 <Calendar size={30} strokeWidth={1.5} className="opacity-30 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">다가오는 경기가 없어요</p>
+                <p className="text-sm text-gray-400 font-medium">다가오는 경기가 없어요</p>
+                <p className="text-xs text-gray-600 mt-1 max-w-[240px] mx-auto leading-relaxed">경기를 등록하면 포지션 배정, 참석 체크, 경기 후 피드백까지 이어서 관리할 수 있어요</p>
                 {team?.can_manage && (
                   <button
                     onClick={() => router.push("/matches")}
                     className="mt-3 text-xs text-emerald-400 hover:text-emerald-300 font-semibold border border-emerald-500/30 px-3 py-1.5 rounded-lg hover:bg-emerald-500/10 transition-colors"
                   >
-                    경기 추가하러 가기 →
+                    경기 등록하러 가기 →
                   </button>
                 )}
               </div>
@@ -760,7 +765,8 @@ export default function Dashboard() {
                 <div className="px-4 pb-5 text-center">
                   <div className="py-6 flex flex-col items-center gap-2">
                     <Target size={30} strokeWidth={1.5} className="opacity-30" />
-                    <p className="text-xs text-gray-600">아직 포지션 배정이 없어요</p>
+                    <p className="text-xs text-gray-500 font-medium">아직 포지션 배정이 없어요</p>
+                    <p className="text-[11px] text-gray-600 max-w-[220px] leading-relaxed">배정을 저장하면 쿼터별 출전 명단을 팀원들에게 바로 공유할 수 있어요</p>
                     {team?.can_manage && (
                       <button
                         onClick={() => router.push(`/assign?matchId=${upcomingMatch.id}`)}
@@ -797,7 +803,8 @@ export default function Dashboard() {
             {!recentFeedback || (!recentFeedback.team_feedback?.trim() && !recentFeedback.player_feedbacks?.some(p => p.feedback?.trim())) ? (
               <div className="flex flex-col items-center gap-2 py-5">
                 <MessageCircle size={30} strokeWidth={1.5} className="opacity-30" />
-                <p className="text-xs text-gray-600">아직 피드백이 없습니다</p>
+                <p className="text-xs text-gray-500 font-medium">아직 피드백이 없습니다</p>
+                <p className="text-[11px] text-gray-600 max-w-[220px] leading-relaxed text-center">경기 후 피드백을 남기면 선수별 성장 기록으로 쌓여요</p>
                 {recentFeedbackMatch && team?.can_manage && (
                   <button
                     onClick={() => router.push(`/feedback?matchId=${recentFeedbackMatch.id}`)}

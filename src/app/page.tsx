@@ -107,6 +107,18 @@ export default function Home() {
 
       {/* ── Hero ── */}
       <section className="relative pt-32 pb-24 px-5 text-center overflow-hidden">
+        {/* 은은한 피치 라인 패턴 */}
+        <svg
+          className="absolute inset-0 w-full h-full text-emerald-500/[0.07] pointer-events-none"
+          viewBox="0 0 800 500"
+          preserveAspectRatio="xMidYMid slice"
+          aria-hidden="true"
+        >
+          <line x1="0" y1="250" x2="800" y2="250" stroke="currentColor" strokeWidth="1.5" />
+          <circle cx="400" cy="250" r="130" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <circle cx="400" cy="250" r="3" fill="currentColor" />
+        </svg>
+
         <div className="relative max-w-3xl mx-auto">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-6">
             풋살·축구 팀 관리 플랫폼

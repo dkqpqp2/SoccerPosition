@@ -20,19 +20,19 @@ export interface HelpContent {
   items: HelpItem[];
 }
 
-const NAV_ITEMS: { path: string; icon: LucideIcon; label: string; managerOnly?: boolean; adminOnly?: boolean; groupStart?: boolean }[] = [
-  { path: "/dashboard", icon: Home, label: "홈" },
-  { path: "/members", icon: Users, label: "팀원 관리", groupStart: true },
+const NAV_ITEMS: { path: string; icon: LucideIcon; label: string; managerOnly?: boolean; adminOnly?: boolean; group?: string }[] = [
+  { path: "/dashboard", icon: Home, label: "홈", group: "팀" },
+  { path: "/members", icon: Users, label: "팀원 관리" },
   { path: "/status", icon: HeartPulse, label: "팀 현황" },
-  { path: "/formations", icon: LayoutGrid, label: "포메이션", managerOnly: true, groupStart: true },
+  { path: "/formations", icon: LayoutGrid, label: "포메이션", managerOnly: true, group: "경기" },
   { path: "/matches", icon: Calendar, label: "경기 관리" },
   { path: "/assign", icon: Target, label: "포지션 배정", managerOnly: true },
   { path: "/feedback", icon: FileText, label: "경기 피드백" },
-  { path: "/votes", icon: Vote, label: "투표", groupStart: true },
-  { path: "/dues", icon: Wallet, label: "회비 관리" },
-  { path: "/stats", icon: BarChart3, label: "팀 통계" },
-  { path: "/board", icon: MessageCircle, label: "게시판", groupStart: true },
+  { path: "/votes", icon: Vote, label: "투표", group: "커뮤니티" },
+  { path: "/board", icon: MessageCircle, label: "게시판" },
   { path: "/videos", icon: Clapperboard, label: "영상 추천" },
+  { path: "/dues", icon: Wallet, label: "회비 관리", group: "관리" },
+  { path: "/stats", icon: BarChart3, label: "팀 통계" },
   { path: "/matching", icon: Handshake, label: "팀 매칭", adminOnly: true },
 ];
 
@@ -119,13 +119,18 @@ export default function AppLayout({ children, title, helpContent }: { children: 
             if (item.managerOnly && !canManageNav) return false;
             if (item.path === "/board" && !boardAllowed) return false;
             return true;
-          }).map(item => {
+          }).map((item, idx) => {
             const active = pathname === item.path || (item.path !== "/dashboard" && pathname.startsWith(item.path));
             const locked = item.adminOnly && !isOwner;
             return (
               <div key={item.path}>
-                {item.groupStart && (
-                  <div className={`my-2 border-t border-white/5 ${collapsed ? "mx-4" : "mx-4"}`} />
+                {item.group && (
+                  <>
+                    {idx > 0 && <div className="my-2 border-t border-white/5 mx-4" />}
+                    {!collapsed && (
+                      <p className="px-4 pt-1 pb-1 text-[10px] font-bold text-gray-600 uppercase tracking-widest">{item.group}</p>
+                    )}
+                  </>
                 )}
                 <button
                 onClick={() => !locked && router.push(item.path)}
