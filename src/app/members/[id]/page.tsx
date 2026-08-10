@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   User, BarChart3, Goal, Target, CalendarCheck, FileText, Check,
   AlertTriangle, StickyNote, Save, Wand2, Loader2,
@@ -23,8 +23,13 @@ interface Evaluation {
   weaknesses: string;
   notes:      string;
   ai_recommended_positions?: string[];
+  editing_user_id?:   string | null;
+  editing_user_name?: string | null;
+  editing_at?:        string | null;
   updated_at: string | null;
 }
+
+const EDITING_TTL_MS = 2 * 60 * 1000;
 
 interface AiSuggestion {
   strengths: string;
@@ -45,7 +50,7 @@ interface PlayerStat {
 const CURRENT_YEAR = new Date().getFullYear();
 
 export default function MemberDetailPage() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const router     = useRouter();
   const { id }     = useParams<{ id: string }>();
 
@@ -60,6 +65,8 @@ export default function MemberDetailPage() {
   const [aiLoading,    setAiLoading]    = useState(false);
   const [aiError,      setAiError]      = useState("");
   const [aiSuggestion, setAiSuggestion] = useState<AiSuggestion | null>(null);
+  const [otherEditing, setOtherEditing] = useState<{ name: string } | null>(null);
+  const heartbeatTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const canEdit = ["owner", "manager", "president", "coach"].includes(userRole ?? "");
 
@@ -71,6 +78,38 @@ export default function MemberDetailPage() {
   useEffect(() => {
     if (member) fetchStat(year);
   }, [year, member]);
+
+  useEffect(() => {
+    if (!canEdit || !member) return;
+    const poll = async () => {
+      const res = await fetch(`/api/members/${id}/evaluation`);
+      if (!res.ok) return;
+      const data: Evaluation = await res.json();
+      applyEditingStatus(data);
+    };
+    const interval = setInterval(poll, 30000);
+    return () => clearInterval(interval);
+  }, [canEdit, member, id, session?.user?.id]);
+
+  useEffect(() => {
+    return () => { if (heartbeatTimer.current) clearTimeout(heartbeatTimer.current); };
+  }, []);
+
+  function applyEditingStatus(data: Evaluation) {
+    const isOthersRecent =
+      data.editing_user_id &&
+      data.editing_user_id !== session?.user?.id &&
+      data.editing_at &&
+      Date.now() - new Date(data.editing_at).getTime() < EDITING_TTL_MS;
+    setOtherEditing(isOthersRecent ? { name: data.editing_user_name || "다른 관리자" } : null);
+  }
+
+  function scheduleHeartbeat() {
+    if (heartbeatTimer.current) clearTimeout(heartbeatTimer.current);
+    heartbeatTimer.current = setTimeout(() => {
+      fetch(`/api/members/${id}/evaluation/heartbeat`, { method: "POST" });
+    }, 1500);
+  }
 
   async function init() {
     const [profileRes, membersRes, evalRes] = await Promise.all([
@@ -86,6 +125,7 @@ export default function MemberDetailPage() {
     const found = members.find(m => m.id === id) ?? null;
     setMember(found);
     setEval(evalData);
+    applyEditingStatus(evalData);
 
     if (found) await fetchStat(year);
     setLoading(false);
@@ -259,6 +299,13 @@ export default function MemberDetailPage() {
             )}
           </div>
 
+          {otherEditing && (
+            <div className="mb-3 flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+              <AlertTriangle size={13} />
+              {otherEditing.name}님이 방금 전부터 작성 중이에요
+            </div>
+          )}
+
           <div className="space-y-3">
             {/* 장점 */}
             <div>
@@ -268,7 +315,7 @@ export default function MemberDetailPage() {
               {canEdit ? (
                 <textarea
                   value={eval_.strengths}
-                  onChange={e => setEval(v => ({ ...v, strengths: e.target.value }))}
+                  onChange={e => { setEval(v => ({ ...v, strengths: e.target.value })); scheduleHeartbeat(); }}
                   placeholder="이 선수의 강점을 적어주세요"
                   rows={3}
                   className="w-full bg-gray-800 border border-emerald-500/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600 resize-none"
@@ -290,7 +337,7 @@ export default function MemberDetailPage() {
               {canEdit ? (
                 <textarea
                   value={eval_.weaknesses}
-                  onChange={e => setEval(v => ({ ...v, weaknesses: e.target.value }))}
+                  onChange={e => { setEval(v => ({ ...v, weaknesses: e.target.value })); scheduleHeartbeat(); }}
                   placeholder="개선이 필요한 부분을 적어주세요"
                   rows={3}
                   className="w-full bg-gray-800 border border-red-500/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-600 resize-none"

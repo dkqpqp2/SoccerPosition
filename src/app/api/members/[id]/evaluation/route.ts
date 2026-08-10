@@ -19,14 +19,21 @@ export async function GET(
 
   const { data } = await supabaseAdmin
     .from("member_evaluations")
-    .select("strengths, weaknesses, notes, ai_recommended_positions, updated_at")
+    .select("strengths, weaknesses, notes, ai_recommended_positions, editing_user_id, editing_user_name, editing_at, updated_at")
     .eq("team_id", teamId)
     .eq("member_id", memberId)
     .single();
 
-  return NextResponse.json(
-    data ?? { strengths: "", weaknesses: "", notes: "", ai_recommended_positions: [], updated_at: null }
-  );
+  return NextResponse.json({
+    strengths:  data?.strengths  ?? "",
+    weaknesses: data?.weaknesses ?? "",
+    notes:      data?.notes      ?? "",
+    ai_recommended_positions: data?.ai_recommended_positions ?? [],
+    editing_user_id:   data?.editing_user_id   ?? null,
+    editing_user_name: data?.editing_user_name ?? null,
+    editing_at:        data?.editing_at        ?? null,
+    updated_at: data?.updated_at ?? null,
+  });
 }
 
 /** PUT /api/members/[id]/evaluation */
@@ -66,6 +73,9 @@ export async function PUT(
         weaknesses: weaknesses ?? "",
         notes:      notes      ?? "",
         ai_recommended_positions: Array.isArray(ai_recommended_positions) ? ai_recommended_positions : [],
+        editing_user_id: null,
+        editing_user_name: null,
+        editing_at: null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "team_id,member_id" }
