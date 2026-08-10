@@ -24,7 +24,7 @@ export async function GET() {
 
   const { data } = await supabaseAdmin
     .from("member_evaluations")
-    .select("strengths, weaknesses, notes, updated_at")
+    .select("strengths, weaknesses, notes, ai_recommended_positions, updated_at")
     .eq("team_id", teamId)
     .eq("member_id", myMember.id)
     .maybeSingle();

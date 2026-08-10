@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import PositionSelect from "@/components/PositionSelect";
+import { POSITION_MAP } from "@/lib/positions";
 
 const REGIONS = ["서울", "경기", "인천", "부산", "대구", "대전", "광주", "울산", "세종", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"];
 const AGE_GROUPS = ["20대", "30대", "40대", "혼합"];
@@ -56,6 +57,7 @@ interface MyEvaluation {
   strengths: string;
   weaknesses: string;
   notes: string;
+  ai_recommended_positions?: string[];
   updated_at: string | null;
 }
 
@@ -539,6 +541,18 @@ export default function MyPage() {
                   <div className="bg-white/3 border border-white/5 rounded-xl px-4 py-3">
                     <p className="text-[11px] font-bold text-gray-500 mb-1.5 flex items-center gap-1"><StickyNote size={12} strokeWidth={2.5} /> 메모</p>
                     <p className="text-sm text-gray-400 whitespace-pre-wrap leading-relaxed">{myEval.notes}</p>
+                  </div>
+                )}
+                {myEval.ai_recommended_positions && myEval.ai_recommended_positions.length > 0 && (
+                  <div className="bg-sky-500/5 border border-sky-500/15 rounded-xl px-4 py-3">
+                    <p className="text-[11px] font-bold text-sky-400 mb-1.5 flex items-center gap-1">AI 추천 포지션</p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {myEval.ai_recommended_positions.map(pos => (
+                        <span key={pos} className="text-xs bg-sky-500/15 text-sky-400 border border-sky-500/20 px-2.5 py-1 rounded-full">
+                          {pos} · {POSITION_MAP[pos]?.description ?? pos}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

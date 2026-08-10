@@ -19,13 +19,13 @@ export async function GET(
 
   const { data } = await supabaseAdmin
     .from("member_evaluations")
-    .select("strengths, weaknesses, notes, updated_at")
+    .select("strengths, weaknesses, notes, ai_recommended_positions, updated_at")
     .eq("team_id", teamId)
     .eq("member_id", memberId)
     .single();
 
   return NextResponse.json(
-    data ?? { strengths: "", weaknesses: "", notes: "", updated_at: null }
+    data ?? { strengths: "", weaknesses: "", notes: "", ai_recommended_positions: [], updated_at: null }
   );
 }
 
@@ -54,7 +54,7 @@ export async function PUT(
   }
 
   const { id: memberId } = await params;
-  const { strengths, weaknesses, notes } = await req.json();
+  const { strengths, weaknesses, notes, ai_recommended_positions } = await req.json();
 
   const { error } = await supabaseAdmin
     .from("member_evaluations")
@@ -65,6 +65,7 @@ export async function PUT(
         strengths:  strengths  ?? "",
         weaknesses: weaknesses ?? "",
         notes:      notes      ?? "",
+        ai_recommended_positions: Array.isArray(ai_recommended_positions) ? ai_recommended_positions : [],
         updated_at: new Date().toISOString(),
       },
       { onConflict: "team_id,member_id" }

@@ -22,6 +22,7 @@ interface Evaluation {
   strengths:  string;
   weaknesses: string;
   notes:      string;
+  ai_recommended_positions?: string[];
   updated_at: string | null;
 }
 
@@ -49,7 +50,7 @@ export default function MemberDetailPage() {
   const { id }     = useParams<{ id: string }>();
 
   const [member,    setMember]    = useState<MemberDetail | null>(null);
-  const [eval_,     setEval]      = useState<Evaluation>({ strengths: "", weaknesses: "", notes: "", updated_at: null });
+  const [eval_,     setEval]      = useState<Evaluation>({ strengths: "", weaknesses: "", notes: "", ai_recommended_positions: [], updated_at: null });
   const [stat,      setStat]      = useState<PlayerStat | null>(null);
   const [userRole,  setUserRole]  = useState<string | null>(null);
   const [loading,   setLoading]   = useState(true);
@@ -135,7 +136,12 @@ export default function MemberDetailPage() {
 
   function applyAiSuggestion() {
     if (!aiSuggestion) return;
-    setEval(v => ({ ...v, strengths: aiSuggestion.strengths, weaknesses: aiSuggestion.weaknesses }));
+    setEval(v => ({
+      ...v,
+      strengths: aiSuggestion.strengths,
+      weaknesses: aiSuggestion.weaknesses,
+      ai_recommended_positions: aiSuggestion.recommended_positions,
+    }));
     setAiApplied(true);
   }
 
@@ -299,6 +305,22 @@ export default function MemberDetailPage() {
                 </div>
               )}
             </div>
+
+            {/* AI 추천 포지션 — 저장된 값, 적용 후에도 계속 표시됨 */}
+            {eval_.ai_recommended_positions && eval_.ai_recommended_positions.length > 0 && (
+              <div>
+                <label className="text-xs font-semibold text-sky-400 mb-1.5 flex items-center gap-1">
+                  <Wand2 size={13} /> AI 추천 포지션
+                </label>
+                <div className="bg-sky-500/5 border border-sky-500/10 rounded-xl px-3 py-2.5 flex items-center gap-1.5 flex-wrap">
+                  {eval_.ai_recommended_positions.map(pos => (
+                    <span key={pos} className="text-xs bg-sky-500/15 text-sky-400 border border-sky-500/20 px-2.5 py-1 rounded-full">
+                      {pos} · {POSITION_MAP[pos]?.description ?? pos}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* AI 어시스트 */}
             {canEdit && (
