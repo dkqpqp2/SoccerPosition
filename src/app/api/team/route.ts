@@ -37,7 +37,7 @@ export async function GET() {
   }
 
   const [{ data: team }, { data: members }, myRole] = await Promise.all([
-    supabaseAdmin.from("teams").select("id, name, color, invite_code, owner_id, created_at").eq("id", teamId).single(),
+    supabaseAdmin.from("teams").select("id, name, color, logo_url, invite_code, owner_id, created_at").eq("id", teamId).single(),
     supabaseAdmin.from("team_users").select("role, joined_at, user_id, users(id, name, email, image)").eq("team_id", teamId).order("joined_at", { ascending: true }),
     getUserRole(userId, teamId),
   ]);

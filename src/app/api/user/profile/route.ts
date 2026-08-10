@@ -14,7 +14,7 @@ export async function GET() {
   const [{ data: userData }, { data: teamData }, role] = await Promise.all([
     supabaseAdmin.from("users").select("name, email, image, position_1st, position_2nd, display_name, birth_year, kakao_name").eq("id", userId).single(),
     teamId
-      ? supabaseAdmin.from("teams").select("name, color, invite_code, owner_id, uniform_info").eq("id", teamId).single()
+      ? supabaseAdmin.from("teams").select("name, color, logo_url, invite_code, owner_id, uniform_info").eq("id", teamId).single()
       : Promise.resolve({ data: null }),
     teamId ? getUserRole(userId, teamId) : Promise.resolve(null),
   ]);
@@ -72,6 +72,7 @@ export async function GET() {
     team_id: teamId ?? null,
     team_name: teamData?.name ?? "우리팀",
     team_color: teamData?.color ?? "#16a34a",
+    team_logo_url: teamData?.logo_url ?? null,
     invite_code: teamData?.invite_code ?? null,
     is_owner: teamData?.owner_id === userId,
     uniform_info: teamData?.uniform_info ?? null,

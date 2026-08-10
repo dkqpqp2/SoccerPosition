@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import {
   Bell, User, Handshake, Target, Home, Zap, ClipboardList, Check,
   AlertTriangle, StickyNote, X, Vote, Calendar, Wallet, Mail, LogOut, Trash2,
+  ImagePlus,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import PositionSelect from "@/components/PositionSelect";
@@ -43,6 +44,7 @@ interface Profile {
   image: string;
   team_name: string | null;
   team_color: string;
+  team_logo_url: string | null;
   position_1st: string | null;
   position_2nd: string | null;
   birth_year: number | null;
@@ -88,6 +90,8 @@ export default function MyPage() {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [myEval, setMyEval] = useState<MyEvaluation | null | "loading">("loading");
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoError, setLogoError] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -178,6 +182,27 @@ export default function MyPage() {
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+    fetchProfile();
+  }
+
+  async function uploadLogo(file: File) {
+    setLogoError("");
+    setLogoUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/team/logo", { method: "POST", body: formData });
+    const data = await res.json();
+    setLogoUploading(false);
+    if (!res.ok) { setLogoError(data.error ?? "업로드에 실패했어요."); return; }
+    fetchProfile();
+  }
+
+  async function removeLogo() {
+    setLogoError("");
+    setLogoUploading(true);
+    const res = await fetch("/api/team/logo", { method: "DELETE" });
+    setLogoUploading(false);
+    if (!res.ok) { const data = await res.json(); setLogoError(data.error ?? "삭제에 실패했어요."); return; }
     fetchProfile();
   }
 
@@ -394,6 +419,51 @@ export default function MyPage() {
         {/* 팀 정보 */}
         <div className="bg-gray-900 border border-white/5 rounded-lg p-5">
           <h2 className="font-bold text-white mb-4 flex items-center gap-2"><Home size={16} strokeWidth={1.75} className="text-gray-400" /> 내 팀</h2>
+
+          {/* 팀 로고 */}
+          <div className="mb-5">
+            <label className="text-xs text-gray-500 mb-1.5 block uppercase tracking-widest">팀 로고</label>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-14 h-14 rounded-lg border flex items-center justify-center shrink-0 overflow-hidden"
+                style={{ backgroundColor: `${profile.team_color}1A`, borderColor: `${profile.team_color}40` }}
+              >
+                {profile.team_logo_url ? (
+                  <img src={profile.team_logo_url} alt="팀 로고" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="font-black text-xl" style={{ color: profile.team_color }}>{(teamName || "우")[0]}</span>
+                )}
+              </div>
+              {canManageTeam && (
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 cursor-pointer transition-colors">
+                      <ImagePlus size={13} />
+                      {logoUploading ? "업로드 중..." : "로고 업로드"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={logoUploading}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) uploadLogo(f); e.target.value = ""; }}
+                      />
+                    </label>
+                    {profile.team_logo_url && (
+                      <button
+                        onClick={removeLogo}
+                        disabled={logoUploading}
+                        className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 size={13} /> 삭제
+                      </button>
+                    )}
+                  </div>
+                  {logoError && <p className="text-[11px] text-red-400">{logoError}</p>}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div>
             <label className="text-xs text-gray-500 mb-1.5 block uppercase tracking-widest">우리팀</label>
             {canManageTeam ? (

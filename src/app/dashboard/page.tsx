@@ -22,6 +22,7 @@ interface TeamInfo {
   id: string;
   name: string;
   invite_code: string;
+  logo_url: string | null;
   my_role: TeamRole;
   is_owner: boolean;
   can_manage: boolean;
@@ -516,10 +517,14 @@ export default function Dashboard() {
             <div className="flex items-center gap-4">
               {/* 팀 로고 */}
               <div
-                className="w-14 h-14 rounded-lg border flex items-center justify-center shrink-0"
+                className="w-14 h-14 rounded-lg border flex items-center justify-center shrink-0 overflow-hidden"
                 style={{ backgroundColor: `${activeTeamColor}1A`, borderColor: `${activeTeamColor}40` }}
               >
-                <span className="font-black text-xl" style={{ color: activeTeamColor }}>{team.name[0]}</span>
+                {team.logo_url ? (
+                  <img src={team.logo_url} alt={team.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="font-black text-xl" style={{ color: activeTeamColor }}>{team.name[0]}</span>
+                )}
               </div>
               {/* 팀 정보 */}
               <div className="flex-1 min-w-0">

@@ -20,15 +20,16 @@ export async function GET() {
 
   const { data: teamUsers } = await supabaseAdmin
     .from("team_users")
-    .select("role, team_id, teams(id, name, color, owner_id)")
+    .select("role, team_id, teams(id, name, color, logo_url, owner_id)")
     .eq("user_id", userId);
 
   const teams = (teamUsers ?? []).map((tu) => {
-    const t = (Array.isArray(tu.teams) ? tu.teams[0] : tu.teams) as { id: string; name: string; color: string; owner_id: string } | null;
+    const t = (Array.isArray(tu.teams) ? tu.teams[0] : tu.teams) as { id: string; name: string; color: string; logo_url: string | null; owner_id: string } | null;
     return {
       id: t?.id,
       name: t?.name,
       color: t?.color,
+      logo_url: t?.logo_url ?? null,
       role: tu.role,
       is_mine: t?.owner_id === userId,
       is_active: t?.id === user?.active_team_id,

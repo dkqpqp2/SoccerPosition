@@ -45,6 +45,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
   const [collapsed, setCollapsed] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [teamName, setTeamName] = useState("우리팀");
+  const [teamLogoUrl, setTeamLogoUrl] = useState<string | null>(null);
   const [avgAge, setAvgAge] = useState<number | null>(null);
   const [pendingMatches, setPendingMatches] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -60,6 +61,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
   function fetchSidebarData() {
     fetch("/api/user/profile").then(r => r.json()).then(d => {
       if (d.team_name) setTeamName(d.team_name);
+      setTeamLogoUrl(d.team_logo_url ?? null);
       if (d.avg_age !== undefined) setAvgAge(d.avg_age ?? null);
       setIsOwner(!!d.is_owner);
       setUserRole(d.role ?? null);
@@ -104,12 +106,17 @@ export default function AppLayout({ children, title, helpContent }: { children: 
 
         {/* 팀 이름 */}
         {!collapsed && (
-          <div className="px-4 py-3 border-b border-white/5">
-            <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-0.5">현재 팀</p>
-            <p className="text-sm font-bold text-emerald-400 truncate">{teamName}</p>
-            {avgAge && (
-              <p className="text-[10px] text-gray-500 mt-0.5">평균 나이 <span className="text-gray-400 font-semibold">만 {avgAge}세</span></p>
+          <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2.5">
+            {teamLogoUrl && (
+              <img src={teamLogoUrl} alt={teamName} className="w-8 h-8 rounded-lg object-cover shrink-0" />
             )}
+            <div className="min-w-0">
+              <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-0.5">현재 팀</p>
+              <p className="text-sm font-bold text-emerald-400 truncate">{teamName}</p>
+              {avgAge && (
+                <p className="text-[10px] text-gray-500 mt-0.5">평균 나이 <span className="text-gray-400 font-semibold">만 {avgAge}세</span></p>
+              )}
+            </div>
           </div>
         )}
 
