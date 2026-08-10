@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   User, BarChart3, Goal, Target, CalendarCheck, FileText, Check,
-  AlertTriangle, StickyNote, Save,
+  AlertTriangle, StickyNote, Save, Wand2, Loader2,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import { POSITION_MAP } from "@/lib/positions";
@@ -23,6 +23,13 @@ interface Evaluation {
   weaknesses: string;
   notes:      string;
   updated_at: string | null;
+}
+
+interface AiSuggestion {
+  strengths: string;
+  weaknesses: string;
+  recommended_positions: string[];
+  reason: string;
 }
 
 interface PlayerStat {
@@ -49,6 +56,9 @@ export default function MemberDetailPage() {
   const [saving,    setSaving]    = useState(false);
   const [savedToast,setSavedToast]= useState(false);
   const [year,      setYear]      = useState(CURRENT_YEAR);
+  const [aiLoading,    setAiLoading]    = useState(false);
+  const [aiError,      setAiError]      = useState("");
+  const [aiSuggestion, setAiSuggestion] = useState<AiSuggestion | null>(null);
 
   const canEdit = ["owner", "manager", "president", "coach"].includes(userRole ?? "");
 
@@ -97,6 +107,34 @@ export default function MemberDetailPage() {
     setSaving(false);
     setSavedToast(true);
     setTimeout(() => setSavedToast(false), 2000);
+  }
+
+  async function runAiAssist() {
+    if (!member) return;
+    setAiError("");
+    setAiSuggestion(null);
+    setAiLoading(true);
+    const res = await fetch("/api/ai/evaluation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        playerName: member.name,
+        position1st: member.position_1st,
+        position2nd: member.position_2nd,
+        strengths: eval_.strengths,
+        weaknesses: eval_.weaknesses,
+      }),
+    });
+    const data = await res.json();
+    setAiLoading(false);
+    if (!res.ok) { setAiError(data.error ?? "AI 요청에 실패했어요."); return; }
+    setAiSuggestion(data);
+  }
+
+  function applyAiSuggestion() {
+    if (!aiSuggestion) return;
+    setEval(v => ({ ...v, strengths: aiSuggestion.strengths, weaknesses: aiSuggestion.weaknesses }));
+    setAiSuggestion(null);
   }
 
   if (loading) return (
@@ -259,6 +297,56 @@ export default function MemberDetailPage() {
                 </div>
               )}
             </div>
+
+            {/* AI 어시스트 */}
+            {canEdit && (
+              <div>
+                <button
+                  onClick={runAiAssist}
+                  disabled={aiLoading || !eval_.strengths.trim() || !eval_.weaknesses.trim()}
+                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {aiLoading ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} />}
+                  {aiLoading ? "AI가 다듬는 중..." : "AI로 다듬기"}
+                </button>
+                {aiError && <p className="text-[11px] text-red-400 mt-1.5">{aiError}</p>}
+
+                {aiSuggestion && (
+                  <div className="mt-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3.5 space-y-2.5">
+                    <p className="text-[11px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1"><Wand2 size={11} /> AI 제안</p>
+                    <div>
+                      <p className="text-[11px] font-semibold text-emerald-400 mb-1">장점</p>
+                      <p className="text-sm text-gray-300 whitespace-pre-wrap">{aiSuggestion.strengths}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold text-red-400 mb-1">단점 / 개선점</p>
+                      <p className="text-sm text-gray-300 whitespace-pre-wrap">{aiSuggestion.weaknesses}</p>
+                    </div>
+                    {aiSuggestion.recommended_positions.length > 0 && (
+                      <div>
+                        <p className="text-[11px] font-semibold text-sky-400 mb-1">추천 포지션</p>
+                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                          {aiSuggestion.recommended_positions.map(pos => (
+                            <span key={pos} className="text-xs bg-sky-500/15 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded-full">
+                              {pos} · {POSITION_MAP[pos]?.description ?? pos}
+                            </span>
+                          ))}
+                        </div>
+                        {aiSuggestion.reason && <p className="text-xs text-gray-500">{aiSuggestion.reason}</p>}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 pt-1">
+                      <button onClick={applyAiSuggestion} className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black transition-colors">
+                        <Check size={12} /> 적용
+                      </button>
+                      <button onClick={() => setAiSuggestion(null)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 transition-colors">
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 메모 */}
             <div>
