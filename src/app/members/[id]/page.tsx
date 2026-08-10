@@ -60,7 +60,6 @@ export default function MemberDetailPage() {
   const [aiLoading,    setAiLoading]    = useState(false);
   const [aiError,      setAiError]      = useState("");
   const [aiSuggestion, setAiSuggestion] = useState<AiSuggestion | null>(null);
-  const [aiApplied,    setAiApplied]    = useState(false);
 
   const canEdit = ["owner", "manager", "president", "coach"].includes(userRole ?? "");
 
@@ -115,7 +114,6 @@ export default function MemberDetailPage() {
     if (!member) return;
     setAiError("");
     setAiSuggestion(null);
-    setAiApplied(false);
     setAiLoading(true);
     const res = await fetch("/api/ai/evaluation", {
       method: "POST",
@@ -142,7 +140,7 @@ export default function MemberDetailPage() {
       weaknesses: aiSuggestion.weaknesses,
       ai_recommended_positions: aiSuggestion.recommended_positions,
     }));
-    setAiApplied(true);
+    setAiSuggestion(null);
   }
 
   if (loading) return (
@@ -362,13 +360,12 @@ export default function MemberDetailPage() {
                     <div className="flex items-center gap-2 pt-1">
                       <button
                         onClick={applyAiSuggestion}
-                        disabled={aiApplied}
-                        className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 disabled:cursor-default text-black transition-colors"
+                        className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black transition-colors"
                       >
-                        <Check size={12} /> {aiApplied ? "적용됨" : "적용"}
+                        <Check size={12} /> 적용
                       </button>
-                      <button onClick={() => { setAiSuggestion(null); setAiApplied(false); }} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 transition-colors">
-                        {aiApplied ? "닫기" : "취소"}
+                      <button onClick={() => setAiSuggestion(null)} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 transition-colors">
+                        취소
                       </button>
                     </div>
                   </div>
