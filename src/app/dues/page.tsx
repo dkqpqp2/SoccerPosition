@@ -870,7 +870,7 @@ export default function DuesPage() {
 
       {/* 납부 처리 하단 바 */}
       {selected.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-6 pt-3 bg-gradient-to-t from-gray-950 via-gray-950/95 to-transparent pointer-events-none">
+        <div className="fixed bottom-20 md:bottom-0 left-0 right-0 z-40 px-4 pb-6 pt-3 bg-gradient-to-t from-gray-950 via-gray-950/95 to-transparent pointer-events-none">
           <div className="max-w-2xl mx-auto pointer-events-auto">
             <div className="flex items-center gap-3 bg-gray-900 border border-white/10 rounded-lg px-4 py-3 shadow-2xl">
               <div className="flex-1">
