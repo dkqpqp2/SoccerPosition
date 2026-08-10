@@ -6,6 +6,7 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import {
   Calendar, AlertTriangle, ClipboardList, BarChart3, Pencil, Check, X,
   Zap, Coffee, Dices, Trophy, Save, Link2, Users, Footprints, Goal,
+  Wand2, Loader2,
   type LucideIcon,
 } from "lucide-react";
 import { supabaseClient } from "@/lib/supabaseClient";
@@ -87,6 +88,9 @@ function AssignContent() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [aiAssignLoading, setAiAssignLoading] = useState(false);
+  const [aiAssignError, setAiAssignError] = useState("");
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [otherEditors, setOtherEditors] = useState<string[]>([]);
   const [conflictAlert, setConflictAlert] = useState<string[] | null>(null);
   const sessionIdRef = useRef(Math.random().toString(36).slice(2));
@@ -183,6 +187,7 @@ function AssignContent() {
     setAssigned(saved.result);
     setLoadedAssignmentId(saved.id);
     setSaveSessionName(saved.session_name);
+    setAiSummary(null);
     // attendingIds는 건드리지 않음 — 사용자가 설정한 참가 인원 유지
     // (attendingIds가 비어있을 때만 불러온 배정의 팀원으로 채워서 팝업이 동작하게)
     if (attendingIds.size === 0) {
@@ -314,7 +319,36 @@ function AssignContent() {
       if (wants.length >= 1) { result[slot.id] = wants[0]; assignedMemberIds.add(wants[0].id); }
     }
     setAssigned(result);
+    setAiSummary(null);
     if (conflictList.length > 0) { setConflicts(conflictList); setStep("conflict"); } else { setStep("result"); }
+  }
+
+  async function aiAutoAssign() {
+    if (attendingIds.size === 0 || aiAssignLoading) return;
+    setAiAssignLoading(true);
+    setAiAssignError("");
+    setAiSummary(null);
+    try {
+      const res = await fetch("/api/ai/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slots: formation.slots.map(s => ({ id: s.id, label: s.label })),
+          memberIds: attendingMembers.map(m => m.id),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setAiAssignError(data.error ?? "AI 배정에 실패했어요."); return; }
+      const result: Record<string, Member | null> = {};
+      for (const [slotId, memberId] of Object.entries(data.assignments as Record<string, string | null>)) {
+        result[slotId] = memberId ? members.find(m => m.id === memberId) ?? null : null;
+      }
+      setAssigned(result);
+      setAiSummary(data.summary || null);
+      setStep("result");
+    } finally {
+      setAiAssignLoading(false);
+    }
   }
 
   function resolveConflicts() {
@@ -378,7 +412,7 @@ function AssignContent() {
   function reset() {
     setStep("setup"); setAssigned({}); setConflicts([]); setConflictChoices({});
     setPopup(null); setLoadedFormationSlots(null); setLoadedAssignmentId(null); setSaveSessionName("");
-    setShowFormationChange(false);
+    setShowFormationChange(false); setAiSummary(null); setAiAssignError("");
   }
 
   /** result 단계에서 포메이션 변경 — 기존 배정은 슬롯 ID가 같은 것만 유지 */
@@ -618,14 +652,25 @@ function AssignContent() {
                     </div>
 
                     {canManage && (
-                      <button
-                        onClick={autoAssign}
-                        disabled={attendingIds.size === 0}
-                        className="w-full flex items-center justify-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-800 disabled:text-gray-600 text-black py-4 rounded-lg font-bold text-base transition-colors"
-                      >
-                        <Dices size={18} /> 자동 배정 시작
-                        {attendingIds.size > 0 && <span className="text-sm font-normal ml-1 opacity-70">({attendingIds.size}명)</span>}
-                      </button>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={autoAssign}
+                          disabled={attendingIds.size === 0}
+                          className="w-full flex items-center justify-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-800 disabled:text-gray-600 text-black py-4 rounded-lg font-bold text-base transition-colors"
+                        >
+                          <Dices size={18} /> 자동 배정 시작
+                          {attendingIds.size > 0 && <span className="text-sm font-normal ml-1 opacity-70">({attendingIds.size}명)</span>}
+                        </button>
+                        <button
+                          onClick={aiAutoAssign}
+                          disabled={attendingIds.size === 0 || aiAssignLoading}
+                          className="w-full flex items-center justify-center gap-1.5 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 disabled:bg-gray-800 disabled:border-transparent disabled:text-gray-600 text-sky-400 py-3 rounded-lg font-bold text-sm transition-colors"
+                        >
+                          {aiAssignLoading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                          {aiAssignLoading ? "AI가 배정 중..." : "AI 배정"}
+                        </button>
+                        {aiAssignError && <p className="text-[11px] text-red-400 text-center">{aiAssignError}</p>}
+                      </div>
                     )}
                   </>
                 )}
@@ -724,6 +769,13 @@ function AssignContent() {
                   </div>
                   <span className="text-xs text-gray-600">슬롯을 눌러 수정</span>
                 </div>
+
+                {aiSummary && (
+                  <div className="mb-3 flex items-start gap-1.5 text-xs text-sky-400 bg-sky-500/5 border border-sky-500/10 rounded-lg px-3 py-2">
+                    <Wand2 size={13} className="shrink-0 mt-0.5" />
+                    <span>{aiSummary}</span>
+                  </div>
+                )}
 
                 {/* 포메이션 변경 드롭다운 */}
                 {showFormationChange && (
