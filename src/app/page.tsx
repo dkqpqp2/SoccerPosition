@@ -22,7 +22,7 @@ const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
   { icon: Share2, title: "간편 공유", desc: "포메이션과 피드백을 링크 하나로 공유. 카카오톡, 단톡방에 바로 붙여넣기." },
 ];
 
-const HERO_ITEMS: { icon: LucideIcon; label: string; isNew?: boolean }[] = [
+const HERO_ITEMS: { icon: LucideIcon; label: string; isNew?: boolean; isDev?: boolean }[] = [
   { icon: Target, label: "포지션 배정" },
   { icon: Calendar, label: "경기 관리" },
   { icon: FileText, label: "경기 피드백" },
@@ -30,7 +30,7 @@ const HERO_ITEMS: { icon: LucideIcon; label: string; isNew?: boolean }[] = [
   { icon: LayoutGrid, label: "포메이션" },
   { icon: Wallet, label: "회비 관리", isNew: true },
   { icon: Vote, label: "팀 투표", isNew: true },
-  { icon: Handshake, label: "팀 매칭", isNew: true },
+  { icon: Handshake, label: "팀 매칭", isDev: true },
   { icon: Clapperboard, label: "영상 추천" },
   { icon: Share2, label: "간편 공유" },
 ];
@@ -44,7 +44,7 @@ const STEPS = [
 const NEW_FEATURES = [
   { icon: Wallet, title: "회비 관리", accent: "amber", desc: "납부 현황을 한눈에, 지출 내역은 투명하게. 총무가 손쉽게 관리하고 팀원 모두가 확인할 수 있어요.", items: ["일괄 납부 처리로 빠른 체크", "부상자·취준생 맞춤 금액 설정", "벌금·찬조금 기타 수입 기록", "잔액 현황 자동 계산"] },
   { icon: Vote, title: "팀 투표", accent: "sky", desc: "경기 일정, 유니폼 색상, 훈련 방식… 팀 결정이 필요할 때 투표로 빠르게 의견을 모아보세요.", items: ["관리자가 투표 항목 직접 생성", "팀원 누구나 앱에서 바로 참여", "실시간 투표 현황 확인", "마감일 설정으로 깔끔한 결론"] },
-  { icon: Handshake, title: "팀 매칭", accent: "emerald", desc: "연습경기 상대를 찾고 있나요? 지역과 날짜를 설정하고 원하는 팀에 매칭 신청을 보내보세요.", items: ["지역·날짜별 매칭 공고 등록", "다른 팀에 매칭 신청 전송", "신청 수락·거절로 일정 확정", "매칭 이력 관리"] },
+  { icon: Handshake, title: "팀 매칭", accent: "emerald", isDev: true, desc: "연습경기 상대를 찾고 있나요? 지역과 날짜를 설정하고 원하는 팀에 매칭 신청을 보내보세요.", items: ["지역·날짜별 매칭 공고 등록", "다른 팀에 매칭 신청 전송", "신청 수락·거절로 일정 확정", "매칭 이력 관리"] },
 ];
 
 // 포지션 역할군별 고정 색상 — 카드마다 무작위 색이 아니라 "이 색 = 이 역할" 규칙
@@ -120,6 +120,10 @@ export default function Home() {
         </svg>
 
         <div className="relative max-w-3xl mx-auto">
+          <div className="flex justify-center mb-6">
+            <SpmLogo size="md" showText={false} />
+          </div>
+
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-6">
             풋살·축구 팀 관리 플랫폼
           </p>
@@ -155,6 +159,7 @@ export default function Home() {
               <item.icon size={20} strokeWidth={1.5} className="text-gray-400" />
               <span className="text-xs font-medium text-gray-500">{item.label}</span>
               {item.isNew && <span className="text-[9px] text-emerald-500/70 font-semibold">NEW</span>}
+              {item.isDev && <span className="text-[9px] text-gray-600 font-semibold">개발중</span>}
             </div>
           ))}
         </div>
@@ -321,7 +326,10 @@ export default function Home() {
               return (
                 <div key={i} className="bg-gray-950 p-6 hover:bg-white/[0.03] transition-colors group">
                   <f.icon size={20} strokeWidth={1.5} className={`${a.text} mb-4`} />
-                  <h3 className={`font-bold text-white text-base mb-2 ${a.groupHoverText} transition-colors`}>{f.title}</h3>
+                  <h3 className={`font-bold text-white text-base mb-2 flex items-center gap-2 ${a.groupHoverText} transition-colors`}>
+                    {f.title}
+                    {f.isDev && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-500 border border-gray-700 normal-case tracking-normal">개발중</span>}
+                  </h3>
                   <p className="text-xs text-gray-500 leading-relaxed mb-4">{f.desc}</p>
                   <ul className="space-y-1.5">
                     {f.items.map((t, j) => (
