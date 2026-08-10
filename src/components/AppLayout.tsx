@@ -323,7 +323,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-white/5 z-40">
         <div
           className="flex overflow-x-auto"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none", overscrollBehaviorX: "contain", WebkitOverflowScrolling: "touch" }}
         >
           {NAV_ITEMS.filter(item => {
             if (item.managerOnly && !canManageNav) return false;
