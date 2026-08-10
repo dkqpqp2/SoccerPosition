@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Target, LayoutGrid, Calendar, FileText, BarChart3, Wallet, Vote,
-  Handshake, Clapperboard, Share2, Check, type LucideIcon,
+  Handshake, Clapperboard, Share2, Check, Wand2, Sparkles, type LucideIcon,
 } from "lucide-react";
 import SpmLogo from "@/components/SpmLogo";
 
@@ -28,11 +28,13 @@ const HERO_ITEMS: { icon: LucideIcon; label: string; isNew?: boolean; isDev?: bo
   { icon: FileText, label: "경기 피드백" },
   { icon: BarChart3, label: "팀 통계" },
   { icon: LayoutGrid, label: "포메이션" },
-  { icon: Wallet, label: "회비 관리", isNew: true },
-  { icon: Vote, label: "팀 투표", isNew: true },
+  { icon: Wallet, label: "회비 관리" },
+  { icon: Vote, label: "팀 투표" },
   { icon: Handshake, label: "팀 매칭", isDev: true },
   { icon: Clapperboard, label: "영상 추천" },
   { icon: Share2, label: "간편 공유" },
+  { icon: Wand2, label: "AI 선수평가", isNew: true },
+  { icon: Sparkles, label: "AI 포지션 배정", isNew: true },
 ];
 
 const STEPS = [
@@ -42,9 +44,9 @@ const STEPS = [
 ];
 
 const NEW_FEATURES = [
-  { icon: Wallet, title: "회비 관리", accent: "amber", desc: "납부 현황을 한눈에, 지출 내역은 투명하게. 총무가 손쉽게 관리하고 팀원 모두가 확인할 수 있어요.", items: ["일괄 납부 처리로 빠른 체크", "부상자·취준생 맞춤 금액 설정", "벌금·찬조금 기타 수입 기록", "잔액 현황 자동 계산"] },
-  { icon: Vote, title: "팀 투표", accent: "sky", desc: "경기 일정, 유니폼 색상, 훈련 방식… 팀 결정이 필요할 때 투표로 빠르게 의견을 모아보세요.", items: ["관리자가 투표 항목 직접 생성", "팀원 누구나 앱에서 바로 참여", "실시간 투표 현황 확인", "마감일 설정으로 깔끔한 결론"] },
-  { icon: Handshake, title: "팀 매칭", accent: "emerald", isDev: true, desc: "연습경기 상대를 찾고 있나요? 지역과 날짜를 설정하고 원하는 팀에 매칭 신청을 보내보세요.", items: ["지역·날짜별 매칭 공고 등록", "다른 팀에 매칭 신청 전송", "신청 수락·거절로 일정 확정", "매칭 이력 관리"] },
+  { icon: Wand2, title: "AI 선수평가", accent: "emerald", desc: "감독·코치가 대충 적은 메모를 AI가 자연스러운 문장으로 다듬고, 어울리는 포지션까지 추천해요.", items: ["장단점 메모를 자연스러운 문장으로 다듬기", "장단점 기반 추천 포지션 자동 제안", "추천 포지션은 선수 평가에 계속 저장", "다른 관리자가 동시에 작성 중이면 알림"] },
+  { icon: Sparkles, title: "AI 포지션 배정", accent: "sky", desc: "경기 참가 인원의 선호 포지션과 장단점을 분석해 AI가 최적의 포지션 배치를 제안해요.", items: ["참가 인원 선호 포지션 + 장단점 분석", "용병은 포지션 정보로 자동 배치", "배치 이유 한 줄 요약 제공", "슬롯 클릭으로 직접 수정 후 저장"] },
+  { icon: Handshake, title: "팀 매칭", accent: "amber", isDev: true, desc: "연습경기 상대를 찾고 있나요? 지역과 날짜를 설정하고 원하는 팀에 매칭 신청을 보내보세요.", items: ["지역·날짜별 매칭 공고 등록", "다른 팀에 매칭 신청 전송", "신청 수락·거절로 일정 확정", "매칭 이력 관리"] },
 ];
 
 // 포지션 역할군별 고정 색상 — 카드마다 무작위 색이 아니라 "이 색 = 이 역할" 규칙
@@ -316,8 +318,8 @@ export default function Home() {
             <p className="text-xs text-gray-500 font-semibold uppercase tracking-widest mb-4">
               새로 추가된 기능
             </p>
-            <h2 className="text-2xl sm:text-3xl font-black">더 강력해진 팀 운영</h2>
-            <p className="text-gray-500 text-sm mt-2">회비, 투표, 팀 매칭까지 한 앱에서</p>
+            <h2 className="text-2xl sm:text-3xl font-black">AI로 더 똑똑해진 팀 운영</h2>
+            <p className="text-gray-500 text-sm mt-2">선수 평가부터 포지션 배정까지, AI가 도와드려요</p>
           </div>
 
           <div className="grid sm:grid-cols-3 gap-px bg-white/5 border border-white/5 rounded-lg overflow-hidden">
