@@ -583,7 +583,7 @@ export default function Dashboard() {
                 <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-3">다가오는 경기</p>
                 <Calendar size={30} strokeWidth={1.5} className="opacity-30 mx-auto mb-2" />
                 <p className="text-sm text-gray-400 font-medium">다가오는 경기가 없어요</p>
-                <p className="text-xs text-gray-600 mt-1 max-w-[240px] mx-auto leading-relaxed">경기를 등록하면 포지션 배정, 참석 체크, 경기 후 피드백까지 이어서 관리할 수 있어요</p>
+                <p className="text-xs text-gray-600 mt-1 max-w-[240px] mx-auto leading-relaxed break-keep">경기를 등록하면 포지션 배정, 참석 체크, 경기 후 피드백까지 이어서 관리할 수 있어요</p>
                 {team?.can_manage && (
                   <button
                     onClick={() => router.push("/matches")}
@@ -771,7 +771,7 @@ export default function Dashboard() {
                   <div className="py-6 flex flex-col items-center gap-2">
                     <Target size={30} strokeWidth={1.5} className="opacity-30" />
                     <p className="text-xs text-gray-500 font-medium">아직 포지션 배정이 없어요</p>
-                    <p className="text-[11px] text-gray-600 max-w-[220px] leading-relaxed">배정을 저장하면 쿼터별 출전 명단을 팀원들에게 바로 공유할 수 있어요</p>
+                    <p className="text-[11px] text-gray-600 max-w-[220px] leading-relaxed break-keep">배정을 저장하면 쿼터별 출전 명단을 팀원들에게 바로 공유할 수 있어요</p>
                     {team?.can_manage && (
                       <button
                         onClick={() => router.push(`/assign?matchId=${upcomingMatch.id}`)}
@@ -809,7 +809,7 @@ export default function Dashboard() {
               <div className="flex flex-col items-center gap-2 py-5">
                 <MessageCircle size={30} strokeWidth={1.5} className="opacity-30" />
                 <p className="text-xs text-gray-500 font-medium">아직 피드백이 없습니다</p>
-                <p className="text-[11px] text-gray-600 max-w-[220px] leading-relaxed text-center">경기 후 피드백을 남기면 선수별 성장 기록으로 쌓여요</p>
+                <p className="text-[11px] text-gray-600 max-w-[220px] leading-relaxed text-center break-keep">경기 후 피드백을 남기면 선수별 성장 기록으로 쌓여요</p>
                 {recentFeedbackMatch && team?.can_manage && (
                   <button
                     onClick={() => router.push(`/feedback?matchId=${recentFeedbackMatch.id}`)}
