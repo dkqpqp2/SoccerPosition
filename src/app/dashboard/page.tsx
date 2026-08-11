@@ -809,7 +809,7 @@ export default function Dashboard() {
               <div className="flex flex-col items-center gap-2 py-5">
                 <MessageCircle size={30} strokeWidth={1.5} className="opacity-30" />
                 <p className="text-xs text-gray-500 font-medium">아직 피드백이 없습니다</p>
-                <p className="text-[11px] text-gray-600 max-w-[220px] leading-relaxed text-center break-keep">경기 후 피드백을 남기면 선수별 성장 기록으로 쌓여요</p>
+                <p className="text-[11px] text-gray-600 leading-relaxed text-center break-keep">경기 후 피드백을 남기면 선수별 성장 기록으로 쌓여요</p>
                 {recentFeedbackMatch && team?.can_manage && (
                   <button
                     onClick={() => router.push(`/feedback?matchId=${recentFeedbackMatch.id}`)}
