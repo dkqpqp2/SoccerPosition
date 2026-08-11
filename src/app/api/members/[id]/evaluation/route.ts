@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getUserAndTeam } from "@/lib/team";
+import { getUserAndTeam, getUserRole, canFeedback } from "@/lib/team";
 
-/** GET /api/members/[id]/evaluation */
+/** GET /api/members/[id]/evaluation — 관리자급(감독·코치·회장·매니저)만 조회 가능 */
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -12,8 +12,13 @@ export async function GET(
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { teamId } = await getUserAndTeam(session.user.id);
-  if (!teamId) return NextResponse.json({ error: "No team" }, { status: 404 });
+  const { userId, teamId } = await getUserAndTeam(session.user.id);
+  if (!userId || !teamId) return NextResponse.json({ error: "No team" }, { status: 404 });
+
+  const role = await getUserRole(userId, teamId);
+  if (!canFeedback(role)) {
+    return NextResponse.json({ error: "권한이 없어요" }, { status: 403 });
+  }
 
   const { id: memberId } = await params;
 

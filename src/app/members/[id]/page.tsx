@@ -119,13 +119,16 @@ export default function MemberDetailPage() {
     ]);
     const profile = await profileRes.json();
     const members: MemberDetail[] = await membersRes.json();
-    const evalData: Evaluation    = await evalRes.json();
 
     setUserRole(profile.role ?? null);
     const found = members.find(m => m.id === id) ?? null;
     setMember(found);
-    setEval(evalData);
-    applyEditingStatus(evalData);
+
+    if (evalRes.ok) {
+      const evalData: Evaluation = await evalRes.json();
+      setEval(evalData);
+      applyEditingStatus(evalData);
+    }
 
     if (found) await fetchStat(year);
     setLoading(false);

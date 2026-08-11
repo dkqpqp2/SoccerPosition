@@ -2,15 +2,21 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getUserAndTeam } from "@/lib/team";
+import { getUserAndTeam, getUserRole, canFeedback } from "@/lib/team";
 
-/** GET /api/members/evaluations — 팀 전체 장단점 조회 */
+/** GET /api/members/evaluations — 팀 전체 장단점 조회, 관리자급만 가능 */
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { teamId } = await getUserAndTeam(session.user.id);
+  const { userId, teamId } = await getUserAndTeam(session.user.id);
   if (!teamId) return NextResponse.json([]);
+  if (!userId) return NextResponse.json({ error: "권한이 없어요" }, { status: 403 });
+
+  const role = await getUserRole(userId, teamId);
+  if (!canFeedback(role)) {
+    return NextResponse.json({ error: "권한이 없어요" }, { status: 403 });
+  }
 
   // 정규 팀원 목록
   const { data: members } = await supabaseAdmin
