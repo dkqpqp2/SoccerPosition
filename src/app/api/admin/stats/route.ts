@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 
-const ADMIN_SECRET = process.env.ADMIN_SECRET || "spm-admin-2024";
-
 export async function GET(req: Request) {
+  const ADMIN_SECRET = process.env.ADMIN_SECRET;
+  if (!ADMIN_SECRET) {
+    return NextResponse.json({ error: "Not configured" }, { status: 500 });
+  }
+
   const { searchParams } = new URL(req.url);
   const secret = searchParams.get("secret");
 

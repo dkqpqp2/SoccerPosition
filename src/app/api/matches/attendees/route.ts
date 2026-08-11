@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getUserAndTeam } from "@/lib/team";
+import { getUserAndTeam, getUserRole, canManage } from "@/lib/team";
 
 /** GET /api/matches/attendees?matchId=... */
 export async function GET(req: NextRequest) {
@@ -33,6 +33,11 @@ export async function POST(req: NextRequest) {
 
   const { userId, teamId } = await getUserAndTeam(session.user.id);
   if (!userId || !teamId) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const role = await getUserRole(userId, teamId);
+  if (!canManage(role)) {
+    return NextResponse.json({ error: "권한이 없어요" }, { status: 403 });
+  }
 
   const { match_id, member_ids } = await req.json();
   if (!match_id) return NextResponse.json({ error: "match_id required" }, { status: 400 });
