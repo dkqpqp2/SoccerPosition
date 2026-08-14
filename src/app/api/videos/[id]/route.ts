@@ -17,10 +17,13 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     .from("team_videos")
     .select("member_id")
     .eq("id", id)
+    .eq("team_id", teamId)
     .single();
 
+  if (!video) return NextResponse.json({ error: "영상을 찾을 수 없어요" }, { status: 404 });
+
   const role = await getUserRole(userId, teamId);
-  const isOwn = video?.member_id === userId;
+  const isOwn = video.member_id === userId;
   const isAdmin = canManage(role);
 
   if (!isOwn && !isAdmin) {
@@ -30,7 +33,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const { error } = await supabaseAdmin
     .from("team_videos")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .eq("team_id", teamId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });

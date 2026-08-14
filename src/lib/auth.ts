@@ -89,6 +89,9 @@ export const authOptions: NextAuthOptions = {
               is_mercenary: false,
               is_cafe_mercenary: false,
             });
+
+            // 새로 만든 팀을 현재 활성 팀으로 지정
+            await supabaseAdmin.from("users").update({ active_team_id: team.id }).eq("id", newUser.id);
           }
         }
       }

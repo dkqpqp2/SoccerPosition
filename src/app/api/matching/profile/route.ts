@@ -2,26 +2,14 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-
-async function getTeamId(userId: string) {
-  const { data } = await supabaseAdmin
-    .from("teams")
-    .select("id")
-    .eq("owner_id", userId)
-    .single();
-  return data?.id ?? null;
-}
+import { getUserAndTeam, getUserRole, isOwner } from "@/lib/team";
 
 // GET - 내 팀 프로필 조회
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: user } = await supabaseAdmin
-    .from("users").select("id").eq("kakao_id", session.user.id).single();
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-
-  const teamId = await getTeamId(user.id);
+  const { teamId } = await getUserAndTeam(session.user.id);
   if (!teamId) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
   const { data } = await supabaseAdmin
@@ -38,12 +26,11 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: user } = await supabaseAdmin
-    .from("users").select("id").eq("kakao_id", session.user.id).single();
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  const { userId, teamId } = await getUserAndTeam(session.user.id);
+  if (!userId || !teamId) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
-  const teamId = await getTeamId(user.id);
-  if (!teamId) return NextResponse.json({ error: "Team not found" }, { status: 404 });
+  const role = await getUserRole(userId, teamId);
+  if (!isOwner(role)) return NextResponse.json({ error: "팀장만 이용할 수 있어요" }, { status: 403 });
 
   const body = await req.json();
   const {

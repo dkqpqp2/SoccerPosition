@@ -8,8 +8,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { userId } = await getUserAndTeam(session.user.id);
-  if (!userId) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  const { userId, teamId } = await getUserAndTeam(session.user.id);
+  if (!userId || !teamId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const { id: voteId } = await params;
   const { option_ids } = await req.json();
@@ -18,6 +18,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .from("votes")
     .select("status, is_multiple, end_at")
     .eq("id", voteId)
+    .eq("team_id", teamId)
     .single();
 
   if (!vote) return NextResponse.json({ error: "투표를 찾을 수 없습니다" }, { status: 404 });
@@ -56,10 +57,13 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { userId } = await getUserAndTeam(session.user.id);
-  if (!userId) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  const { userId, teamId } = await getUserAndTeam(session.user.id);
+  if (!userId || !teamId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const { id: voteId } = await params;
+
+  const { data: vote } = await supabaseAdmin.from("votes").select("id").eq("id", voteId).eq("team_id", teamId).maybeSingle();
+  if (!vote) return NextResponse.json({ error: "투표를 찾을 수 없습니다" }, { status: 404 });
 
   await supabaseAdmin
     .from("vote_responses")

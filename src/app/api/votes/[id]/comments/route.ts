@@ -9,13 +9,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { userId } = await getUserAndTeam(session.user.id);
-  if (!userId) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  const { userId, teamId } = await getUserAndTeam(session.user.id);
+  if (!userId || !teamId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const { id: voteId } = await params;
   const { content } = await req.json();
 
   if (!content?.trim()) return NextResponse.json({ error: "댓글 내용을 입력해주세요" }, { status: 400 });
+
+  const { data: vote } = await supabaseAdmin.from("votes").select("id").eq("id", voteId).eq("team_id", teamId).maybeSingle();
+  if (!vote) return NextResponse.json({ error: "투표를 찾을 수 없습니다" }, { status: 404 });
 
   const { data, error } = await supabaseAdmin
     .from("vote_comments")

@@ -73,7 +73,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  const { error } = await supabaseAdmin.from("matches").delete().eq("id", id);
+  const { error } = await supabaseAdmin.from("matches").delete().eq("id", id).eq("team_id", teamId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }

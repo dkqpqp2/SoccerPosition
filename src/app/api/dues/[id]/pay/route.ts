@@ -29,7 +29,7 @@ export async function POST(
       .eq("dues_id", duesId)
       .eq("user_id", targetUserId)
       .maybeSingle(),
-    supabaseAdmin.from("dues").select("amount").eq("id", duesId).single(),
+    supabaseAdmin.from("dues").select("amount").eq("id", duesId).eq("team_id", teamId).maybeSingle(),
   ]);
 
   if (!due) return NextResponse.json({ error: "회비 항목을 찾을 수 없습니다" }, { status: 404 });
@@ -65,6 +65,9 @@ export async function DELETE(
 
   const { id: duesId } = await params;
   const { user_id: targetUserId } = await req.json();
+
+  const { data: due } = await supabaseAdmin.from("dues").select("id").eq("id", duesId).eq("team_id", teamId).maybeSingle();
+  if (!due) return NextResponse.json({ error: "회비 항목을 찾을 수 없습니다" }, { status: 404 });
 
   const { error } = await supabaseAdmin
     .from("dues_payments")

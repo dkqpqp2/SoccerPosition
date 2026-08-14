@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     .from("matches")
     .select("match_date, match_time, match_end_time, title, location")
     .eq("id", match_id)
+    .eq("team_id", teamId)
     .single();
 
   // 피드백 데이터

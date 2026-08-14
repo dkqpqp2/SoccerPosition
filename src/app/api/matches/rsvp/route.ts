@@ -17,6 +17,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
+  const { data: match } = await supabaseAdmin.from("matches").select("id").eq("id", match_id).eq("team_id", teamId).maybeSingle();
+  if (!match) return NextResponse.json({ error: "경기를 찾을 수 없어요" }, { status: 404 });
+
   const { error } = await supabaseAdmin
     .from("match_rsvp")
     .upsert(

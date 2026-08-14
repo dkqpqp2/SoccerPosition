@@ -52,6 +52,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (stoPath) await supabaseAdmin.storage.from("gallery").remove([stoPath]);
   } catch {}
 
-  await supabaseAdmin.from("gallery_photos").delete().eq("id", id);
+  await supabaseAdmin.from("gallery_photos").delete().eq("id", id).eq("team_id", teamId);
   return NextResponse.json({ success: true });
 }

@@ -44,6 +44,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "권한이 없어요" }, { status: 403 });
   }
 
-  await supabaseAdmin.from("board_posts").delete().eq("id", id);
+  await supabaseAdmin.from("board_posts").delete().eq("id", id).eq("team_id", teamId);
   return NextResponse.json({ success: true });
 }

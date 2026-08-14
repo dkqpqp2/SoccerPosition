@@ -15,13 +15,18 @@ export async function DELETE(
   const { userId, teamId } = await getUserAndTeam(session.user.id);
   if (!userId || !teamId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  const { commentId } = await params;
+  const { id: voteId, commentId } = await params;
+
+  // 투표가 내 팀 소속인지 확인
+  const { data: vote } = await supabaseAdmin.from("votes").select("id").eq("id", voteId).eq("team_id", teamId).maybeSingle();
+  if (!vote) return NextResponse.json({ error: "투표를 찾을 수 없습니다" }, { status: 404 });
 
   // 댓글 조회
   const { data: comment } = await supabaseAdmin
     .from("vote_comments")
     .select("user_id")
     .eq("id", commentId)
+    .eq("vote_id", voteId)
     .single();
 
   if (!comment) return NextResponse.json({ error: "댓글을 찾을 수 없습니다" }, { status: 404 });
@@ -34,7 +39,7 @@ export async function DELETE(
     return NextResponse.json({ error: "권한 없음" }, { status: 403 });
   }
 
-  const { error } = await supabaseAdmin.from("vote_comments").delete().eq("id", commentId);
+  const { error } = await supabaseAdmin.from("vote_comments").delete().eq("id", commentId).eq("vote_id", voteId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ success: true });

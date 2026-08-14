@@ -21,6 +21,9 @@ export async function PATCH(
   const { id: duesId } = await params;
   const { user_id: targetUserId, custom_amount, status } = await req.json();
 
+  const { data: due } = await supabaseAdmin.from("dues").select("id").eq("id", duesId).eq("team_id", teamId).maybeSingle();
+  if (!due) return NextResponse.json({ error: "회비 항목을 찾을 수 없습니다" }, { status: 404 });
+
   // custom_amount도 null이고 status도 null이면 설정 전체 삭제 (기본값 복원)
   if (custom_amount === null && (status === null || status === undefined)) {
     await supabaseAdmin
