@@ -435,7 +435,7 @@ export default function MyPage() {
               <label className="text-xs text-gray-500 mb-1.5 block uppercase tracking-widest">등번호</label>
               {!editMode ? (
                 <div className="bg-gray-800/50 border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white">
-                  {jerseyNumber ? `#${jerseyNumber}` : "미설정"}
+                  {jerseyNumber || "미설정"}
                 </div>
               ) : (
                 <input
