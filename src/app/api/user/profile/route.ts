@@ -91,6 +91,21 @@ export async function PUT(req: NextRequest) {
 
   const { team_name, uniform_info, position_1st, position_2nd, display_name, birth_year, jersey_number } = await req.json();
 
+  // 등번호 중복 체크 — 현재 팀 안에서 다른 사람이 이미 쓰고 있으면 거부
+  if (jersey_number !== undefined && jersey_number !== null && userId) {
+    const { data: conflict } = await supabaseAdmin
+      .from("team_members")
+      .select("id")
+      .eq("team_id", teamId)
+      .eq("jersey_number", jersey_number)
+      .neq("user_id", userId)
+      .maybeSingle();
+
+    if (conflict) {
+      return NextResponse.json({ error: `이미 팀 안에 등번호 ${jersey_number}번을 쓰는 선수가 있어요.` }, { status: 409 });
+    }
+  }
+
   // 팀 정보 업데이트 — 팀을 만든 팀장(owner)만 가능
   if (team_name !== undefined || uniform_info !== undefined) {
     const role = userId ? await getUserRole(userId, teamId) : null;
@@ -113,9 +128,9 @@ export async function PUT(req: NextRequest) {
       ...(jersey_number !== undefined && { jersey_number: jersey_number ?? null }),
     }).eq("id", userId);
 
-    // team_members에도 이름/포지션/등번호 동기화 (user_id로 연결된 모든 팀)
-    if (display_name !== undefined || position_1st !== undefined || position_2nd !== undefined || jersey_number !== undefined) {
-      const syncData: Record<string, string | number | null> = {};
+    // team_members에도 이름/포지션 동기화 (user_id로 연결된 모든 팀)
+    if (display_name !== undefined || position_1st !== undefined || position_2nd !== undefined) {
+      const syncData: Record<string, string | null> = {};
 
       if (display_name !== undefined) {
         // display_name이 null이면 카카오 닉네임으로 fallback
@@ -132,12 +147,20 @@ export async function PUT(req: NextRequest) {
       }
       if (position_1st !== undefined) syncData.position_1st = position_1st || null;
       if (position_2nd !== undefined) syncData.position_2nd = position_2nd || null;
-      if (jersey_number !== undefined) syncData.jersey_number = jersey_number ?? null;
 
       await supabaseAdmin
         .from("team_members")
         .update(syncData)
         .eq("user_id", userId);
+    }
+
+    // 등번호는 별도로 동기화 — 다른 팀에서 중복 충돌이 나도 위 이름/포지션 저장에는 영향 없도록 분리
+    if (jersey_number !== undefined) {
+      await supabaseAdmin
+        .from("team_members")
+        .update({ jersey_number: jersey_number ?? null })
+        .eq("user_id", userId)
+        .eq("team_id", teamId);
     }
   }
 

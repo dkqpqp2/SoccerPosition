@@ -82,6 +82,7 @@ export default function MyPage() {
   const [jerseyNumber, setJerseyNumber] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [matchingProfile, setMatchingProfile] = useState<MatchingProfile>(defaultMatchingProfile);
   const [matchingSaving, setMatchingSaving] = useState(false);
   const [matchingSaved, setMatchingSaved] = useState(false);
@@ -173,7 +174,8 @@ export default function MyPage() {
 
   async function save() {
     setSaving(true);
-    await fetch("/api/user/profile", {
+    setSaveError("");
+    const res = await fetch("/api/user/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -186,6 +188,11 @@ export default function MyPage() {
       }),
     });
     setSaving(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setSaveError(data.error ?? "저장에 실패했어요.");
+      return;
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     fetchProfile();
@@ -379,7 +386,8 @@ export default function MyPage() {
                 placeholder="예: 1995"
                 min={1950}
                 max={new Date().getFullYear()}
-                className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600"
+                inputMode="numeric"
+                className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               {birthYear && (
                 <p className="text-xs text-gray-600 mt-1">
@@ -398,7 +406,8 @@ export default function MyPage() {
                 placeholder="예: 7"
                 min={0}
                 max={99}
-                className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600"
+                inputMode="numeric"
+                className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
             </div>
           </div>
@@ -585,6 +594,7 @@ export default function MyPage() {
         )}
 
         {/* 저장 버튼 */}
+        {saveError && <p className="text-xs text-red-400 text-center -mb-1">{saveError}</p>}
         <button
           onClick={save}
           disabled={saving}
