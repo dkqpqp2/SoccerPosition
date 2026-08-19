@@ -456,7 +456,7 @@ function MyCard({ player, rank, sortKey, totalPlayers }: {
 
         {/* 이름 + 나 뱃지 */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <p className="font-black text-white text-base truncate">{player.jersey_number != null && <span className="text-gray-500">#{player.jersey_number} </span>}{player.name}</p>
+          <p className="font-black text-white text-base truncate">{player.jersey_number != null && <span className="text-gray-500">{player.jersey_number} </span>}{player.name}</p>
           <span className="shrink-0 text-[10px] font-bold bg-emerald-500 text-black px-2 py-0.5 rounded-full">나</span>
           {rank !== null && (
             <span className="text-[11px] text-gray-500 shrink-0">{rank}/{totalPlayers}위</span>
@@ -520,7 +520,7 @@ function PodiumCard({ player, rank, sortKey }: {
     <div className={`rounded-lg border ${s.border} ${s.bg} p-3 flex flex-col items-center gap-1.5`}>
       <Medal size={22} strokeWidth={1.75} className={s.medalColor} />
       <p className={`text-xs font-black truncate w-full text-center ${s.nameColor}`}>
-        {player.jersey_number != null && <span className="opacity-60">#{player.jersey_number} </span>}{player.name}
+        {player.jersey_number != null && <span className="opacity-60">{player.jersey_number} </span>}{player.name}
         {player.is_me && <span className="ml-1 text-[9px] bg-emerald-500/30 text-emerald-400 px-1 py-0.5 rounded-full">나</span>}
       </p>
       {mainValue && (
@@ -558,7 +558,7 @@ function CompactRow({ player, rank, sortKey }: {
 
       {/* 이름 + 나 뱃지 */}
       <div className="flex items-center gap-1.5 flex-1 min-w-0">
-        <p className={`text-sm font-semibold truncate ${isMe ? "text-emerald-300" : "text-white"}`}>{player.jersey_number != null && <span className="text-gray-500 font-normal">#{player.jersey_number} </span>}{player.name}</p>
+        <p className={`text-sm font-semibold truncate ${isMe ? "text-emerald-300" : "text-white"}`}>{player.jersey_number != null && <span className="text-gray-500 font-normal">{player.jersey_number} </span>}{player.name}</p>
         {isMe && <span className="shrink-0 text-[10px] font-bold bg-emerald-500 text-black px-1.5 py-0.5 rounded-full">나</span>}
       </div>
 

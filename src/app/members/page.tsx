@@ -515,7 +515,7 @@ function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canM
               isMercenary ? "text-amber-300 cursor-default" : "text-white hover:text-emerald-400"
             }`}
           >
-            {member.jersey_number != null && <span className="text-gray-500 font-normal mr-1">#{member.jersey_number}</span>}
+            {member.jersey_number != null && <span className="text-gray-500 font-normal mr-1">{member.jersey_number}</span>}
             {member.name}{isMercenary && <Zap size={11} strokeWidth={2} className="ml-1" />}
           </button>
           {/* 임의 추가 배지 */}

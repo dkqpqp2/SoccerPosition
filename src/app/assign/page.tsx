@@ -614,7 +614,7 @@ function AssignContent() {
                                 <div className="flex flex-col px-3 pb-2 gap-0.5">
                                   {regular.map(m => (
                                     <div key={m.id} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white/3">
-                                      <span className="text-sm font-medium text-white">{m.jersey_number != null && <span className="text-gray-500">#{m.jersey_number} </span>}{m.name}</span>
+                                      <span className="text-sm font-medium text-white">{m.jersey_number != null && <span className="text-gray-500">{m.jersey_number} </span>}{m.name}</span>
                                       <div className="flex gap-1">
                                         {m.position_1st && <span className="text-xs bg-emerald-500/15 text-emerald-400 px-1.5 rounded-full border border-emerald-500/20">{m.position_1st}</span>}
                                         {m.position_2nd && <span className="text-xs bg-blue-500/15 text-blue-400 px-1.5 rounded-full border border-blue-500/20">{m.position_2nd}</span>}
@@ -634,7 +634,7 @@ function AssignContent() {
                                   {mercenary.map(m => (
                                     <div key={m.id} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-amber-500/5 border border-amber-500/10">
                                       <div className="flex items-center gap-1.5 flex-wrap">
-                                        <span className="text-sm font-medium text-amber-300">{m.jersey_number != null && <span className="text-amber-400/60">#{m.jersey_number} </span>}{m.name}</span>
+                                        <span className="text-sm font-medium text-amber-300">{m.jersey_number != null && <span className="text-amber-400/60">{m.jersey_number} </span>}{m.name}</span>
                                         {m.is_cafe_mercenary ? <span className="flex items-center gap-0.5 text-xs text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded-full"><Coffee size={10} />카페</span>
                                           : m.referrer ? <span className="text-xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full">{m.referrer}지인</span> : null}
                                       </div>
@@ -805,7 +805,7 @@ function AssignContent() {
                           <div className="flex flex-col gap-1">
                             {regular.map(m => (
                               <div key={m.id} className={`flex items-center justify-between px-2 py-1.5 rounded-lg ${assignedIds.has(m.id) ? "bg-emerald-500/10" : "bg-amber-500/5 border border-amber-500/10"}`}>
-                                <span className={`text-sm font-medium ${assignedIds.has(m.id) ? "text-white" : "text-amber-400"}`}>{m.jersey_number != null && <span className="opacity-60">#{m.jersey_number} </span>}{m.name}</span>
+                                <span className={`text-sm font-medium ${assignedIds.has(m.id) ? "text-white" : "text-amber-400"}`}>{m.jersey_number != null && <span className="opacity-60">{m.jersey_number} </span>}{m.name}</span>
                                 {assignedIds.has(m.id) ? <Check size={12} className="text-emerald-400" /> : <span className="text-xs text-amber-400">미배정</span>}
                               </div>
                             ))}
@@ -818,7 +818,7 @@ function AssignContent() {
                           <div className="flex flex-col gap-1">
                             {mercenary.map(m => (
                               <div key={m.id} className={`flex items-center justify-between px-2 py-1.5 rounded-lg ${assignedIds.has(m.id) ? "bg-emerald-500/10" : "bg-amber-500/5"}`}>
-                                <span className={`text-sm font-medium ${assignedIds.has(m.id) ? "text-amber-300" : "text-amber-400/60"}`}>{m.jersey_number != null && <span className="opacity-60">#{m.jersey_number} </span>}{m.name}</span>
+                                <span className={`text-sm font-medium ${assignedIds.has(m.id) ? "text-amber-300" : "text-amber-400/60"}`}>{m.jersey_number != null && <span className="opacity-60">{m.jersey_number} </span>}{m.name}</span>
                                 {assignedIds.has(m.id) ? <Check size={12} className="text-emerald-400" /> : <span className="text-xs text-amber-400/50">미배정</span>}
                               </div>
                             ))}
@@ -1121,7 +1121,7 @@ function AssignContent() {
                           <button key={m.id} onClick={() => handleAssignMember(m.id)}
                             className="flex flex-col px-4 py-2.5 rounded-xl border border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-colors text-left w-full">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-medium text-white">{m.jersey_number != null && <span className="text-gray-500">#{m.jersey_number} </span>}{m.name}</span>
+                              <span className="font-medium text-white">{m.jersey_number != null && <span className="text-gray-500">{m.jersey_number} </span>}{m.name}</span>
                               {currentSlot && <span className="text-xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">{currentSlot}에서 스왑</span>}
                             </div>
                             {(m.position_1st || m.position_2nd) && (
@@ -1144,7 +1144,7 @@ function AssignContent() {
                           <button key={m.id} onClick={() => handleAssignMember(m.id)}
                             className="flex flex-col px-4 py-2.5 rounded-xl border border-amber-500/20 hover:border-amber-400/50 hover:bg-amber-500/5 transition-colors text-left w-full">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-medium text-amber-300">{m.jersey_number != null && <span className="text-amber-400/60">#{m.jersey_number} </span>}{m.name}</span>
+                              <span className="font-medium text-amber-300">{m.jersey_number != null && <span className="text-amber-400/60">{m.jersey_number} </span>}{m.name}</span>
                               {m.is_cafe_mercenary ? <span className="flex items-center gap-0.5 text-xs text-sky-400"><Coffee size={10} />카페</span> : m.referrer ? <span className="text-xs text-amber-400">{m.referrer}지인</span> : null}
                               {currentSlot && <span className="text-xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">{currentSlot}에서 스왑</span>}
                             </div>

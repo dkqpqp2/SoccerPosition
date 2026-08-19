@@ -270,7 +270,7 @@ export default function SharePage() {
                       return (
                         <div key={slot.id} className="flex items-center gap-1.5 bg-white/5 rounded-xl px-2 py-1.5">
                           <span className="text-[9px] font-bold text-emerald-400 w-7 shrink-0">{slot.label}</span>
-                          <span className="text-gray-300 text-[10px] font-medium truncate">{member.jersey_number != null && <span className="text-gray-500">#{member.jersey_number} </span>}{member.name}</span>
+                          <span className="text-gray-300 text-[10px] font-medium truncate">{member.jersey_number != null && <span className="text-gray-500">{member.jersey_number} </span>}{member.name}</span>
                         </div>
                       );
                     })}
@@ -287,7 +287,7 @@ export default function SharePage() {
                       return (
                         <div key={slot.id} className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl px-2 py-1.5">
                           <span className="text-[9px] font-bold text-amber-400 w-7 shrink-0">{slot.label}</span>
-                          <span className="text-amber-300 text-[10px] font-medium truncate flex-1">{member.jersey_number != null && <span className="text-amber-400/60">#{member.jersey_number} </span>}{member.name}</span>
+                          <span className="text-amber-300 text-[10px] font-medium truncate flex-1">{member.jersey_number != null && <span className="text-amber-400/60">{member.jersey_number} </span>}{member.name}</span>
                           {badge}
                         </div>
                       );
@@ -322,7 +322,7 @@ export default function SharePage() {
                     return (
                       <div key={m.id} className="flex items-center gap-1.5 bg-sky-500/10 border border-sky-500/20 rounded-xl px-2 py-1.5">
                         <span className="text-[9px] text-sky-500/60 w-4 shrink-0">{i + 1}</span>
-                        <span className={`text-[10px] font-medium truncate flex-1 ${m.is_mercenary ? "text-amber-300" : "text-sky-300"}`}>{m.jersey_number != null && <span className="opacity-60">#{m.jersey_number} </span>}{m.name}</span>
+                        <span className={`text-[10px] font-medium truncate flex-1 ${m.is_mercenary ? "text-amber-300" : "text-sky-300"}`}>{m.jersey_number != null && <span className="opacity-60">{m.jersey_number} </span>}{m.name}</span>
                         {posText && <span className="text-[9px] text-gray-500 shrink-0">{posText}</span>}
                         {mercBadge}
                       </div>
