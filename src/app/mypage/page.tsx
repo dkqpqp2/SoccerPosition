@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import {
   Bell, User, Handshake, Target, Home, Zap, ClipboardList, Check,
   AlertTriangle, StickyNote, X, Vote, Calendar, Wallet, Mail, LogOut, Trash2,
-  ImagePlus,
+  ImagePlus, Pencil,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import PositionSelect from "@/components/PositionSelect";
@@ -83,6 +83,7 @@ export default function MyPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [editMode, setEditMode] = useState(false);
   const [matchingProfile, setMatchingProfile] = useState<MatchingProfile>(defaultMatchingProfile);
   const [matchingSaving, setMatchingSaving] = useState(false);
   const [matchingSaved, setMatchingSaved] = useState(false);
@@ -194,7 +195,14 @@ export default function MyPage() {
       return;
     }
     setSaved(true);
+    setEditMode(false);
     setTimeout(() => setSaved(false), 2000);
+    fetchProfile();
+  }
+
+  function cancelEdit() {
+    setSaveError("");
+    setEditMode(false);
     fetchProfile();
   }
 
@@ -342,93 +350,139 @@ export default function MyPage() {
 
         {/* 내 기본 정보 */}
         <div className="bg-gray-900 border border-white/5 rounded-lg p-5">
-          <h2 className="font-bold text-white mb-4 flex items-center gap-2"><User size={16} strokeWidth={1.75} className="text-gray-400" /> 내 기본 정보</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-bold text-white flex items-center gap-2"><User size={16} strokeWidth={1.75} className="text-gray-400" /> 내 기본 정보</h2>
+            {!editMode && (
+              <button
+                onClick={() => setEditMode(true)}
+                className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-emerald-400 px-2 py-1 rounded-lg hover:bg-emerald-500/10 transition-colors"
+              >
+                <Pencil size={12} /> 수정
+              </button>
+            )}
+          </div>
           <div className="flex flex-col gap-4">
             {/* 이름 */}
             <div>
               <label className="text-xs text-gray-500 mb-2 block uppercase tracking-widest">이름</label>
-              <div className="flex gap-2 mb-2">
-                <button
-                  onClick={() => setUseKakaoName(true)}
-                  className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors border ${useKakaoName ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" : "bg-white/5 border-white/10 text-gray-500 hover:bg-white/10"}`}
-                >
-                  카카오 닉네임
-                </button>
-                <button
-                  onClick={() => setUseKakaoName(false)}
-                  className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors border ${!useKakaoName ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" : "bg-white/5 border-white/10 text-gray-500 hover:bg-white/10"}`}
-                >
-                  직접 입력
-                </button>
-              </div>
-              {useKakaoName ? (
-                <div className="bg-gray-800/50 border border-white/5 rounded-xl px-4 py-2.5 text-sm text-gray-400">
-                  {profile.name || "카카오 닉네임 없음"}
+              {!editMode ? (
+                <div className="bg-gray-800/50 border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white">
+                  {profile.name || "미설정"}
                 </div>
               ) : (
-                <input
-                  type="text"
-                  value={displayName}
-                  onChange={e => setDisplayName(e.target.value)}
-                  placeholder="실명 또는 닉네임 입력"
-                  className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600"
-                />
+                <>
+                  <div className="flex gap-2 mb-2">
+                    <button
+                      onClick={() => setUseKakaoName(true)}
+                      className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors border ${useKakaoName ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" : "bg-white/5 border-white/10 text-gray-500 hover:bg-white/10"}`}
+                    >
+                      카카오 닉네임
+                    </button>
+                    <button
+                      onClick={() => setUseKakaoName(false)}
+                      className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors border ${!useKakaoName ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" : "bg-white/5 border-white/10 text-gray-500 hover:bg-white/10"}`}
+                    >
+                      직접 입력
+                    </button>
+                  </div>
+                  {useKakaoName ? (
+                    <div className="bg-gray-800/50 border border-white/5 rounded-xl px-4 py-2.5 text-sm text-gray-400">
+                      {profile.name || "카카오 닉네임 없음"}
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={e => setDisplayName(e.target.value)}
+                      placeholder="실명 또는 닉네임 입력"
+                      className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600"
+                    />
+                  )}
+                </>
               )}
             </div>
 
             {/* 출생연도 */}
             <div>
               <label className="text-xs text-gray-500 mb-1.5 block uppercase tracking-widest">출생연도</label>
-              <input
-                type="number"
-                value={birthYear}
-                onChange={e => setBirthYear(e.target.value)}
-                placeholder="예: 1995"
-                min={1950}
-                max={new Date().getFullYear()}
-                inputMode="numeric"
-                className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              />
-              {birthYear && (
-                <p className="text-xs text-gray-600 mt-1">
-                  만 {new Date().getFullYear() - parseInt(birthYear)}세
-                </p>
+              {!editMode ? (
+                <div className="bg-gray-800/50 border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white">
+                  {birthYear ? `${birthYear}년생 · 만 ${new Date().getFullYear() - parseInt(birthYear)}세` : "미설정"}
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="number"
+                    value={birthYear}
+                    onChange={e => setBirthYear(e.target.value)}
+                    placeholder="예: 1995"
+                    min={1950}
+                    max={new Date().getFullYear()}
+                    inputMode="numeric"
+                    className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  {birthYear && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      만 {new Date().getFullYear() - parseInt(birthYear)}세
+                    </p>
+                  )}
+                </>
               )}
             </div>
 
             {/* 등번호 */}
             <div>
               <label className="text-xs text-gray-500 mb-1.5 block uppercase tracking-widest">등번호</label>
-              <input
-                type="number"
-                value={jerseyNumber}
-                onChange={e => setJerseyNumber(e.target.value)}
-                placeholder="예: 7"
-                min={0}
-                max={99}
-                inputMode="numeric"
-                className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              />
+              {!editMode ? (
+                <div className="bg-gray-800/50 border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white">
+                  {jerseyNumber ? `#${jerseyNumber}` : "미설정"}
+                </div>
+              ) : (
+                <input
+                  type="number"
+                  value={jerseyNumber}
+                  onChange={e => setJerseyNumber(e.target.value)}
+                  placeholder="예: 7"
+                  min={0}
+                  max={99}
+                  inputMode="numeric"
+                  className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              )}
             </div>
           </div>
         </div>
 
         {/* 내 포지션 선호도 */}
         <div className="bg-gray-900 border border-white/5 rounded-lg p-5">
-          <h2 className="font-bold text-white mb-1 flex items-center gap-2">
-            <Target size={16} strokeWidth={1.75} className="text-gray-400" /> 내 포지션 선호도
-          </h2>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-bold text-white flex items-center gap-2">
+              <Target size={16} strokeWidth={1.75} className="text-gray-400" /> 내 포지션 선호도
+            </h2>
+            {!editMode && (
+              <button
+                onClick={() => setEditMode(true)}
+                className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-emerald-400 px-2 py-1 rounded-lg hover:bg-emerald-500/10 transition-colors"
+              >
+                <Pencil size={12} /> 수정
+              </button>
+            )}
+          </div>
           <p className="text-xs text-gray-600 mb-4">팀 가입 시 자동으로 팀원 명단에 추가돼요</p>
           <div className="flex flex-col gap-3">
-            <div>
-              <label className="text-xs text-gray-500 mb-1.5 block uppercase tracking-widest">1순위 포지션</label>
-              <PositionSelect value={position1st} onChange={setPosition1st} />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1.5 block uppercase tracking-widest">2순위 포지션</label>
-              <PositionSelect value={position2nd} onChange={setPosition2nd} />
-            </div>
-            {(position1st || position2nd) && (
+            {editMode && (
+              <>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1.5 block uppercase tracking-widest">1순위 포지션</label>
+                  <PositionSelect value={position1st} onChange={setPosition1st} />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1.5 block uppercase tracking-widest">2순위 포지션</label>
+                  <PositionSelect value={position2nd} onChange={setPosition2nd} />
+                </div>
+              </>
+            )}
+            {(position1st || position2nd) ? (
               <div className="flex gap-2 flex-wrap mt-1">
                 {position1st && (
                   <span className="text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full font-medium">
@@ -441,6 +495,8 @@ export default function MyPage() {
                   </span>
                 )}
               </div>
+            ) : !editMode && (
+              <div className="bg-gray-800/50 border border-white/5 rounded-xl px-4 py-2.5 text-sm text-gray-400">미설정</div>
             )}
           </div>
         </div>
@@ -595,13 +651,24 @@ export default function MyPage() {
 
         {/* 저장 버튼 */}
         {saveError && <p className="text-xs text-red-400 text-center -mb-1">{saveError}</p>}
-        <button
-          onClick={save}
-          disabled={saving}
-          className="w-full py-3 rounded-xl font-bold transition-colors bg-emerald-500 hover:bg-emerald-400 text-black"
-        >
-          {saved ? <span className="inline-flex items-center justify-center gap-1"><Check size={15} /> 저장됐어요!</span> : saving ? "저장 중..." : "저장"}
-        </button>
+        <div className="flex gap-2">
+          {editMode && (
+            <button
+              onClick={cancelEdit}
+              disabled={saving}
+              className="py-3 px-5 rounded-xl font-bold transition-colors bg-white/5 hover:bg-white/10 text-gray-400"
+            >
+              취소
+            </button>
+          )}
+          <button
+            onClick={save}
+            disabled={saving}
+            className="flex-1 py-3 rounded-xl font-bold transition-colors bg-emerald-500 hover:bg-emerald-400 text-black"
+          >
+            {saved ? <span className="inline-flex items-center justify-center gap-1"><Check size={15} /> 저장됐어요!</span> : saving ? "저장 중..." : "저장"}
+          </button>
+        </div>
 
         </>}{/* end 내 정보 탭 */}
 
