@@ -49,6 +49,7 @@ interface Profile {
   position_1st: string | null;
   position_2nd: string | null;
   birth_year: number | null;
+  jersey_number: number | null;
   role: string | null;
   is_owner: boolean;
 }
@@ -78,6 +79,7 @@ export default function MyPage() {
   const [birthYear, setBirthYear] = useState("");
   const [position1st, setPosition1st] = useState("");
   const [position2nd, setPosition2nd] = useState("");
+  const [jerseyNumber, setJerseyNumber] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [matchingProfile, setMatchingProfile] = useState<MatchingProfile>(defaultMatchingProfile);
@@ -118,6 +120,7 @@ export default function MyPage() {
     setPosition1st(data.position_1st || "");
     setPosition2nd(data.position_2nd || "");
     setBirthYear(data.birth_year ? String(data.birth_year) : "");
+    setJerseyNumber(data.jersey_number != null ? String(data.jersey_number) : "");
     // 카카오 이름과 저장된 이름이 다르면 직접입력 모드
     if (data.custom_name && data.custom_name !== data.kakao_name) {
       setDisplayName(data.custom_name);
@@ -179,6 +182,7 @@ export default function MyPage() {
         position_2nd: position2nd || null,
         display_name: useKakaoName ? null : (displayName.trim() || null),
         birth_year: birthYear ? parseInt(birthYear) : null,
+        jersey_number: jerseyNumber ? parseInt(jerseyNumber) : null,
       }),
     });
     setSaving(false);
@@ -382,6 +386,20 @@ export default function MyPage() {
                   만 {new Date().getFullYear() - parseInt(birthYear)}세
                 </p>
               )}
+            </div>
+
+            {/* 등번호 */}
+            <div>
+              <label className="text-xs text-gray-500 mb-1.5 block uppercase tracking-widest">등번호</label>
+              <input
+                type="number"
+                value={jerseyNumber}
+                onChange={e => setJerseyNumber(e.target.value)}
+                placeholder="예: 7"
+                min={0}
+                max={99}
+                className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600"
+              />
             </div>
           </div>
         </div>

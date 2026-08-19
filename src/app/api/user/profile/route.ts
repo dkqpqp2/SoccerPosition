@@ -12,7 +12,7 @@ export async function GET() {
   if (!userId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const [{ data: userData }, { data: teamData }, role] = await Promise.all([
-    supabaseAdmin.from("users").select("name, email, image, position_1st, position_2nd, display_name, birth_year, kakao_name").eq("id", userId).single(),
+    supabaseAdmin.from("users").select("name, email, image, position_1st, position_2nd, display_name, birth_year, kakao_name, jersey_number").eq("id", userId).single(),
     teamId
       ? supabaseAdmin.from("teams").select("name, color, logo_url, invite_code, owner_id, uniform_info").eq("id", teamId).single()
       : Promise.resolve({ data: null }),
@@ -69,6 +69,7 @@ export async function GET() {
     position_1st: userData?.position_1st ?? null,
     position_2nd: userData?.position_2nd ?? null,
     birth_year: userData?.birth_year ?? null,
+    jersey_number: userData?.jersey_number ?? null,
     team_id: teamId ?? null,
     team_name: teamData?.name ?? "우리팀",
     team_color: teamData?.color ?? "#16a34a",
@@ -88,7 +89,7 @@ export async function PUT(req: NextRequest) {
   const { userId, teamId } = await getUserAndTeam(session.user.id);
   if (!teamId) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
-  const { team_name, uniform_info, position_1st, position_2nd, display_name, birth_year } = await req.json();
+  const { team_name, uniform_info, position_1st, position_2nd, display_name, birth_year, jersey_number } = await req.json();
 
   // 팀 정보 업데이트 — 팀을 만든 팀장(owner)만 가능
   if (team_name !== undefined || uniform_info !== undefined) {
@@ -102,18 +103,19 @@ export async function PUT(req: NextRequest) {
     }).eq("id", teamId);
   }
 
-  // 유저 포지션 선호도 + 이름 업데이트
-  if (userId && (position_1st !== undefined || position_2nd !== undefined || display_name !== undefined || birth_year !== undefined)) {
+  // 유저 포지션 선호도 + 이름 + 등번호 업데이트
+  if (userId && (position_1st !== undefined || position_2nd !== undefined || display_name !== undefined || birth_year !== undefined || jersey_number !== undefined)) {
     await supabaseAdmin.from("users").update({
       ...(position_1st !== undefined && { position_1st: position_1st || null }),
       ...(position_2nd !== undefined && { position_2nd: position_2nd || null }),
       ...(display_name !== undefined && { display_name: display_name || null }),
       ...(birth_year !== undefined && { birth_year: birth_year || null }),
+      ...(jersey_number !== undefined && { jersey_number: jersey_number ?? null }),
     }).eq("id", userId);
 
-    // team_members에도 이름/포지션 동기화 (user_id로 연결된 모든 팀)
-    if (display_name !== undefined || position_1st !== undefined || position_2nd !== undefined) {
-      const syncData: Record<string, string | null> = {};
+    // team_members에도 이름/포지션/등번호 동기화 (user_id로 연결된 모든 팀)
+    if (display_name !== undefined || position_1st !== undefined || position_2nd !== undefined || jersey_number !== undefined) {
+      const syncData: Record<string, string | number | null> = {};
 
       if (display_name !== undefined) {
         // display_name이 null이면 카카오 닉네임으로 fallback
@@ -130,6 +132,7 @@ export async function PUT(req: NextRequest) {
       }
       if (position_1st !== undefined) syncData.position_1st = position_1st || null;
       if (position_2nd !== undefined) syncData.position_2nd = position_2nd || null;
+      if (jersey_number !== undefined) syncData.jersey_number = jersey_number ?? null;
 
       await supabaseAdmin
         .from("team_members")

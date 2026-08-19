@@ -11,6 +11,7 @@ interface Member {
   name: string;
   position_1st: string | null;
   position_2nd: string | null;
+  jersey_number?: number | null;
   is_mercenary?: boolean;
   is_cafe_mercenary?: boolean;
   referrer?: string | null;
@@ -176,8 +177,15 @@ export default function SharePage() {
                       className="absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
                       style={{ left: `${slot.x}%`, top: `${slot.y}%` }}
                     >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[8px] shadow-lg border-2 ${bgText} ${borderClass}`}>
-                        {slot.label}
+                      <div className="relative">
+                        {member?.jersey_number != null && (
+                          <span className="absolute -top-1 -right-1 z-10 w-3.5 h-3.5 rounded-full bg-gray-900 border border-white/40 text-white text-[6px] font-black flex items-center justify-center leading-none">
+                            {member.jersey_number}
+                          </span>
+                        )}
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[8px] shadow-lg border-2 ${bgText} ${borderClass}`}>
+                          {slot.label}
+                        </div>
                       </div>
                       {member && (
                         <span className={`mt-0.5 text-[8px] font-bold whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] ${isMercenary ? "text-amber-300" : "text-white"}`}>
@@ -262,7 +270,7 @@ export default function SharePage() {
                       return (
                         <div key={slot.id} className="flex items-center gap-1.5 bg-white/5 rounded-xl px-2 py-1.5">
                           <span className="text-[9px] font-bold text-emerald-400 w-7 shrink-0">{slot.label}</span>
-                          <span className="text-gray-300 text-[10px] font-medium truncate">{member.name}</span>
+                          <span className="text-gray-300 text-[10px] font-medium truncate">{member.jersey_number != null && <span className="text-gray-500">#{member.jersey_number} </span>}{member.name}</span>
                         </div>
                       );
                     })}
@@ -279,7 +287,7 @@ export default function SharePage() {
                       return (
                         <div key={slot.id} className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl px-2 py-1.5">
                           <span className="text-[9px] font-bold text-amber-400 w-7 shrink-0">{slot.label}</span>
-                          <span className="text-amber-300 text-[10px] font-medium truncate flex-1">{member.name}</span>
+                          <span className="text-amber-300 text-[10px] font-medium truncate flex-1">{member.jersey_number != null && <span className="text-amber-400/60">#{member.jersey_number} </span>}{member.name}</span>
                           {badge}
                         </div>
                       );
@@ -314,7 +322,7 @@ export default function SharePage() {
                     return (
                       <div key={m.id} className="flex items-center gap-1.5 bg-sky-500/10 border border-sky-500/20 rounded-xl px-2 py-1.5">
                         <span className="text-[9px] text-sky-500/60 w-4 shrink-0">{i + 1}</span>
-                        <span className={`text-[10px] font-medium truncate flex-1 ${m.is_mercenary ? "text-amber-300" : "text-sky-300"}`}>{m.name}</span>
+                        <span className={`text-[10px] font-medium truncate flex-1 ${m.is_mercenary ? "text-amber-300" : "text-sky-300"}`}>{m.jersey_number != null && <span className="opacity-60">#{m.jersey_number} </span>}{m.name}</span>
                         {posText && <span className="text-[9px] text-gray-500 shrink-0">{posText}</span>}
                         {mercBadge}
                       </div>

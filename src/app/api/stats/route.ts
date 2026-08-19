@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   // 정규 팀원 목록
   const { data: members } = await supabaseAdmin
     .from("team_members")
-    .select("id, name")
+    .select("id, name, jersey_number")
     .eq("team_id", teamId)
     .eq("is_mercenary", false)
     .order("name");
@@ -114,6 +114,7 @@ export async function GET(req: NextRequest) {
       return {
         id:              m.id,
         name:            m.name,
+        jersey_number:   m.jersey_number ?? null,
         is_me:           m.id === myMemberId,
         goals:           autoGoals + extraGoals,
         assists:         autoAssists + extraAssists,
