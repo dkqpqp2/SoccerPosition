@@ -55,10 +55,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   if (!member) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
 
-  // 소프트 삭제: left_at 기록 (납부 기록 보존을 위해 행 유지)
+  // 소프트 삭제: left_at 기록 (납부 기록 보존을 위해 행 유지), 등번호는 반납해서 재사용 가능하게
   const { error } = await supabaseAdmin
     .from("team_members")
-    .update({ left_at: new Date().toISOString() })
+    .update({ left_at: new Date().toISOString(), jersey_number: null })
     .eq("id", id)
     .eq("team_id", teamId);
 

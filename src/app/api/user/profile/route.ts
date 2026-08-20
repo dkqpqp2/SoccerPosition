@@ -91,7 +91,7 @@ export async function PUT(req: NextRequest) {
 
   const { team_name, uniform_info, position_1st, position_2nd, display_name, birth_year, jersey_number } = await req.json();
 
-  // 등번호 중복 체크 — 현재 팀 안에서 다른 사람이 이미 쓰고 있으면 거부
+  // 등번호 중복 체크 — 현재 팀의 활성 팀원 중 다른 사람이 이미 쓰고 있으면 거부 (나간 팀원은 제외)
   if (jersey_number !== undefined && jersey_number !== null && userId) {
     const { data: conflict } = await supabaseAdmin
       .from("team_members")
@@ -99,6 +99,7 @@ export async function PUT(req: NextRequest) {
       .eq("team_id", teamId)
       .eq("jersey_number", jersey_number)
       .neq("user_id", userId)
+      .is("left_at", null)
       .maybeSingle();
 
     if (conflict) {
