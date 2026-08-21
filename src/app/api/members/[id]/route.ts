@@ -17,17 +17,43 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const { id } = await params;
-  const { name, position_1st, position_2nd, is_mercenary, is_cafe_mercenary, referrer } = await req.json();
+  const { name, position_1st, position_2nd, jersey_number, is_mercenary, is_cafe_mercenary, referrer } = await req.json();
+
+  if (jersey_number !== undefined && jersey_number !== null) {
+    const { data: conflict } = await supabaseAdmin
+      .from("team_members")
+      .select("id")
+      .eq("team_id", teamId)
+      .eq("jersey_number", jersey_number)
+      .neq("id", id)
+      .is("left_at", null)
+      .maybeSingle();
+
+    if (conflict) {
+      return NextResponse.json({ error: `이미 팀 안에 등번호 ${jersey_number}번을 쓰는 선수가 있어요.` }, { status: 409 });
+    }
+  }
 
   const { data, error } = await supabaseAdmin
     .from("team_members")
-    .update({ name, position_1st, position_2nd, is_mercenary: !!is_mercenary, is_cafe_mercenary: !!is_cafe_mercenary, referrer: is_mercenary && !is_cafe_mercenary ? (referrer || null) : null })
+    .update({
+      name, position_1st, position_2nd,
+      ...(jersey_number !== undefined && { jersey_number: jersey_number ?? null }),
+      is_mercenary: !!is_mercenary, is_cafe_mercenary: !!is_cafe_mercenary,
+      referrer: is_mercenary && !is_cafe_mercenary ? (referrer || null) : null,
+    })
     .eq("id", id)
     .eq("team_id", teamId)
     .select()
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // 계정이 연결된 팀원이면 users.jersey_number도 같이 맞춰서, 본인이 마이페이지에서 다른 값을 저장할 때 덮어써지지 않게 함
+  if (jersey_number !== undefined && data?.user_id) {
+    await supabaseAdmin.from("users").update({ jersey_number: jersey_number ?? null }).eq("id", data.user_id);
+  }
+
   return NextResponse.json(data);
 }
 

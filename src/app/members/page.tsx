@@ -28,6 +28,7 @@ interface FormData {
   name: string;
   position_1st: string;
   position_2nd: string;
+  jersey_number: string;
   is_mercenary: boolean;
   is_cafe_mercenary: boolean;
   referrer: string;
@@ -53,7 +54,7 @@ export default function MembersPage() {
   const [evalLoading, setEvalLoading] = useState(false);
   const [showForm,  setShowForm]  = useState(false);
   const [editId,    setEditId]    = useState<string | null>(null);
-  const [form, setForm] = useState<FormData>({ name: "", position_1st: "", position_2nd: "", is_mercenary: false, is_cafe_mercenary: false, referrer: "" });
+  const [form, setForm] = useState<FormData>({ name: "", position_1st: "", position_2nd: "", jersey_number: "", is_mercenary: false, is_cafe_mercenary: false, referrer: "" });
   const [tab,  setTab]  = useState<"regular" | "mercenary" | "eval">("regular");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
@@ -102,11 +103,12 @@ export default function MembersPage() {
     e.preventDefault();
     setFormError(null);
     setSubmitting(true);
+    const payload = { ...form, jersey_number: form.jersey_number ? parseInt(form.jersey_number) : null };
     let res: Response;
     if (editId) {
-      res = await fetch(`/api/members/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      res = await fetch(`/api/members/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     } else {
-      res = await fetch("/api/members", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      res = await fetch("/api/members", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     }
     setSubmitting(false);
     if (!res.ok) {
@@ -114,7 +116,7 @@ export default function MembersPage() {
       setFormError(data.error ?? "오류가 발생했어요. 다시 시도해주세요.");
       return;
     }
-    setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: false, is_cafe_mercenary: false, referrer: "" });
+    setForm({ name: "", position_1st: "", position_2nd: "", jersey_number: "", is_mercenary: false, is_cafe_mercenary: false, referrer: "" });
     setFormError(null);
     setShowForm(false); setEditId(null); fetchMembers();
   }
@@ -145,7 +147,7 @@ export default function MembersPage() {
   }
 
   function handleEdit(member: Member) {
-    setForm({ name: member.name, position_1st: member.position_1st || "", position_2nd: member.position_2nd || "", is_mercenary: member.is_mercenary, is_cafe_mercenary: member.is_cafe_mercenary, referrer: member.referrer || "" });
+    setForm({ name: member.name, position_1st: member.position_1st || "", position_2nd: member.position_2nd || "", jersey_number: member.jersey_number != null ? String(member.jersey_number) : "", is_mercenary: member.is_mercenary, is_cafe_mercenary: member.is_cafe_mercenary, referrer: member.referrer || "" });
     setEditId(member.id); setShowForm(true);
   }
 
@@ -167,7 +169,7 @@ export default function MembersPage() {
       <div className="flex justify-end gap-2 px-4 pt-4">
         {canManage && tab !== "eval" && (
           <button
-            onClick={() => { setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: true, is_cafe_mercenary: false, referrer: "" }); setEditId(null); setShowForm(true); }}
+            onClick={() => { setForm({ name: "", position_1st: "", position_2nd: "", jersey_number: "", is_mercenary: true, is_cafe_mercenary: false, referrer: "" }); setEditId(null); setShowForm(true); }}
             className="bg-amber-500 hover:bg-amber-400 text-black font-bold px-3 py-1.5 rounded-xl text-sm transition-colors">
             + 용병
           </button>
@@ -227,7 +229,7 @@ export default function MembersPage() {
               ? <Users size={40} strokeWidth={1.5} className="opacity-30 mx-auto mb-3" />
               : <Zap size={40} strokeWidth={1.5} className="opacity-30 mx-auto mb-3" />}
             <p>{tab === "regular" ? "정규 팀원이 없어요" : "용병이 없어요"}</p>
-            {canManage && <button onClick={() => { setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: tab === "mercenary", is_cafe_mercenary: false, referrer: "" }); setEditId(null); setShowForm(true); }} className="mt-4 text-sm text-emerald-400 font-bold hover:text-emerald-300">+ 추가하기</button>}
+            {canManage && <button onClick={() => { setForm({ name: "", position_1st: "", position_2nd: "", jersey_number: "", is_mercenary: tab === "mercenary", is_cafe_mercenary: false, referrer: "" }); setEditId(null); setShowForm(true); }} className="mt-4 text-sm text-emerald-400 font-bold hover:text-emerald-300">+ 추가하기</button>}
           </div>
         ) : (
           <>
@@ -363,6 +365,13 @@ export default function MembersPage() {
                 <label className="text-xs text-gray-500 mb-1 block">2순위 포지션</label>
                 <PositionSelect value={form.position_2nd} onChange={v => setForm({ ...form, position_2nd: v })} />
               </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">등번호</label>
+                <input type="number" value={form.jersey_number} onChange={e => setForm({ ...form, jersey_number: e.target.value })}
+                  min={0} max={99} inputMode="numeric"
+                  className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  placeholder="예: 7" />
+              </div>
 
               {/* 용병 토글 */}
               <div
@@ -409,7 +418,7 @@ export default function MembersPage() {
                 <button type="submit" disabled={submitting} className="flex-1 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black py-3 rounded-xl font-bold transition-colors">
                   {submitting ? "처리 중..." : editId ? "수정 완료" : "추가"}
                 </button>
-                <button type="button" onClick={() => { setShowForm(false); setEditId(null); setFormError(null); setForm({ name: "", position_1st: "", position_2nd: "", is_mercenary: false, is_cafe_mercenary: false, referrer: "" }); }}
+                <button type="button" onClick={() => { setShowForm(false); setEditId(null); setFormError(null); setForm({ name: "", position_1st: "", position_2nd: "", jersey_number: "", is_mercenary: false, is_cafe_mercenary: false, referrer: "" }); }}
                   className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-3 rounded-xl font-bold transition-colors">취소</button>
               </div>
             </div>
