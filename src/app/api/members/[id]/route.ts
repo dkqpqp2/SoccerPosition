@@ -19,6 +19,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const { name, position_1st, position_2nd, jersey_number, is_mercenary, is_cafe_mercenary, referrer } = await req.json();
 
+  if (jersey_number !== undefined && role !== "owner") {
+    return NextResponse.json({ error: "등번호는 팀장만 수정할 수 있어요" }, { status: 403 });
+  }
+
   if (jersey_number !== undefined && jersey_number !== null) {
     const { data: conflict } = await supabaseAdmin
       .from("team_members")

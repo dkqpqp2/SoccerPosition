@@ -62,6 +62,7 @@ export default function MembersPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const canManage = userRole === "owner" || userRole === "manager" || userRole === "coach" || userRole === "president";
+  const isOwnerRole = userRole === "owner";
 
   // 계정 연결 모달
   const [linkTarget, setLinkTarget] = useState<Member | null>(null); // 연결할 임의 추가 멤버
@@ -103,7 +104,11 @@ export default function MembersPage() {
     e.preventDefault();
     setFormError(null);
     setSubmitting(true);
-    const payload = { ...form, jersey_number: form.jersey_number ? parseInt(form.jersey_number) : null };
+    const { jersey_number: _jerseyInput, ...restForm } = form;
+    const payload = {
+      ...restForm,
+      ...(isOwnerRole && { jersey_number: _jerseyInput ? parseInt(_jerseyInput) : null }),
+    };
     let res: Response;
     if (editId) {
       res = await fetch(`/api/members/${editId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -365,13 +370,22 @@ export default function MembersPage() {
                 <label className="text-xs text-gray-500 mb-1 block">2순위 포지션</label>
                 <PositionSelect value={form.position_2nd} onChange={v => setForm({ ...form, position_2nd: v })} />
               </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">등번호</label>
-                <input type="number" value={form.jersey_number} onChange={e => setForm({ ...form, jersey_number: e.target.value })}
-                  min={0} max={99} inputMode="numeric"
-                  className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  placeholder="예: 7" />
-              </div>
+              {isOwnerRole ? (
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">등번호</label>
+                  <input type="number" value={form.jersey_number} onChange={e => setForm({ ...form, jersey_number: e.target.value })}
+                    min={0} max={99} inputMode="numeric"
+                    className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="예: 7" />
+                </div>
+              ) : editId && (
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">등번호</label>
+                  <div className="bg-gray-800/50 border border-white/5 rounded-xl px-4 py-3 text-sm text-gray-400">
+                    {form.jersey_number || "미설정"} <span className="text-xs text-gray-600">· 팀장만 수정 가능</span>
+                  </div>
+                </div>
+              )}
 
               {/* 용병 토글 */}
               <div
