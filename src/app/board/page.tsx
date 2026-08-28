@@ -117,6 +117,7 @@ export default function BoardPage() {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [expandedId,  setExpandedId]  = useState<string | null>(null);
   const [pLoading,    setPLoading]    = useState(false);
+  const [pError,      setPError]      = useState("");
 
   const isStaff = ["owner", "manager", "president"].includes(userRole ?? "");
 
@@ -231,12 +232,18 @@ export default function BoardPage() {
     e.preventDefault();
     if (!pTitle.trim() || !pContent.trim()) return;
     setPLoading(true);
-    await fetch("/api/board/posts", {
+    setPError("");
+    const res = await fetch("/api/board/posts", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ title: pTitle.trim(), content: pContent.trim(), is_anonymous: isAnonymous }),
     });
     setPLoading(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setPError(data.error ?? "등록에 실패했어요. 다시 시도해주세요.");
+      return;
+    }
     setShowWrite(false);
     setPTitle(""); setPContent(""); setIsAnonymous(false);
     fetchPosts();
@@ -503,14 +510,14 @@ export default function BoardPage() {
       {/* ══════ 건의 작성 모달 ══════ */}
       {showWrite && (
         <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto"
-          onClick={() => setShowWrite(false)}>
+          onClick={() => { setShowWrite(false); setPError(""); }}>
           <div className="flex min-h-full items-center justify-center px-4 py-6">
           <form onSubmit={submitPost}
             className="bg-gray-900 border border-white/10 rounded-lg shadow-2xl w-full max-w-sm overflow-hidden"
             onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
               <h3 className="font-bold text-white flex items-center gap-2"><Megaphone size={16} /> 건의하기</h3>
-              <button type="button" onClick={() => setShowWrite(false)}
+              <button type="button" onClick={() => { setShowWrite(false); setPError(""); }}
                 className="text-gray-500 hover:text-white"><X size={20} /></button>
             </div>
             <div className="px-5 py-4 space-y-3">
@@ -526,6 +533,11 @@ export default function BoardPage() {
                 </div>
                 <span className="text-sm text-gray-400 select-none">익명으로 올리기</span>
               </button>
+              {pError && (
+                <div className="px-3 py-2.5 bg-red-500/10 border border-red-500/30 rounded-xl text-sm text-red-400 font-medium">
+                  {pError}
+                </div>
+              )}
             </div>
             <div className="px-5 py-4 border-t border-white/5">
               <button type="submit" disabled={!pTitle.trim() || !pContent.trim() || pLoading}

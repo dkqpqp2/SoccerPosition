@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUserAndTeam } from "@/lib/team";
+import { containsProfanity } from "@/lib/profanity";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -37,6 +38,10 @@ export async function POST(req: NextRequest) {
 
   const { title, content, is_anonymous } = await req.json();
   if (!title || !content) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+
+  if (containsProfanity(title) || containsProfanity(content)) {
+    return NextResponse.json({ error: "비속어가 포함되어 있어 건의할 수 없습니다." }, { status: 400 });
+  }
 
   const { data, error } = await supabaseAdmin
     .from("board_posts")
