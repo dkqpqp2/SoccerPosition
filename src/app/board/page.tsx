@@ -120,6 +120,7 @@ export default function BoardPage() {
   const [pError,      setPError]      = useState("");
 
   const isStaff = ["owner", "manager", "president"].includes(userRole ?? "");
+  const canViewBoard = userRole === "owner" || userRole === "president";
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/"); return; }
@@ -364,7 +365,13 @@ export default function BoardPage() {
               </button>
             </div>
 
-            {posts.length === 0 ? (
+            {!canViewBoard ? (
+              <div className="text-center py-20">
+                <Megaphone size={44} strokeWidth={1.5} className="opacity-20 mx-auto mb-3" />
+                <p className="text-gray-600">건의 내용은 관리자와 회장만 볼 수 있어요</p>
+                <p className="text-xs text-gray-700 mt-1">익명으로 자유롭게 건의를 남겨보세요</p>
+              </div>
+            ) : posts.length === 0 ? (
               <div className="text-center py-20">
                 <Megaphone size={44} strokeWidth={1.5} className="opacity-20 mx-auto mb-3" />
                 <p className="text-gray-600">아직 건의 사항이 없어요</p>

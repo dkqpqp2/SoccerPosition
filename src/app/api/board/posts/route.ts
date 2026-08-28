@@ -2,15 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getUserAndTeam } from "@/lib/team";
+import { getUserAndTeam, getUserRole } from "@/lib/team";
 import { containsProfanity } from "@/lib/profanity";
 
+/** 건의함 목록 열람은 관리자(owner)·회장(president)만 가능 — 제보자 보호 목적 */
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { teamId } = await getUserAndTeam(session.user.id);
+  const { userId, teamId } = await getUserAndTeam(session.user.id);
   if (!teamId) return NextResponse.json([]);
+
+  const role = userId ? await getUserRole(userId, teamId) : null;
+  if (role !== "owner" && role !== "president") {
+    return NextResponse.json({ error: "건의함은 관리자와 회장만 볼 수 있어요" }, { status: 403 });
+  }
 
   const { data } = await supabaseAdmin
     .from("board_posts")
