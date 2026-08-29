@@ -1,13 +1,14 @@
 # Codemagic 빌드 설정 — Mac 없이 클라우드에서 iOS 앱을 빌드/서명/제출하기 위한 파일
 #
 # 사용 전 Codemagic(codemagic.io)에서 아래 준비가 먼저 필요합니다:
-#   1. GitHub 저장소 연결 (이 레포를 Codemagic 앱에 추가)
+#   1. GitHub 저장소 연결 (이 레포를 Codemagic 앱에 추가) — 완료됨
 #   2. Apple 개발자 계정 결제 완료 후, App Store Connect에서 API 키 발급
 #      (사용자 및 액세스 > 통합 > API 키 생성)
 #   3. Codemagic > Teams > 앱 설정 > 통합(Integrations)에서 위 API 키 등록
-#      → 여기서 등록한 이름을 아래 `integration_name`에 그대로 입력
-#   4. Codemagic > 코드 서명(iOS code signing)에서 automatic signing 활성화
-#      (Apple Developer 계정 로그인 연동하면 인증서/프로비저닝 프로파일 자동 관리됨)
+#      → 여기서 등록할 때 지정하는 이름을 아래 `integrations.app_store_connect`에 그대로 입력
+#      (지금 이 파일엔 "appstore_connect_api_key"라는 이름으로 넣어뒀으니,
+#       Codemagic에 등록할 때 이 이름으로 등록하거나, 등록한 이름으로 아래 값을 바꿔주세요)
+#   4. 위 2, 3번을 하면 코드 서명은 자동으로 처리돼요 (environment.ios_signing 참고)
 #
 # 위 준비가 끝나기 전까지는 이 파일이 있어도 빌드가 자동 실행되지 않습니다
 # (아래 triggering을 git tag 기반으로만 걸어뒀어요 — 태그를 안 만들면 안 돌아감).
@@ -19,10 +20,14 @@ workflows:
     max_build_duration: 60
     instance_type: mac_mini_m2
 
+    integrations:
+      app_store_connect: appstore_connect_api_key
+
     environment:
-      # Codemagic 대시보드 > 환경 변수에서 아래 값들을 채워주세요 (지금은 비어있어도 무방)
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.soccerpositionmanagement.app
       vars:
-        BUNDLE_ID: "com.soccerpositionmanagement.app"
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
       node: 20
@@ -51,13 +56,12 @@ workflows:
           pod install
 
       - name: Set up iOS code signing
-        script: |
-          xcode-project use-profiles
+        script: xcode-project use-profiles
 
       - name: Build .ipa
         script: |
           xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
+            --workspace "$CM_BUILD_DIR/$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
 
     artifacts:
@@ -73,10 +77,8 @@ workflows:
           success: true
           failure: true
 
-      # 준비 3번에서 등록한 App Store Connect API 키 통합 이름을 여기 넣으면
-      # 빌드 성공 시 자동으로 TestFlight에 업로드됩니다 (앱스토어 정식 제출은 별도)
+      # 위 integrations에서 등록한 App Store Connect API 키로 자동 인증됨
       app_store_connect:
         auth: integration
-        integration_name: appstore_connect_api_key
         submit_to_testflight: true
         submit_to_app_store: false
