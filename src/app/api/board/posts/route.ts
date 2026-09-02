@@ -39,8 +39,9 @@ export async function POST(req: NextRequest) {
     .select("id, name")
     .eq("team_id", teamId)
     .eq("user_id", userId)
+    .is("left_at", null)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   const { title, content, is_anonymous } = await req.json();
   if (!title || !content) return NextResponse.json({ error: "Missing fields" }, { status: 400 });

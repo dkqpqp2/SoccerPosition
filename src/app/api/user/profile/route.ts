@@ -46,17 +46,18 @@ export async function GET() {
     }
   }
 
-  // 현재 팀에서 내 team_members id 조회
+  // 현재 팀에서 내 team_members id 조회 (나간 표시된 중복 행 제외)
   let member_id: string | null = null;
   if (teamId && userId) {
-    const { data: memberRow } = await supabaseAdmin
+    const { data: memberRows } = await supabaseAdmin
       .from("team_members")
       .select("id")
       .eq("team_id", teamId)
       .eq("user_id", userId)
-      .limit(1)
-      .single();
-    member_id = memberRow?.id ?? null;
+      .is("left_at", null)
+      .order("created_at", { ascending: true })
+      .limit(1);
+    member_id = memberRows?.[0]?.id ?? null;
   }
 
   return NextResponse.json({

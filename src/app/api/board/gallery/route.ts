@@ -40,8 +40,9 @@ export async function POST(req: NextRequest) {
     .select("id, name")
     .eq("team_id", teamId)
     .eq("user_id", userId)
+    .is("left_at", null)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   const formData = await req.formData();
   const file        = formData.get("file")        as File | null;

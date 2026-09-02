@@ -12,14 +12,17 @@ export async function GET() {
   const { userId, teamId } = await getUserAndTeam(session.user.id);
   if (!userId || !teamId) return NextResponse.json({ error: "No team" }, { status: 404 });
 
-  // 내 team_members 행 찾기
-  const { data: myMember } = await supabaseAdmin
+  // 내 team_members 행 찾기 (나간 표시된 중복 행 제외)
+  const { data: myMembers } = await supabaseAdmin
     .from("team_members")
     .select("id")
     .eq("team_id", teamId)
     .eq("user_id", userId)
-    .maybeSingle();
+    .is("left_at", null)
+    .order("created_at", { ascending: true })
+    .limit(1);
 
+  const myMember = myMembers?.[0] ?? null;
   if (!myMember) return NextResponse.json({ error: "Member not found" }, { status: 404 });
 
   const { data } = await supabaseAdmin

@@ -27,8 +27,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     .select("id")
     .eq("team_id", teamId)
     .eq("user_id", userId)
+    .is("left_at", null)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   const { data: tu } = await supabaseAdmin
     .from("team_users")

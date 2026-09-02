@@ -125,6 +125,8 @@ export async function GET(req: NextRequest) {
     .select("id")
     .eq("team_id", teamId)
     .eq("user_id", userId)
+    .is("left_at", null)
+    .limit(1)
     .maybeSingle();
 
   return NextResponse.json({
