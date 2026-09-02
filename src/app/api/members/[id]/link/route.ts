@@ -25,7 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // 임의 추가 팀원 확인
   const { data: manualMember } = await supabaseAdmin
     .from("team_members")
-    .select("id, user_id, name, team_id, position_1st, position_2nd, birth_year, referrer")
+    .select("id, user_id, name, team_id, position_1st, position_2nd, birth_year, referrer, jersey_number")
     .eq("id", manualMemberId)
     .eq("team_id", teamId)
     .maybeSingle();
@@ -36,7 +36,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   // 연결할 계정 팀원 확인
   const { data: targetMember } = await supabaseAdmin
     .from("team_members")
-    .select("id, user_id, name, team_id, position_1st, position_2nd, birth_year")
+    .select("id, user_id, name, team_id, position_1st, position_2nd, birth_year, jersey_number")
     .eq("id", target_member_id)
     .eq("team_id", teamId)
     .maybeSingle();
@@ -47,11 +47,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const targetUserId = targetMember.user_id;
 
   // 병합 데이터: 임의 멤버 우선, 없으면 계정 멤버 데이터 사용
+  // 실제 계정이 연결되는 것이므로 용병 표시는 해제 (계정 연결 = 정식 팀원 취급)
   const mergedData = {
     user_id: targetUserId,
     position_1st: manualMember.position_1st ?? targetMember.position_1st ?? null,
     position_2nd: manualMember.position_2nd ?? targetMember.position_2nd ?? null,
     birth_year:   manualMember.birth_year   ?? targetMember.birth_year   ?? null,
+    jersey_number: manualMember.jersey_number ?? targetMember.jersey_number ?? null,
+    is_mercenary: false,
+    is_cafe_mercenary: false,
+    referrer: null,
   };
 
   // 1. 납부 기록 이전: member_id 기반 납부 → user_id로 업데이트
