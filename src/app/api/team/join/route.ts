@@ -99,15 +99,18 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (!existingMember) {
-    // 같은 이름의 임의추가 멤버가 있으면 자동 연결
-    const { data: manualMatch } = await supabaseAdmin
+    // 같은 이름의 임의추가 멤버가 있으면 자동 연결 (동명이인으로 중복 등록된 경우 대비, .maybeSingle() 대신 가장 오래된 것 하나만 선택)
+    const { data: manualMatches } = await supabaseAdmin
       .from("team_members")
       .select("id")
       .eq("team_id", team.id)
       .eq("name", displayName)
       .is("user_id", null)
       .is("left_at", null)
-      .maybeSingle();
+      .order("created_at", { ascending: true })
+      .limit(1);
+
+    const manualMatch = manualMatches?.[0] ?? null;
 
     if (manualMatch) {
       // 납부 기록 이전: member_id → user_id
@@ -116,13 +119,16 @@ export async function POST(req: NextRequest) {
         .update({ user_id: userId, member_id: null })
         .eq("member_id", manualMatch.id);
 
-      // 임의 추가 멤버에 user_id 연결
+      // 임의 추가 멤버에 user_id 연결 — 실제 계정으로 합류하는 것이므로 용병 표시는 해제
       await supabaseAdmin
         .from("team_members")
         .update({
           user_id: userId,
           position_1st: userData?.position_1st ?? null,
           position_2nd: userData?.position_2nd ?? null,
+          is_mercenary: false,
+          is_cafe_mercenary: false,
+          referrer: null,
         })
         .eq("id", manualMatch.id);
     } else {

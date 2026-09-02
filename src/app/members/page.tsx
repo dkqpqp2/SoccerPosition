@@ -126,9 +126,12 @@ export default function MembersPage() {
     setShowForm(false); setEditId(null); fetchMembers();
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("정말 삭제할까요?")) return;
-    await fetch(`/api/members/${id}`, { method: "DELETE" });
+  async function handleDelete(member: Member) {
+    const message = member.user_id
+      ? "이 팀원은 카카오 계정이 연결되어 있어요. 삭제하면 이 팀에 대한 앱 접근 권한도 함께 사라져요. 정말 삭제할까요?"
+      : "정말 삭제할까요?";
+    if (!confirm(message)) return;
+    await fetch(`/api/members/${member.id}`, { method: "DELETE" });
     fetchMembers();
   }
 
@@ -522,7 +525,7 @@ function EvalCard({ ev, canEdit, onEdit }: {
 
 /* ── 팀원 행 ── */
 function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canManage = false, onDetail, onLink }: {
-  member: Member; isLast: boolean; onEdit: (m: Member) => void; onDelete: (id: string) => void;
+  member: Member; isLast: boolean; onEdit: (m: Member) => void; onDelete: (m: Member) => void;
   canManage?: boolean; isMercenary?: boolean; onDetail?: (id: string) => void; onLink?: (m: Member) => void;
 }) {
   const age = member.birth_year ? new Date().getFullYear() - member.birth_year : null;
@@ -573,7 +576,7 @@ function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canM
                 </button>
               )}
               <button onClick={() => onEdit(member)} className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10 transition-colors">수정</button>
-              <button onClick={() => onDelete(member.id)} className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors">삭제</button>
+              <button onClick={() => onDelete(member)} className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors">삭제</button>
             </>
           )}
         </div>
