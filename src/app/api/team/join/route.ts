@@ -133,7 +133,8 @@ export async function POST(req: NextRequest) {
         .eq("id", manualMatch.id);
     } else {
       // 임의추가 멤버 없으면 새로 추가
-      await supabaseAdmin.from("team_members").insert({
+      // (초대 링크를 짧은 시간에 두 번 여는 등으로 동시에 두 번 요청되면 유니크 인덱스가 두 번째 삽입을 막아줌 — 그 경우는 이미 합류된 것이므로 무시)
+      const { error: insertError } = await supabaseAdmin.from("team_members").insert({
         user_id: userId,
         team_id: team.id,
         name: displayName,
@@ -142,6 +143,9 @@ export async function POST(req: NextRequest) {
         is_mercenary: false,
         is_cafe_mercenary: false,
       });
+      if (insertError && insertError.code !== "23505") {
+        return NextResponse.json({ error: insertError.message }, { status: 500 });
+      }
     }
   }
 
