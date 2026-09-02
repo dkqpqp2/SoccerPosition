@@ -263,6 +263,7 @@ export default function StatsPage() {
 ═══════════════════════════════════════ */
 function RecordsTab({ results, loading }: { results: MatchResult[]; loading: boolean }) {
   const [showAll, setShowAll] = useState(false);
+  const [showAllOpps, setShowAllOpps] = useState(false);
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
@@ -299,6 +300,7 @@ function RecordsTab({ results, loading }: { results: MatchResult[]; loading: boo
     else oppMap[opp].l++;
   });
   const opps = Object.entries(oppMap).sort((a, b) => (b[1].w + b[1].d + b[1].l) - (a[1].w + a[1].d + a[1].l));
+  const visibleOpps = showAllOpps ? opps : opps.slice(0, 5);
 
   const recent = showAll ? results : results.slice(0, 5);
 
@@ -350,7 +352,7 @@ function RecordsTab({ results, loading }: { results: MatchResult[]; loading: boo
         <div className="px-4 py-3 border-b border-white/5">
           <p className="text-[10px] text-gray-600 uppercase tracking-widest font-semibold">상대팀별 전적</p>
         </div>
-        {opps.map(([opp, rec]) => {
+        {visibleOpps.map(([opp, rec]) => {
           const total = rec.w + rec.d + rec.l;
           const winRate = Math.round((rec.w / total) * 100);
           return (
@@ -391,6 +393,12 @@ function RecordsTab({ results, loading }: { results: MatchResult[]; loading: boo
             </div>
           );
         })}
+        {opps.length > 5 && (
+          <button onClick={() => setShowAllOpps(v => !v)}
+            className="w-full py-3 text-xs text-gray-500 hover:text-white font-semibold border-t border-white/5 transition-colors">
+            {showAllOpps ? "접기 ↑" : `전체 보기 (${opps.length}팀) ↓`}
+          </button>
+        )}
       </div>
 
       {/* 최근 경기 결과 */}
