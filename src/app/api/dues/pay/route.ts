@@ -111,7 +111,7 @@ export async function POST(req: Request) {
   let payError;
   if (is_manual) {
     // 임의 추가 멤버: member_id 컬럼 사용
-    // partial index는 onConflict upsert가 안 되므로 수동 체크
+    // partial index는 onConflict upsert가 안 되므로 수동 체크 (동시 요청 대비 23505 처리 포함)
     const { data: existing } = await supabaseAdmin
       .from("dues_payments")
       .select("id")
@@ -125,10 +125,20 @@ export async function POST(req: Request) {
         .eq("id", existing.id);
       payError = error;
     } else {
-      const { error } = await supabaseAdmin
+      const { error: insertErr } = await supabaseAdmin
         .from("dues_payments")
         .insert({ dues_id: dueId, member_id: targetUserId, amount, recorded_by: userId });
-      payError = error;
+      if (insertErr?.code === "23505") {
+        // 동시 요청이 먼저 생성함 — update로 전환
+        const { error } = await supabaseAdmin
+          .from("dues_payments")
+          .update({ amount, recorded_by: userId })
+          .eq("dues_id", dueId)
+          .eq("member_id", targetUserId);
+        payError = error;
+      } else {
+        payError = insertErr;
+      }
     }
   } else {
     // 계정 있는 멤버: user_id 컬럼 사용

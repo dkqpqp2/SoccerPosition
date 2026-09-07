@@ -65,14 +65,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 새 팀에 합류
+  // 새 팀에 합류 (초대 링크를 짧은 시간에 두 번 여는 등 동시 요청 대비 23505는 이미 합류된 것으로 간주)
   const { error } = await supabaseAdmin.from("team_users").insert({
     team_id: team.id,
     user_id: userId,
     role: "member",
   });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error && error.code !== "23505") return NextResponse.json({ error: error.message }, { status: 500 });
 
   // active_team_id를 새 팀으로 전환
   await supabaseAdmin
