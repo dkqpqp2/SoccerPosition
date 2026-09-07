@@ -39,13 +39,16 @@ export async function POST(req: Request) {
   const currentDefault = settings?.default_amount ?? 0;
 
   // 이 달의 dues 찾기 (없으면 자동 생성)
-  const { data: existing } = await supabaseAdmin
+  const { data: existingRows } = await supabaseAdmin
     .from("dues")
     .select("id, amount")
     .eq("team_id", teamId)
     .gte("due_date", startDate)
     .lt("due_date", endDate)
-    .maybeSingle();
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  const existing = existingRows?.[0] ?? null;
 
   let dueId: string;
   const dueAmount = currentDefault; // 항상 최신 default_amount 사용
@@ -60,7 +63,7 @@ export async function POST(req: Request) {
         .eq("id", existing.id);
     }
   } else {
-    // 신규 생성
+    // 신규 생성 — 동시에 두 요청이 같은 달을 신규 생성하려 하면 유니크 인덱스가 막아줌(23505)
     const { data: newDue, error: dueErr } = await supabaseAdmin
       .from("dues")
       .insert({
@@ -74,8 +77,23 @@ export async function POST(req: Request) {
       .select()
       .single();
 
-    if (dueErr || !newDue) return NextResponse.json({ error: "dues 생성 실패" }, { status: 500 });
-    dueId = newDue.id;
+    if (dueErr?.code === "23505") {
+      // 다른 동시 요청이 먼저 생성함 — 그 항목을 다시 조회해서 사용
+      const { data: raceWinner } = await supabaseAdmin
+        .from("dues")
+        .select("id")
+        .eq("team_id", teamId)
+        .gte("due_date", startDate)
+        .lt("due_date", endDate)
+        .order("created_at", { ascending: true })
+        .limit(1);
+      if (!raceWinner?.[0]) return NextResponse.json({ error: "dues 생성 실패" }, { status: 500 });
+      dueId = raceWinner[0].id;
+    } else if (dueErr || !newDue) {
+      return NextResponse.json({ error: "dues 생성 실패" }, { status: 500 });
+    } else {
+      dueId = newDue.id;
+    }
   }
 
   // 이 멤버의 실제 납부 금액 (개인 설정 > 기본 금액) - 임의 추가 멤버는 설정 없음
