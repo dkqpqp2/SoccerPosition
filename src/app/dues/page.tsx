@@ -222,6 +222,10 @@ export default function DuesPage() {
   const [incForm, setIncForm] = useState({ title: "", amount: "", category: "기타", received_at: "", memo: "" });
   const [incSaving, setIncSaving] = useState(false);
 
+  // 수입·지출 목록 접기/펼치기
+  const [showAllIncome, setShowAllIncome] = useState(false);
+  const [showAllExpenses, setShowAllExpenses] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     setNotifySent(false);
@@ -738,8 +742,8 @@ export default function DuesPage() {
               <div>
                 <p className="text-[10px] text-gray-600 uppercase tracking-widest font-semibold px-1 mb-1.5">기타 수입</p>
                 <div className="bg-gray-900 rounded-lg border border-white/5 overflow-hidden">
-                  {income.map((inc, i) => (
-                    <div key={inc.id} className={`flex items-start gap-3 px-4 py-3.5 ${i < income.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
+                  {(showAllIncome ? income : income.slice(0, 5)).map((inc, i, arr) => (
+                    <div key={inc.id} className={`flex items-start gap-3 px-4 py-3.5 ${i < arr.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${INCOME_CATEGORY_COLORS[inc.category] ?? INCOME_CATEGORY_COLORS["기타"]}`}>
@@ -761,6 +765,12 @@ export default function DuesPage() {
                       </div>
                     </div>
                   ))}
+                  {income.length > 5 && (
+                    <button onClick={() => setShowAllIncome(v => !v)}
+                      className="w-full py-2.5 text-xs text-gray-500 hover:text-white font-semibold border-t border-white/[0.03] transition-colors">
+                      {showAllIncome ? "접기 ↑" : `전체 보기 (${income.length}건) ↓`}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -770,8 +780,8 @@ export default function DuesPage() {
               <div>
                 <p className="text-[10px] text-gray-600 uppercase tracking-widest font-semibold px-1 mb-1.5">지출</p>
                 <div className="bg-gray-900 rounded-lg border border-white/5 overflow-hidden">
-                  {expenses.map((exp, i) => (
-                    <div key={exp.id} className={`flex items-start gap-3 px-4 py-3.5 ${i < expenses.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
+                  {(showAllExpenses ? expenses : expenses.slice(0, 5)).map((exp, i, arr) => (
+                    <div key={exp.id} className={`flex items-start gap-3 px-4 py-3.5 ${i < arr.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${EXPENSE_CATEGORY_COLORS[exp.category] ?? EXPENSE_CATEGORY_COLORS["기타"]}`}>
@@ -793,6 +803,12 @@ export default function DuesPage() {
                       </div>
                     </div>
                   ))}
+                  {expenses.length > 5 && (
+                    <button onClick={() => setShowAllExpenses(v => !v)}
+                      className="w-full py-2.5 text-xs text-gray-500 hover:text-white font-semibold border-t border-white/[0.03] transition-colors">
+                      {showAllExpenses ? "접기 ↑" : `전체 보기 (${expenses.length}건) ↓`}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
