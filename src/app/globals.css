@@ -54,6 +54,19 @@ body {
   animation: slideInRight 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
+@keyframes spmPop {
+  from { opacity: 0; transform: scale(0.4); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.spm-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spmPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .spm-pop { animation: none; }
+}
+
 /* 하단 탭바 스크롤바 숨김 */
 nav .overflow-x-auto::-webkit-scrollbar {
   display: none;
