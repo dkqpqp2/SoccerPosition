@@ -82,6 +82,9 @@ export default function ScrimmageDetailPage() {
   const [statsSaving, setStatsSaving] = useState(false);
   const [addedMercenaryIds, setAddedMercenaryIds] = useState<Set<string>>(new Set());
   const [showMercenaryPicker, setShowMercenaryPicker] = useState(false);
+  const [myCaptainSquadId, setMyCaptainSquadId] = useState<string | null>(null);
+  const [editLinkCopied, setEditLinkCopied] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -102,7 +105,7 @@ export default function ScrimmageDetailPage() {
   async function fetchDetail() {
     setLoading(true);
     const res = await fetch(`/api/scrimmages/${id}`);
-    if (!res.ok) { setLoading(false); return; }
+    if (!res.ok) { setLoading(false); setNotFound(true); return; }
     const data = await res.json();
     setScrimmage(data.scrimmage);
     setSquads(data.squads ?? []);
@@ -114,7 +117,8 @@ export default function ScrimmageDetailPage() {
     const sm: Record<string, { goals: number; assists: number }> = {};
     for (const s of data.stats ?? []) sm[s.member_id] = { goals: s.goals, assists: s.assists };
     setStatsMap(sm);
-    setActiveSquadId(prev => prev ?? (data.squads?.[0]?.id ?? null));
+    setMyCaptainSquadId(data.my_captain_squad_id ?? null);
+    setActiveSquadId(prev => prev ?? data.my_captain_squad_id ?? (data.squads?.[0]?.id ?? null));
     setLoading(false);
   }
 
@@ -133,6 +137,7 @@ export default function ScrimmageDetailPage() {
   }
 
   const activeSquad = squads.find(s => s.id === activeSquadId) ?? null;
+  const canEditActiveSquad = canManage || (!!activeSquad && myCaptainSquadId === activeSquad.id);
 
   const regularRoster = roster.filter(m => !m.is_mercenary);
   const mercenaryPool = roster.filter(m => m.is_mercenary);
@@ -269,13 +274,12 @@ export default function ScrimmageDetailPage() {
     if (res.ok) router.push("/scrimmage");
   }
 
-  async function shareLink() {
-    const url = `${window.location.origin}/share/scrimmage/${id}`;
+  async function copyOrShareLink(url: string) {
     const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
     if (isMobile && navigator.share) {
       try {
         await navigator.share({ url });
-        return;
+        return true;
       } catch {
         // 취소 시 링크 복사로 폴백
       }
@@ -291,11 +295,34 @@ export default function ScrimmageDetailPage() {
       document.execCommand("copy");
       document.body.removeChild(t);
     }
+    return false;
+  }
+
+  async function shareLink() {
+    await copyOrShareLink(`${window.location.origin}/share/scrimmage/${id}`);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
   }
 
+  async function shareEditLink() {
+    await copyOrShareLink(`${window.location.origin}/scrimmage/${id}`);
+    setEditLinkCopied(true);
+    setTimeout(() => setEditLinkCopied(false), 2000);
+  }
+
   const unassigned = teamSplitRoster.filter(m => !squadMemberMap[m.id]);
+
+  if (notFound) {
+    return (
+      <AppLayout title="내전">
+        <div className="text-center py-24">
+          <Swords size={40} strokeWidth={1.5} className="opacity-30 mx-auto mb-3" />
+          <p className="text-gray-600">이 내전을 볼 수 없어요</p>
+          <p className="text-sm text-gray-700 mt-1">관리자이거나 이 내전의 주장으로 지정된 경우에만 볼 수 있어요</p>
+        </div>
+      </AppLayout>
+    );
+  }
 
   if (loading || !scrimmage) {
     return (
@@ -328,6 +355,12 @@ export default function ScrimmageDetailPage() {
               {linkCopied ? <Check size={14} className="text-emerald-400" /> : <Link2 size={14} />}
               {linkCopied ? "복사됨" : "공유"}
             </button>
+            {canManage && (
+              <button onClick={shareEditLink} className="flex items-center gap-1.5 text-xs bg-gray-900 border border-white/10 hover:border-white/20 text-gray-300 px-3 py-2 rounded-xl transition-colors">
+                {editLinkCopied ? <Check size={14} className="text-emerald-400" /> : <Link2 size={14} />}
+                {editLinkCopied ? "복사됨" : "주장 링크"}
+              </button>
+            )}
             {canManage && (
               <button onClick={deleteScrimmage} className="text-gray-600 hover:text-red-400 p-2 rounded-xl transition-colors">
                 <Trash2 size={16} />
@@ -510,7 +543,7 @@ export default function ScrimmageDetailPage() {
                 </select>
               )}
 
-              {canManage && (
+              {canEditActiveSquad && (
                 <select
                   value={activeSquad.formation_name ?? ""}
                   onChange={e => applyFormation(e.target.value)}
@@ -544,7 +577,7 @@ export default function ScrimmageDetailPage() {
                           key={slot.id}
                           className="absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 cursor-pointer"
                           style={{ left: `${slot.x}%`, top: `${slot.y}%` }}
-                          onClick={() => canManage && setSelectedSlotId(slot.id === selectedSlotId ? null : slot.id)}
+                          onClick={() => canEditActiveSquad && setSelectedSlotId(slot.id === selectedSlotId ? null : slot.id)}
                         >
                           <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-xs shadow-lg border-2 transition-transform ${
                             selectedSlotId === slot.id
@@ -561,7 +594,7 @@ export default function ScrimmageDetailPage() {
                     })}
                   </div>
 
-                  {selectedSlotId && canManage && (
+                  {selectedSlotId && canEditActiveSquad && (
                     <div className="bg-gray-900 border border-white/5 rounded-lg p-3">
                       <p className="text-[11px] text-gray-500 mb-2">{selectedSlotId} 자리에 배정할 선수</p>
                       <div className="flex flex-wrap gap-1.5">
@@ -579,7 +612,7 @@ export default function ScrimmageDetailPage() {
                     </div>
                   )}
 
-                  {canManage && (
+                  {canEditActiveSquad && (
                     <button
                       onClick={saveSquad}
                       disabled={saving}
@@ -592,7 +625,7 @@ export default function ScrimmageDetailPage() {
               ) : (
                 <div className="text-center py-12 text-gray-600 text-sm">
                   <Swords size={28} strokeWidth={1.5} className="mx-auto mb-2 opacity-30" />
-                  {canManage ? "포메이션을 선택해주세요" : "아직 포메이션이 설정되지 않았어요"}
+                  {canEditActiveSquad ? "포메이션을 선택해주세요" : "아직 포메이션이 설정되지 않았어요"}
                 </div>
               )}
             </div>
