@@ -73,8 +73,8 @@ export default function ScrimmageDetailPage() {
   async function fetchRole() {
     const res = await fetch("/api/user/profile");
     const data = await res.json();
-    const role = data.role ?? null;
-    setCanManage(role === "owner" || role === "manager" || role === "coach" || role === "president");
+    // 내전 기능 테스트 중 — 지금은 owner만 관리 가능 (정식 오픈 시 매니저급으로 확장)
+    setCanManage(data.role === "owner");
   }
 
   async function fetchDetail() {
