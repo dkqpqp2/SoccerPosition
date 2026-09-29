@@ -20,7 +20,7 @@ export interface HelpContent {
   items: HelpItem[];
 }
 
-const NAV_ITEMS: { path: string; icon: LucideIcon; label: string; managerOnly?: boolean; adminOnly?: boolean; group?: string }[] = [
+const NAV_ITEMS: { path: string; icon: LucideIcon; label: string; managerOnly?: boolean; adminOnly?: boolean; ownerOnlyHidden?: boolean; group?: string }[] = [
   { path: "/dashboard", icon: Home, label: "홈", group: "팀" },
   { path: "/members", icon: Users, label: "팀원 관리" },
   { path: "/status", icon: HeartPulse, label: "팀 현황" },
@@ -28,7 +28,7 @@ const NAV_ITEMS: { path: string; icon: LucideIcon; label: string; managerOnly?: 
   { path: "/matches", icon: Calendar, label: "경기 관리" },
   { path: "/assign", icon: Target, label: "포지션 배정", managerOnly: true },
   { path: "/feedback", icon: FileText, label: "경기 피드백" },
-  { path: "/scrimmage", icon: Swords, label: "내전" },
+  { path: "/scrimmage", icon: Swords, label: "내전", ownerOnlyHidden: true },
   { path: "/votes", icon: Vote, label: "투표", group: "커뮤니티" },
   { path: "/board", icon: MessageCircle, label: "게시판" },
   { path: "/videos", icon: Clapperboard, label: "영상 추천" },
@@ -125,6 +125,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
         <nav className="flex-1 py-3 overflow-y-auto">
           {NAV_ITEMS.filter(item => {
             if (item.managerOnly && !canManageNav) return false;
+            if (item.ownerOnlyHidden && !isOwner) return false;
             if (item.path === "/board" && !boardAllowed) return false;
             return true;
           }).map((item, idx) => {
@@ -328,6 +329,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
         >
           {NAV_ITEMS.filter(item => {
             if (item.managerOnly && !canManageNav) return false;
+            if (item.ownerOnlyHidden && !isOwner) return false;
             if (item.path === "/board" && !boardAllowed) return false;
             return true;
           }).map(item => {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getUserAndTeam, getUserRole, canManage } from "@/lib/team";
+import { getUserAndTeam, getUserRole, isOwner } from "@/lib/team";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string; squadId: string }> }) {
   const { id, squadId } = await params;
@@ -13,7 +13,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!userId || !teamId) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
   const role = await getUserRole(userId, teamId);
-  if (!canManage(role)) return NextResponse.json({ error: "관리자만 수정할 수 있어요" }, { status: 403 });
+  if (!isOwner(role)) return NextResponse.json({ error: "관리자만 수정할 수 있어요" }, { status: 403 });
 
   const { data: scrimmage } = await supabaseAdmin.from("scrimmages").select("id").eq("id", id).eq("team_id", teamId).single();
   if (!scrimmage) return NextResponse.json({ error: "내전을 찾을 수 없어요" }, { status: 404 });
