@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Trophy, Plus, Trash2, Users, Medal, Zap, Calendar, X, ChevronDown, Check } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
+import ScrimmageSelect from "@/components/ScrimmageSelect";
 
 interface Member {
   id: string;
@@ -384,7 +385,7 @@ export default function ScrimmageLeagueDetailPage() {
                         >
                           {regularAvailable.every(m => checkedRegular.has(m.id)) ? "전체 해제" : `전체 선택 (${regularAvailable.length}명)`}
                         </button>
-                        <div className="max-h-64 overflow-y-auto">
+                        <div className="max-h-64 overflow-y-auto themed-scroll">
                           {regularAvailable.map(m => {
                             const isChecked = checkedRegular.has(m.id);
                             return (
@@ -426,7 +427,7 @@ export default function ScrimmageLeagueDetailPage() {
                       <p className="text-xs text-gray-600 px-2 py-2">추가할 용병이 없어요</p>
                     ) : (
                       <>
-                        <div className="max-h-64 overflow-y-auto">
+                        <div className="max-h-64 overflow-y-auto themed-scroll">
                           {mercenaryAvailable.map(m => {
                             const isChecked = checkedMercenary.has(m.id);
                             return (
@@ -471,16 +472,17 @@ export default function ScrimmageLeagueDetailPage() {
               {squads.map(s => (
                 <div key={s.id} className="flex items-center gap-2">
                   <span className="text-xs text-gray-400 w-14 shrink-0">{s.name}</span>
-                  <select
-                    value={s.captain_member_id ?? ""}
-                    onChange={e => setCaptain(s.id, e.target.value || null)}
-                    className="flex-1 bg-gray-800 border border-white/10 focus:border-emerald-500 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
-                  >
-                    <option value="">주장 선택</option>
-                    {teamSplitRoster.filter(m => squadMemberMap[m.id] === s.id).map(m => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                  </select>
+                  <div className="flex-1">
+                    <ScrimmageSelect
+                      value={s.captain_member_id ?? ""}
+                      onChange={v => setCaptain(s.id, v || null)}
+                      placeholder="주장 선택"
+                      options={[
+                        { value: "", label: "주장 선택" },
+                        ...teamSplitRoster.filter(m => squadMemberMap[m.id] === s.id).map(m => ({ value: m.id, label: m.name })),
+                      ]}
+                    />
+                  </div>
                 </div>
               ))}
             </div>

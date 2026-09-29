@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import { Swords, Link2, Check, Trash2, Users, Trophy, X, Zap, ChevronLeft, ChevronDown } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
+import ScrimmageSelect from "@/components/ScrimmageSelect";
 import { FORMATIONS, PositionSlot, SOCCER_FORMATIONS, FUTSAL_FORMATIONS } from "@/lib/formations";
 
 interface Member {
@@ -550,7 +551,7 @@ export default function ScrimmageDetailPage() {
                         >
                           {regularAvailable.every(m => checkedRegular.has(m.id)) ? "전체 해제" : `전체 선택 (${regularAvailable.length}명)`}
                         </button>
-                        <div className="max-h-64 overflow-y-auto">
+                        <div className="max-h-64 overflow-y-auto themed-scroll">
                           {regularAvailable.map(m => {
                             const isChecked = checkedRegular.has(m.id);
                             return (
@@ -595,7 +596,7 @@ export default function ScrimmageDetailPage() {
                       <p className="text-xs text-gray-600 px-2 py-2">추가할 용병이 없어요</p>
                     ) : (
                       <>
-                        <div className="max-h-64 overflow-y-auto">
+                        <div className="max-h-64 overflow-y-auto themed-scroll">
                           {mercenaryAvailable.map(m => {
                             const isChecked = checkedMercenary.has(m.id);
                             return (
@@ -653,32 +654,25 @@ export default function ScrimmageDetailPage() {
           {activeSquad && (
             <div className="space-y-3">
               {canManage && (
-                <select
+                <ScrimmageSelect
                   value={activeSquad.captain_member_id ?? ""}
-                  onChange={e => setCaptain(e.target.value || null)}
-                  className="w-full bg-gray-800 border border-white/10 focus:border-emerald-500 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none"
-                >
-                  <option value="">주장 선택 (선택 시 팀명이 자동으로 바뀌어요)</option>
-                  {teamSplitRoster.filter(m => squadMemberMap[m.id] === activeSquad.id).map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
+                  onChange={v => setCaptain(v || null)}
+                  placeholder="주장 선택 (선택 시 팀명이 자동으로 바뀌어요)"
+                  options={[
+                    { value: "", label: "주장 선택 (선택 시 팀명이 자동으로 바뀌어요)" },
+                    ...teamSplitRoster.filter(m => squadMemberMap[m.id] === activeSquad.id).map(m => ({ value: m.id, label: m.name })),
+                  ]}
+                />
               )}
 
               {canEditActiveSquad && (
-                <select
+                <ScrimmageSelect
                   value={activeSquad.formation_name ?? ""}
-                  onChange={e => applyFormation(e.target.value)}
-                  className="w-full bg-gray-800 border border-white/10 focus:border-emerald-500 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none"
-                >
-                  <option value="" disabled>포메이션 선택</option>
-                  {availableFormationNames.map(n => <option key={n} value={n}>{n}</option>)}
-                  {customFormations.length > 0 && (
-                    <optgroup label="커스텀">
-                      {customFormations.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
-                    </optgroup>
-                  )}
-                </select>
+                  onChange={applyFormation}
+                  placeholder="포메이션 선택"
+                  options={availableFormationNames.map(n => ({ value: n, label: n }))}
+                  groups={customFormations.length > 0 ? [{ label: "커스텀", options: customFormations.map(f => ({ value: f.name, label: f.name })) }] : []}
+                />
               )}
 
               {activeSquad.redacted ? (
@@ -769,7 +763,7 @@ export default function ScrimmageDetailPage() {
               <button onClick={() => setShowStatsModal(false)} className="text-gray-500 hover:text-white"><X size={18} /></button>
             </div>
 
-            <div className="overflow-y-auto flex-1 -mx-1 px-1 space-y-2">
+            <div className="overflow-y-auto flex-1 -mx-1 px-1 space-y-2 themed-scroll">
               {statsDraft.length === 0 ? (
                 <p className="text-center text-xs text-gray-600 py-8">팀 배정된 선수가 없어요</p>
               ) : (
