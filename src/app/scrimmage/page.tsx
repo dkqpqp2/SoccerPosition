@@ -42,8 +42,8 @@ export default function ScrimmagePage() {
   async function fetchRole() {
     const res = await fetch("/api/user/profile");
     const data = await res.json();
-    // 내전 기능 테스트 중 — 지금은 owner만 관리 가능 (정식 오픈 시 매니저급으로 확장)
-    setCanManage(data.role === "owner");
+    // 내전 생성·관리는 관리자·매니저·회장만 가능
+    setCanManage(data.role === "owner" || data.role === "manager" || data.role === "president");
   }
 
   async function fetchScrimmages() {

@@ -28,6 +28,7 @@ interface Squad {
   assigned: Record<string, Member | null>;
   captain_member_id: string | null;
   sort_order: number;
+  redacted: boolean;
 }
 
 interface ScrimmageData {
@@ -83,6 +84,7 @@ export default function ScrimmageDetailPage() {
   const [addedMercenaryIds, setAddedMercenaryIds] = useState<Set<string>>(new Set());
   const [showMercenaryPicker, setShowMercenaryPicker] = useState(false);
   const [myCaptainSquadId, setMyCaptainSquadId] = useState<string | null>(null);
+  const [mySquadId, setMySquadId] = useState<string | null>(null);
   const [editLinkCopied, setEditLinkCopied] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
@@ -98,8 +100,8 @@ export default function ScrimmageDetailPage() {
   async function fetchRole() {
     const res = await fetch("/api/user/profile");
     const data = await res.json();
-    // 내전 기능 테스트 중 — 지금은 owner만 관리 가능 (정식 오픈 시 매니저급으로 확장)
-    setCanManage(data.role === "owner");
+    // 내전 생성·관리는 관리자·매니저·회장만 가능
+    setCanManage(data.role === "owner" || data.role === "manager" || data.role === "president");
   }
 
   async function fetchDetail() {
@@ -118,7 +120,8 @@ export default function ScrimmageDetailPage() {
     for (const s of data.stats ?? []) sm[s.member_id] = { goals: s.goals, assists: s.assists };
     setStatsMap(sm);
     setMyCaptainSquadId(data.my_captain_squad_id ?? null);
-    setActiveSquadId(prev => prev ?? data.my_captain_squad_id ?? (data.squads?.[0]?.id ?? null));
+    setMySquadId(data.my_squad_id ?? null);
+    setActiveSquadId(prev => prev ?? data.my_captain_squad_id ?? data.my_squad_id ?? (data.squads?.[0]?.id ?? null));
     setLoading(false);
   }
 
@@ -559,7 +562,13 @@ export default function ScrimmageDetailPage() {
                 </select>
               )}
 
-              {activeSquad.formation_slots ? (
+              {activeSquad.redacted ? (
+                <div className="text-center py-12 text-gray-600 text-sm">
+                  <Swords size={28} strokeWidth={1.5} className="mx-auto mb-2 opacity-30" />
+                  <p>이 팀 라인업은 비공개예요</p>
+                  <p className="text-xs text-gray-700 mt-1">배정된 팀원만 볼 수 있어요</p>
+                </div>
+              ) : activeSquad.formation_slots ? (
                 <>
                   <div
                     className="relative w-full rounded-lg overflow-hidden select-none"

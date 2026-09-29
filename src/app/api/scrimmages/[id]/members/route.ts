@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getUserAndTeam, getUserRole, isOwner } from "@/lib/team";
+import { getUserAndTeam, getUserRole, canManageScrimmage } from "@/lib/team";
 
 // PATCH - 팀원 한 명을 스쿼드에 배정 (squad_id가 null이면 배정 해제)
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -14,7 +14,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!userId || !teamId) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
   const role = await getUserRole(userId, teamId);
-  if (!isOwner(role)) return NextResponse.json({ error: "관리자만 팀을 나눌 수 있어요" }, { status: 403 });
+  if (!canManageScrimmage(role)) return NextResponse.json({ error: "관리자·매니저·회장만 팀을 나눌 수 있어요" }, { status: 403 });
 
   const { member_id, squad_id } = await req.json();
   if (!member_id) return NextResponse.json({ error: "member_id 필요" }, { status: 400 });

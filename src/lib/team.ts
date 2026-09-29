@@ -62,3 +62,8 @@ export function isOwner(role: TeamRole | null): boolean {
 export function canManageDues(role: TeamRole | null): boolean {
   return role === "owner" || role === "treasurer";
 }
+
+/** 내전 생성·관리 가능 여부 (관리자, 매니저, 회장 — 코치 제외) */
+export function canManageScrimmage(role: TeamRole | null): boolean {
+  return role === "owner" || role === "manager" || role === "president";
+}

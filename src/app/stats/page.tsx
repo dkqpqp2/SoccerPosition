@@ -173,12 +173,10 @@ export default function StatsPage() {
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold transition-all ${mainTab === "records" ? "bg-sky-500 text-white shadow" : "text-gray-500 hover:text-white"}`}>
             <Trophy size={15} strokeWidth={2} /> 팀 전적
           </button>
-          {userRole === "owner" && (
-            <button onClick={() => { setMainTab("scrimmage"); if (scrimmageBoard.length === 0) fetchScrimmageBoard(); }}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold transition-all ${mainTab === "scrimmage" ? "bg-amber-500 text-black shadow" : "text-gray-500 hover:text-white"}`}>
-              <Medal size={15} strokeWidth={2} /> 내전 기록
-            </button>
-          )}
+          <button onClick={() => { setMainTab("scrimmage"); if (scrimmageBoard.length === 0) fetchScrimmageBoard(); }}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold transition-all ${mainTab === "scrimmage" ? "bg-amber-500 text-black shadow" : "text-gray-500 hover:text-white"}`}>
+            <Medal size={15} strokeWidth={2} /> 내전 기록
+          </button>
         </div>
 
         {/* ── 팀 전적 탭 ── */}

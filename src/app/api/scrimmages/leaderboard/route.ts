@@ -2,18 +2,15 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getUserAndTeam, getUserRole, isOwner } from "@/lib/team";
+import { getUserAndTeam } from "@/lib/team";
 
-// TODO: 내전 기능 테스트 중 — 지금은 owner에게만 공개. 정식 오픈 시 이 체크 제거
+// 팀원 전체 공개 (공식 개인 통계와 동일한 접근 범위)
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { userId, teamId } = await getUserAndTeam(session.user.id);
-  if (!userId || !teamId) return NextResponse.json([]);
-
-  const role = await getUserRole(userId, teamId);
-  if (!isOwner(role)) return NextResponse.json([]);
+  const { teamId } = await getUserAndTeam(session.user.id);
+  if (!teamId) return NextResponse.json([]);
 
   const { data: scrimmages } = await supabaseAdmin.from("scrimmages").select("id").eq("team_id", teamId);
   const scrimmageIds = (scrimmages ?? []).map(s => s.id);
