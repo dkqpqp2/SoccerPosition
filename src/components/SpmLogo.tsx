@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface SpmLogoProps {
   size?: "sm" | "md" | "lg";
@@ -20,34 +21,14 @@ export default function SpmLogo({ size = "md", showText = true, clickable = fals
       onClick={clickable ? () => router.push("/dashboard") : undefined}
     >
       {/* SPM 아이콘 */}
-      <div
-        className="relative flex items-center justify-center rounded-xl shrink-0"
-        style={{
-          width: iconSize,
-          height: iconSize,
-          background: "linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%)",
-          boxShadow: "0 0 12px rgba(16,185,129,0.4), inset 0 1px 0 rgba(255,255,255,0.15)",
-        }}
-      >
-        {/* 축구공 라인 느낌의 장식 */}
-        <div
-          className="absolute inset-0 rounded-xl opacity-20"
-          style={{
-            background: "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4) 0%, transparent 60%)",
-          }}
-        />
-        {/* S·P·M 텍스트 */}
-        <span
-          className="relative font-black text-white"
-          style={{
-            fontSize: iconSize * 0.38,
-            letterSpacing: "0px",
-            textShadow: "0 1px 2px rgba(0,0,0,0.3)",
-          }}
-        >
-          SPM
-        </span>
-      </div>
+      <Image
+        src="/spm-logo.png"
+        alt="SPM"
+        width={iconSize}
+        height={iconSize}
+        className="shrink-0"
+        priority
+      />
 
       {/* 텍스트 */}
       {showText && (
