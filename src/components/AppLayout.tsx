@@ -37,7 +37,24 @@ const NAV_ITEMS: { path: string; icon: LucideIcon; label: string; managerOnly?: 
   { path: "/matching", icon: Handshake, label: "팀 매칭", adminOnly: true },
 ];
 
-// 모바일 하단은 NAV_ITEMS 전체를 가로 스크롤로 표시
+// 모바일 하단 탭바는 그룹 단위(팀/경기/커뮤니티/관리)로 묶어서 표시
+const GROUP_ICONS: Record<string, LucideIcon> = {
+  "팀": Home,
+  "경기": Calendar,
+  "커뮤니티": MessageCircle,
+  "관리": Wallet,
+};
+
+function groupNavItems(items: typeof NAV_ITEMS) {
+  const groups: { name: string; icon: LucideIcon; items: typeof NAV_ITEMS }[] = [];
+  for (const item of items) {
+    if (item.group || groups.length === 0) {
+      groups.push({ name: item.group ?? "기타", icon: GROUP_ICONS[item.group ?? ""] ?? Home, items: [] });
+    }
+    groups[groups.length - 1].items.push(item);
+  }
+  return groups;
+}
 
 export default function AppLayout({ children, title, helpContent }: { children: React.ReactNode; title?: string; helpContent?: HelpContent }) {
   const { data: session } = useSession();
@@ -53,6 +70,9 @@ export default function AppLayout({ children, title, helpContent }: { children: 
   const [isOwner, setIsOwner] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [teamId, setTeamId] = useState<string | null>(null);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+
+  useEffect(() => { setOpenGroup(null); }, [pathname]);
 
   // 포메이션·포지션 배정은 관리자급(owner/manager/coach/president)에게만 표시
   const canManageNav = userRole === "owner" || userRole === "manager" || userRole === "coach" || userRole === "president";
@@ -321,54 +341,95 @@ export default function AppLayout({ children, title, helpContent }: { children: 
         </div>
       )}
 
-      {/* ── 하단 탭바 (모바일 only) – 가로 스크롤 ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-white/5 z-40">
-        <div
-          className="flex overflow-x-auto"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none", overscrollBehavior: "contain", touchAction: "pan-x" }}
-        >
-          {NAV_ITEMS.filter(item => {
-            if (item.managerOnly && !canManageNav) return false;
-            if (item.ownerOnlyHidden && !isOwner) return false;
-            if (item.path === "/board" && !boardAllowed) return false;
-            return true;
-          }).map(item => {
-            const active = pathname === item.path || (item.path !== "/dashboard" && pathname.startsWith(item.path));
-            const locked = item.adminOnly && !isOwner;
-            const showBadge = item.path === "/matching" && !locked && pendingMatches > 0;
-            return (
-              <button
-                key={item.path}
-                onClick={() => !locked && router.push(item.path)}
-                disabled={locked}
-                className={`shrink-0 flex flex-col items-center justify-center py-2.5 gap-0.5 transition-colors relative ${
-                  locked ? "text-gray-800 cursor-not-allowed" : active ? "text-emerald-400" : "text-gray-500"
-                }`}
-                style={{ minWidth: 64 }}
-              >
-                {/* 활성 상단 바 */}
-                {active && !locked && (
-                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-emerald-400 rounded-b-full" />
-                )}
-                <span
-                  className="leading-none relative"
-                  style={locked ? { filter: "grayscale(1)", opacity: 0.3 } : {}}
-                >
-                  <item.icon size={20} strokeWidth={2.25} />
-                  {showBadge && (
-                    <span className="absolute -top-1 -right-2 min-w-[14px] h-[14px] px-0.5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
-                      {pendingMatches}
-                    </span>
-                  )}
-                </span>
-                <span className={`text-[9px] font-medium whitespace-nowrap ${locked ? "opacity-30" : ""}`}>
-                  {locked ? "개발중" : item.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+      {/* ── 하단 탭바 (모바일 only) – 팀/경기/커뮤니티/관리 그룹 ── */}
+      {(() => {
+        const visibleItems = NAV_ITEMS.filter(item => {
+          if (item.managerOnly && !canManageNav) return false;
+          if (item.ownerOnlyHidden && !isOwner) return false;
+          if (item.path === "/board" && !boardAllowed) return false;
+          return true;
+        });
+        const groups = groupNavItems(visibleItems);
+        const activeGroup = groups.find(g =>
+          g.items.some(it => pathname === it.path || (it.path !== "/dashboard" && pathname.startsWith(it.path)))
+        );
+        const openedGroup = groups.find(g => g.name === openGroup);
+
+        return (
+          <>
+            {openedGroup && (
+              <div className="md:hidden fixed inset-0 z-40" onClick={() => setOpenGroup(null)} />
+            )}
+
+            {openedGroup && (
+              <div className="md:hidden fixed left-0 right-0 bottom-[60px] z-50 bg-gray-900 border-t border-white/5 rounded-t-2xl px-2 pt-3 pb-2 shadow-2xl">
+                <p className="text-[10px] text-gray-600 uppercase tracking-widest px-2 mb-2">{openedGroup.name}</p>
+                <div className="grid grid-cols-4 gap-1">
+                  {openedGroup.items.map(item => {
+                    const active = pathname === item.path || (item.path !== "/dashboard" && pathname.startsWith(item.path));
+                    const locked = item.adminOnly && !isOwner;
+                    const showBadge = item.path === "/matching" && !locked && pendingMatches > 0;
+                    return (
+                      <button
+                        key={item.path}
+                        onClick={() => { if (locked) return; setOpenGroup(null); router.push(item.path); }}
+                        disabled={locked}
+                        className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl transition-colors relative ${
+                          locked ? "text-gray-700 cursor-not-allowed" : active ? "text-emerald-400 bg-emerald-500/10" : "text-gray-400"
+                        }`}
+                      >
+                        <span className="relative" style={locked ? { filter: "grayscale(1)", opacity: 0.35 } : {}}>
+                          <item.icon size={19} strokeWidth={2.25} />
+                          {showBadge && (
+                            <span className="absolute -top-1 -right-2 min-w-[14px] h-[14px] px-0.5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                              {pendingMatches}
+                            </span>
+                          )}
+                        </span>
+                        <span className={`text-[9px] font-medium text-center leading-tight ${locked ? "opacity-40" : ""}`}>
+                          {locked ? "개발중" : item.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[60px] bg-gray-900 border-t border-white/5 z-50">
+              <div className="flex h-full">
+                {groups.map(g => {
+                  const isOpen = openGroup === g.name;
+                  const isActive = !isOpen && activeGroup?.name === g.name;
+                  const groupBadge = g.items.some(it => it.path === "/matching") && isOwner && pendingMatches > 0;
+                  return (
+                    <button
+                      key={g.name}
+                      onClick={() => setOpenGroup(isOpen ? null : g.name)}
+                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors relative ${
+                        isOpen || isActive ? "text-emerald-400" : "text-gray-500"
+                      }`}
+                    >
+                      {(isOpen || isActive) && (
+                        <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-emerald-400 rounded-b-full" />
+                      )}
+                      <span className="leading-none relative">
+                        <g.icon size={20} strokeWidth={2.25} />
+                        {groupBadge && (
+                          <span className="absolute -top-1 -right-2 min-w-[14px] h-[14px] px-0.5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                            {pendingMatches}
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-[9px] font-medium">{g.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
+          </>
+        );
+      })()}
     </div>
   );
 }
