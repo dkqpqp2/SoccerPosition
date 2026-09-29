@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
-import { Swords, Link2, Check, Trash2, Users, Trophy, X, Zap, Plus, ChevronLeft } from "lucide-react";
+import { Swords, Link2, Check, Trash2, Users, Trophy, X, Zap, ChevronLeft, ChevronDown } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import { FORMATIONS, PositionSlot, SOCCER_FORMATIONS, FUTSAL_FORMATIONS } from "@/lib/formations";
 
@@ -83,7 +83,10 @@ export default function ScrimmageDetailPage() {
   const [statsDraft, setStatsDraft] = useState<StatEntry[]>([]);
   const [statsSaving, setStatsSaving] = useState(false);
   const [addedMemberIds, setAddedMemberIds] = useState<Set<string>>(new Set());
-  const [showAddPicker, setShowAddPicker] = useState(false);
+  const [showRegularPanel, setShowRegularPanel] = useState(false);
+  const [showMercenaryPanel, setShowMercenaryPanel] = useState(false);
+  const [checkedRegular, setCheckedRegular] = useState<Set<string>>(new Set());
+  const [checkedMercenary, setCheckedMercenary] = useState<Set<string>>(new Set());
   const [myCaptainSquadId, setMyCaptainSquadId] = useState<string | null>(null);
   const [mySquadId, setMySquadId] = useState<string | null>(null);
   const [editLinkCopied, setEditLinkCopied] = useState(false);
@@ -144,11 +147,26 @@ export default function ScrimmageDetailPage() {
   const canEditActiveSquad = canManage || (!!activeSquad && myCaptainSquadId === activeSquad.id);
 
   const teamSplitRoster = roster.filter(m => addedMemberIds.has(m.id) || squadMemberMap[m.id]);
-  const availableToAdd = roster.filter(m => !addedMemberIds.has(m.id) && !squadMemberMap[m.id]);
+  const regularAvailable = roster.filter(m => !m.is_mercenary && !addedMemberIds.has(m.id) && !squadMemberMap[m.id]);
+  const mercenaryAvailable = roster.filter(m => m.is_mercenary && !addedMemberIds.has(m.id) && !squadMemberMap[m.id]);
 
-  function addMember(memberId: string) {
-    setAddedMemberIds(prev => new Set(prev).add(memberId));
-    setShowAddPicker(false);
+  function toggleChecked(set: Set<string>, setter: (s: Set<string>) => void, memberId: string) {
+    const next = new Set(set);
+    if (next.has(memberId)) next.delete(memberId);
+    else next.add(memberId);
+    setter(next);
+  }
+
+  function confirmAddRegular() {
+    setAddedMemberIds(prev => new Set([...prev, ...checkedRegular]));
+    setCheckedRegular(new Set());
+    setShowRegularPanel(false);
+  }
+
+  function confirmAddMercenary() {
+    setAddedMemberIds(prev => new Set([...prev, ...checkedMercenary]));
+    setCheckedMercenary(new Set());
+    setShowMercenaryPanel(false);
   }
 
   function removeMember(memberId: string) {
@@ -507,31 +525,98 @@ export default function ScrimmageDetailPage() {
           )}
 
           {canManage && (
-            <div className="relative mt-2">
-              <button
-                onClick={() => setShowAddPicker(v => !v)}
-                className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-semibold px-1 py-1"
-              >
-                <Plus size={13} /> 인원 추가
-              </button>
-              {showAddPicker && (
-                <div className="absolute z-10 mt-1 left-0 bg-gray-900 border border-white/10 rounded-xl p-2 shadow-xl min-w-[180px] max-h-64 overflow-y-auto">
-                  {availableToAdd.length === 0 ? (
-                    <p className="text-xs text-gray-600 px-2 py-1.5">추가할 인원이 없어요</p>
-                  ) : (
-                    availableToAdd.map(m => (
-                      <button
-                        key={m.id}
-                        onClick={() => addMember(m.id)}
-                        className="w-full text-left text-sm text-gray-200 hover:bg-white/5 px-2 py-1.5 rounded-lg flex items-center gap-1.5"
-                      >
-                        {m.name}
-                        {m.is_mercenary && <Zap size={10} className="text-amber-400 shrink-0" />}
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
+            <div className="mt-2 space-y-2">
+              {/* 팀원 추가 */}
+              <div>
+                <button
+                  onClick={() => setShowRegularPanel(v => !v)}
+                  className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-semibold px-1 py-1"
+                >
+                  <ChevronDown size={14} className={`transition-transform ${showRegularPanel ? "rotate-180" : ""}`} />
+                  팀원 추가 {regularAvailable.length > 0 && `(${regularAvailable.length}명)`}
+                </button>
+                {showRegularPanel && (
+                  <div className="bg-gray-900 border border-white/10 rounded-xl p-2 mt-1">
+                    {regularAvailable.length === 0 ? (
+                      <p className="text-xs text-gray-600 px-2 py-2">추가할 팀원이 없어요</p>
+                    ) : (
+                      <>
+                        <div className="max-h-64 overflow-y-auto">
+                          {regularAvailable.map(m => {
+                            const isChecked = checkedRegular.has(m.id);
+                            return (
+                              <button
+                                key={m.id}
+                                onClick={() => toggleChecked(checkedRegular, setCheckedRegular, m.id)}
+                                className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${isChecked ? "bg-emerald-500/10" : "hover:bg-white/5"}`}
+                              >
+                                <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${isChecked ? "border-emerald-400 bg-emerald-400" : "border-gray-600"}`}>
+                                  {isChecked && <Check size={11} strokeWidth={3} className="text-gray-900" />}
+                                </span>
+                                <span className={`text-sm ${isChecked ? "text-emerald-300" : "text-gray-200"}`}>{m.name}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <button
+                          onClick={confirmAddRegular}
+                          disabled={checkedRegular.size === 0}
+                          className="w-full mt-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:hover:bg-emerald-500 text-black text-sm font-bold py-2 rounded-lg transition-colors"
+                        >
+                          {checkedRegular.size > 0 ? `${checkedRegular.size}명 추가` : "추가"}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 용병 추가 */}
+              <div>
+                <button
+                  onClick={() => setShowMercenaryPanel(v => !v)}
+                  className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 font-semibold px-1 py-1"
+                >
+                  <ChevronDown size={14} className={`transition-transform ${showMercenaryPanel ? "rotate-180" : ""}`} />
+                  용병 추가 {mercenaryAvailable.length > 0 && `(${mercenaryAvailable.length}명)`}
+                </button>
+                {showMercenaryPanel && (
+                  <div className="bg-gray-900 border border-white/10 rounded-xl p-2 mt-1">
+                    {mercenaryAvailable.length === 0 ? (
+                      <p className="text-xs text-gray-600 px-2 py-2">추가할 용병이 없어요</p>
+                    ) : (
+                      <>
+                        <div className="max-h-64 overflow-y-auto">
+                          {mercenaryAvailable.map(m => {
+                            const isChecked = checkedMercenary.has(m.id);
+                            return (
+                              <button
+                                key={m.id}
+                                onClick={() => toggleChecked(checkedMercenary, setCheckedMercenary, m.id)}
+                                className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${isChecked ? "bg-amber-500/10" : "hover:bg-white/5"}`}
+                              >
+                                <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${isChecked ? "border-amber-400 bg-amber-400" : "border-gray-600"}`}>
+                                  {isChecked && <Check size={11} strokeWidth={3} className="text-gray-900" />}
+                                </span>
+                                <span className={`text-sm flex items-center gap-1 ${isChecked ? "text-amber-300" : "text-gray-200"}`}>
+                                  {m.name} <Zap size={10} className="text-amber-400 shrink-0" />
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <button
+                          onClick={confirmAddMercenary}
+                          disabled={checkedMercenary.size === 0}
+                          className="w-full mt-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:hover:bg-amber-500 text-black text-sm font-bold py-2 rounded-lg transition-colors"
+                        >
+                          {checkedMercenary.size > 0 ? `${checkedMercenary.size}명 추가` : "추가"}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
