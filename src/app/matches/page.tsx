@@ -14,6 +14,16 @@ import TimeSelect from "@/components/TimeSelect";
 
 type RsvpStatus = "attending" | "absent" | "maybe";
 
+interface ScrimmageListItem {
+  id: string;
+  title: string | null;
+  sport: "soccer" | "futsal";
+  match_date: string | null;
+  squad_count: number;
+}
+
+const SCRIMMAGE_SPORT_LABEL: Record<string, string> = { soccer: "축구", futsal: "풋살" };
+
 interface Match {
   id: string;
   match_date: string;
@@ -65,6 +75,7 @@ export default function MatchesPage() {
   const { status } = useSession();
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
+  const [scrimmages, setScrimmages] = useState<ScrimmageListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
 
@@ -79,9 +90,6 @@ export default function MatchesPage() {
   const [uniformInfo, setUniformInfo] = useState("");
   const [opponent, setOpponent] = useState("");
   const [teamName, setTeamName] = useState("");
-  const [isScrimmage, setIsScrimmage] = useState(false);
-  const [teamA, setTeamA] = useState("");
-  const [teamB, setTeamB] = useState("");
   const [userRole, setUserRole] = useState<string | null>(null);
   const [statsModal, setStatsModal] = useState<StatsModal | null>(null);
   const [statsEntries, setStatsEntries] = useState<StatEntry[]>([]);
@@ -105,14 +113,11 @@ export default function MatchesPage() {
   const [editPlaceLat, setEditPlaceLat] = useState<number | null>(null);
   const [editPlaceLng, setEditPlaceLng] = useState<number | null>(null);
   const [editOpponent, setEditOpponent] = useState("");
-  const [editIsScrimmage, setEditIsScrimmage] = useState(false);
-  const [editTeamA, setEditTeamA] = useState("");
-  const [editTeamB, setEditTeamB] = useState("");
   const [editUniformInfo, setEditUniformInfo] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
-    if (status === "authenticated") { fetchMatches(); fetchTeamName(); fetchUserRole(); }
+    if (status === "authenticated") { fetchMatches(); fetchTeamName(); fetchUserRole(); fetchScrimmages(); }
   }, [status]);
 
   async function fetchTeamName() {
@@ -136,12 +141,16 @@ export default function MatchesPage() {
     setLoading(false);
   }
 
+  async function fetchScrimmages() {
+    const res = await fetch("/api/scrimmages");
+    const data = await res.json();
+    setScrimmages(Array.isArray(data) ? data : []);
+  }
+
   async function createMatch(e: React.FormEvent) {
     e.preventDefault();
     if (!date) return;
-    let title: string | null = null;
-    if (isScrimmage) title = teamA && teamB ? `${teamA} vs ${teamB}` : teamA || teamB || "자체전";
-    else title = opponent ? `${teamName} vs ${opponent}` : null;
+    const title = opponent ? `${teamName} vs ${opponent}` : null;
     const locationName = selectedPlace?.name || location || null;
     const res = await fetch("/api/matches", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -159,7 +168,7 @@ export default function MatchesPage() {
     if (res.ok) {
       setShowForm(false);
       setDate(""); setMatchTime(""); setMatchEndTime(""); setLocation(""); setUniformInfo("");
-      setOpponent(""); setTeamA(""); setTeamB(""); setIsScrimmage(false);
+      setOpponent("");
       setSelectedPlace(null);
       fetchMatches();
     }
@@ -172,15 +181,11 @@ export default function MatchesPage() {
     setEditUniformInfo(match.uniform_info ?? "");
     const title = match.title ?? "";
     const parts = title.split(" vs ");
-    if (parts.length === 2 && parts[0] === teamName) { setEditIsScrimmage(false); setEditOpponent(parts[1]); setEditTeamA(""); setEditTeamB(""); }
-    else if (parts.length === 2) { setEditIsScrimmage(true); setEditTeamA(parts[0]); setEditTeamB(parts[1]); setEditOpponent(""); }
-    else { setEditIsScrimmage(false); setEditOpponent(""); setEditTeamA(""); setEditTeamB(""); }
+    setEditOpponent(parts.length === 2 ? parts[1] : "");
   }
 
   async function saveEdit(id: string) {
-    let title: string | null = null;
-    if (editIsScrimmage) title = editTeamA && editTeamB ? `${editTeamA} vs ${editTeamB}` : editTeamA || editTeamB || "자체전";
-    else title = editOpponent ? `${teamName} vs ${editOpponent}` : null;
+    const title = editOpponent ? `${teamName} vs ${editOpponent}` : null;
     await fetch(`/api/matches/${id}`, {
       method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -336,18 +341,6 @@ export default function MatchesPage() {
     ).values()
   ).slice(0, 4);
 
-  const Toggle = ({ on, onToggle, label, sub }: { on: boolean; onToggle: () => void; label: string; sub: string }) => (
-    <div className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 cursor-pointer transition-colors ${on ? "border-blue-500/40 bg-blue-500/10" : "border-white/10 bg-white/3"}`} onClick={onToggle}>
-      <div>
-        <p className={`font-medium text-sm ${on ? "text-blue-400" : "text-gray-400"}`}>{label}</p>
-        <p className="text-xs text-gray-600">{sub}</p>
-      </div>
-      <div className={`w-10 h-5 rounded-full transition-colors relative shrink-0 ${on ? "bg-blue-500" : "bg-gray-700"}`}>
-        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${on ? "translate-x-5" : "translate-x-0.5"}`} />
-      </div>
-    </div>
-  );
-
   return (
     <AppLayout title="경기 관리" helpContent={{ items: [
       { icon: "📅", title: "경기 추가", desc: "+ 경기 추가 버튼으로 날짜·시간·장소·상대팀을 등록해요. 카카오맵으로 장소를 검색할 수 있어요." },
@@ -429,47 +422,36 @@ export default function MatchesPage() {
                 <input type="text" value={uniformInfo} onChange={e => setUniformInfo(e.target.value)} placeholder="예: 검빨하계 or 팀조끼" className={inputCls} />
                 <p className="text-xs text-gray-600 mt-1">참가 인원 공유 시 자동 포함돼요</p>
               </div>
-              <Toggle on={isScrimmage} onToggle={() => setIsScrimmage(!isScrimmage)} label="자체전" sub="우리끼리 팀 나눠서 하는 경기" />
-              {!isScrimmage ? (
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">상대팀 이름 (선택)</label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-emerald-400 whitespace-nowrap">{teamName}</span>
-                    <span className="text-gray-600 text-sm">vs</span>
-                    <input type="text" value={opponent} onChange={e => setOpponent(e.target.value)} placeholder="상대팀 이름" className={`flex-1 bg-gray-800 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600`} />
-                  </div>
-                  {recentOpponents.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {recentOpponents.map(opp => (
-                        <button
-                          key={opp}
-                          type="button"
-                          onClick={() => setOpponent(opp)}
-                          className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                            opponent === opp
-                              ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
-                              : "bg-white/5 border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300"
-                          }`}
-                        >
-                          <Swords size={11} strokeWidth={2} /> {opp}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">상대팀 이름 (선택)</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-emerald-400 whitespace-nowrap">{teamName}</span>
+                  <span className="text-gray-600 text-sm">vs</span>
+                  <input type="text" value={opponent} onChange={e => setOpponent(e.target.value)} placeholder="상대팀 이름" className={`flex-1 bg-gray-800 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600`} />
                 </div>
-              ) : (
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">팀 이름 직접 입력</label>
-                  <div className="flex items-center gap-2">
-                    <input type="text" value={teamA} onChange={e => setTeamA(e.target.value)} placeholder="A팀" className={`flex-1 bg-gray-800 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-600`} />
-                    <span className="text-gray-600 font-bold">vs</span>
-                    <input type="text" value={teamB} onChange={e => setTeamB(e.target.value)} placeholder="B팀" className={`flex-1 bg-gray-800 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-600`} />
+                {recentOpponents.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {recentOpponents.map(opp => (
+                      <button
+                        key={opp}
+                        type="button"
+                        onClick={() => setOpponent(opp)}
+                        className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                          opponent === opp
+                            ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                            : "bg-white/5 border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300"
+                        }`}
+                      >
+                        <Swords size={11} strokeWidth={2} /> {opp}
+                      </button>
+                    ))}
                   </div>
-                </div>
-              )}
+                )}
+                <p className="text-xs text-gray-600 mt-2">팀을 나눠서 하는 내전은 <span className="text-emerald-500/70">내전 탭</span>에서 만들어주세요</p>
+              </div>
               <div className="flex gap-2">
                 <button type="submit" className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-black py-2.5 rounded-xl font-bold">추가</button>
-                <button type="button" onClick={() => { setShowForm(false); setIsScrimmage(false); setTeamA(""); setTeamB(""); setMatchTime(""); setMatchEndTime(""); setLocation(""); setUniformInfo(""); }}
+                <button type="button" onClick={() => { setShowForm(false); setMatchTime(""); setMatchEndTime(""); setLocation(""); setUniformInfo(""); }}
                   className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2.5 rounded-xl font-semibold">취소</button>
               </div>
             </div>
@@ -488,8 +470,17 @@ export default function MatchesPage() {
               if (!grouped[key]) grouped[key] = [];
               grouped[key].push(m);
             });
+            // 내전도 같은 월별 그룹에 함께 표시
+            const groupedScrimmages: Record<string, ScrimmageListItem[]> = {};
+            scrimmages
+              .filter(s => s.match_date?.startsWith(String(selectedYear)))
+              .forEach(s => {
+                const key = s.match_date!.slice(0, 7);
+                if (!groupedScrimmages[key]) groupedScrimmages[key] = [];
+                groupedScrimmages[key].push(s);
+              });
             // 최신 월부터 내림차순 정렬
-            const sortedKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+            const sortedKeys = Array.from(new Set([...Object.keys(grouped), ...Object.keys(groupedScrimmages)])).sort((a, b) => b.localeCompare(a));
 
             if (sortedKeys.length === 0) return (
               <div className="text-center py-16">
@@ -502,7 +493,8 @@ export default function MatchesPage() {
               <div className="flex flex-col gap-3">
                 {sortedKeys.map(monthKey => {
                   const [, mm] = monthKey.split("-");
-                  const monthMatches = grouped[monthKey];
+                  const monthMatches = grouped[monthKey] ?? [];
+                  const monthScrimmages = groupedScrimmages[monthKey] ?? [];
                   const isOpen = openMonths.has(monthKey);
                   const isCurrentMonth = monthKey === currentMonthKey;
                   return (
@@ -522,7 +514,9 @@ export default function MatchesPage() {
                           {isCurrentMonth && (
                             <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded-full">이번달</span>
                           )}
-                          <span className="text-xs text-gray-600">{monthMatches.length}경기</span>
+                          <span className="text-xs text-gray-600">
+                            {monthMatches.length}경기{monthScrimmages.length > 0 && ` · ${monthScrimmages.length}내전`}
+                          </span>
                         </div>
                         <span className={`text-gray-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}>▾</span>
                       </button>
@@ -550,26 +544,14 @@ export default function MatchesPage() {
                       />
                     </div>
                     <div><label className="text-xs text-gray-500 mb-1 block">복장 정보</label><input type="text" value={editUniformInfo} onChange={e => setEditUniformInfo(e.target.value)} placeholder="예: 검빨하계" className={inputCls} /></div>
-                    <Toggle on={editIsScrimmage} onToggle={() => setEditIsScrimmage(!editIsScrimmage)} label="자체전" sub="우리끼리 팀 나눠서 하는 경기" />
-                    {!editIsScrimmage ? (
-                      <div>
-                        <label className="text-xs text-gray-500 mb-1 block">상대팀 이름</label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-emerald-400 whitespace-nowrap">{teamName}</span>
-                          <span className="text-gray-600 text-sm">vs</span>
-                          <input type="text" value={editOpponent} onChange={e => setEditOpponent(e.target.value)} placeholder="상대팀 이름" className={`flex-1 bg-gray-800 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600`} />
-                        </div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">상대팀 이름</label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-emerald-400 whitespace-nowrap">{teamName}</span>
+                        <span className="text-gray-600 text-sm">vs</span>
+                        <input type="text" value={editOpponent} onChange={e => setEditOpponent(e.target.value)} placeholder="상대팀 이름" className={`flex-1 bg-gray-800 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-600`} />
                       </div>
-                    ) : (
-                      <div>
-                        <label className="text-xs text-gray-500 mb-1 block">팀 이름</label>
-                        <div className="flex items-center gap-2">
-                          <input type="text" value={editTeamA} onChange={e => setEditTeamA(e.target.value)} placeholder="A팀" className={`flex-1 bg-gray-800 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-600`} />
-                          <span className="text-gray-600 font-bold">vs</span>
-                          <input type="text" value={editTeamB} onChange={e => setEditTeamB(e.target.value)} placeholder="B팀" className={`flex-1 bg-gray-800 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 placeholder-gray-600`} />
-                        </div>
-                      </div>
-                    )}
+                    </div>
                     <div className="flex gap-2">
                       <button onClick={() => saveEdit(match.id)} className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-black py-2 rounded-xl text-sm font-bold">저장</button>
                       <button onClick={() => setEditingId(null)} className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2 rounded-xl text-sm font-semibold">취소</button>
@@ -764,6 +746,25 @@ export default function MatchesPage() {
                 )}
               </div>
             ))}
+                          {monthScrimmages.map(s => (
+                            <button
+                              key={s.id}
+                              onClick={() => router.push(`/scrimmage/${s.id}`)}
+                              className="w-full text-left p-4 hover:bg-white/2 transition-colors flex items-center justify-between gap-2"
+                            >
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <span className="text-[10px] font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30 px-1.5 py-0.5 rounded-full">내전</span>
+                                  <p className="font-bold text-white truncate">{s.title || "내전"}</p>
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                  {new Date(s.match_date!.replace(/-/g, "/")).toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" })}
+                                  {" · "}{SCRIMMAGE_SPORT_LABEL[s.sport]} · {s.squad_count}파전
+                                </p>
+                              </div>
+                              <Swords size={16} className="text-gray-600 shrink-0" />
+                            </button>
+                          ))}
                         </div>
                       )}
                     </div>

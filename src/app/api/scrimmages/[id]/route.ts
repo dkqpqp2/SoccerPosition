@@ -16,7 +16,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const role = await getUserRole(userId, teamId);
   if (!isOwner(role)) return NextResponse.json({ error: "내전을 찾을 수 없어요" }, { status: 404 });
 
-  const [{ data: scrimmage }, { data: squads }, { data: squadMembers }, { data: roster }] = await Promise.all([
+  const [{ data: scrimmage }, { data: squads }, { data: squadMembers }, { data: roster }, { data: fixtures }, { data: stats }] = await Promise.all([
     supabaseAdmin.from("scrimmages").select("*").eq("id", id).eq("team_id", teamId).single(),
     supabaseAdmin.from("scrimmage_squads").select("*").eq("scrimmage_id", id).order("sort_order", { ascending: true }),
     supabaseAdmin.from("scrimmage_squad_members").select("squad_id, member_id").eq("scrimmage_id", id),
@@ -26,6 +26,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       .eq("team_id", teamId)
       .is("left_at", null)
       .order("name", { ascending: true }),
+    supabaseAdmin.from("scrimmage_fixtures").select("*").eq("scrimmage_id", id).order("sort_order", { ascending: true }),
+    supabaseAdmin.from("scrimmage_stats").select("member_id, goals, assists").eq("scrimmage_id", id),
   ]);
 
   if (!scrimmage) return NextResponse.json({ error: "내전을 찾을 수 없어요" }, { status: 404 });
@@ -35,6 +37,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     squads: squads ?? [],
     squad_members: squadMembers ?? [],
     roster: roster ?? [],
+    fixtures: fixtures ?? [],
+    stats: stats ?? [],
   });
 }
 
