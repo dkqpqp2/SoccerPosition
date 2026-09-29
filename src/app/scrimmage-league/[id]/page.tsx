@@ -170,7 +170,7 @@ export default function ScrimmageLeagueDetailPage() {
 
   if (notFound) {
     return (
-      <AppLayout title="내전리그">
+      <AppLayout title="리그 내전">
         <div className="text-center py-24">
           <Trophy size={40} strokeWidth={1.5} className="opacity-30 mx-auto mb-3" />
           <p className="text-gray-600">이 리그를 찾을 수 없어요</p>
@@ -181,7 +181,7 @@ export default function ScrimmageLeagueDetailPage() {
 
   if (loading || !league) {
     return (
-      <AppLayout title="내전리그">
+      <AppLayout title="리그 내전">
         <div className="flex items-center justify-center py-24">
           <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
         </div>

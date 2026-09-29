@@ -119,8 +119,8 @@ export default function ScrimmagePage() {
       title="내전"
       helpContent={{
         items: [
-          { icon: "⚔️", title: "그냥 내전", desc: "그날그날 팀을 나눠서 경기할 때 사용해요. 2~4팀으로 나누고 팀별로 포지션을 짜요. 기록은 남기지 않아도 돼요." },
-          { icon: "🏆", title: "내전리그", desc: "한 번 팀을 고정해두고 여러 회차에 걸쳐 붙는 시즌형 내전이에요. 회차마다 결과가 누적돼서 통산 순위와 득점왕·어시왕이 나와요." },
+          { icon: "⚔️", title: "일반 내전", desc: "그날그날 팀을 나눠서 경기할 때 사용해요. 2~4팀으로 나누고 팀별로 포지션을 짜요. 기록은 남기지 않아도 돼요." },
+          { icon: "🏆", title: "리그 내전", desc: "한 번 팀을 고정해두고 여러 회차에 걸쳐 붙는 시즌형 내전이에요. 회차마다 결과가 누적돼서 통산 순위와 득점왕·어시왕이 나와요." },
           { icon: "🔗", title: "공유하기", desc: "완성된 라인업을 링크로 팀원들에게 공유할 수 있어요." },
         ],
       }}
@@ -129,11 +129,11 @@ export default function ScrimmagePage() {
         <div className="flex gap-1 bg-gray-900 border border-white/5 rounded-xl p-1 mb-5">
           <button onClick={() => setMode("casual")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold transition-all ${mode === "casual" ? "bg-emerald-500 text-black shadow" : "text-gray-500 hover:text-white"}`}>
-            <Swords size={15} strokeWidth={2} /> 그냥 내전
+            <Swords size={15} strokeWidth={2} /> 일반 내전
           </button>
           <button onClick={() => setMode("league")}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold transition-all ${mode === "league" ? "bg-amber-500 text-black shadow" : "text-gray-500 hover:text-white"}`}>
-            <Trophy size={15} strokeWidth={2} /> 내전리그
+            <Trophy size={15} strokeWidth={2} /> 리그 내전
           </button>
         </div>
 
@@ -183,7 +183,7 @@ export default function ScrimmagePage() {
         ) : leagues.length === 0 ? (
           <div className="text-center py-16">
             <Trophy size={40} strokeWidth={1.5} className="opacity-30 mx-auto mb-3" />
-            <p className="text-gray-600">아직 내전리그가 없어요</p>
+            <p className="text-gray-600">아직 리그 내전이 없어요</p>
             {canManage && <p className="text-sm text-gray-700 mt-1">팀을 고정하고 시즌처럼 운영해보세요!</p>}
           </div>
         ) : (
@@ -210,7 +210,7 @@ export default function ScrimmagePage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setShowCreate(false)}>
           <div className="bg-gray-900 border border-white/10 rounded-2xl p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-white">{mode === "casual" ? "내전 만들기" : "내전리그 만들기"}</h2>
+              <h2 className="text-base font-bold text-white">{mode === "casual" ? "내전 만들기" : "리그 내전 만들기"}</h2>
               <button onClick={() => setShowCreate(false)} className="text-gray-500 hover:text-white"><X size={18} /></button>
             </div>
 
@@ -221,7 +221,7 @@ export default function ScrimmagePage() {
                   type="text"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  placeholder={mode === "casual" ? "예: 9월 정기 내전" : "예: 2026 가을 내전리그"}
+                  placeholder={mode === "casual" ? "예: 9월 정기 내전" : "예: 2026 가을 리그 내전"}
                   className="w-full bg-gray-800 border border-white/10 focus:border-emerald-500 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none placeholder-gray-600"
                 />
               </div>
