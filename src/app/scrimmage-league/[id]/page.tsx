@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Trophy, Plus, Trash2, Users, Medal, Zap, Calendar } from "lucide-react";
+import { Trophy, Plus, Trash2, Users, Medal, Zap, Calendar, X } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 
 interface Member {
@@ -69,8 +69,8 @@ export default function ScrimmageLeagueDetailPage() {
   const [loading, setLoading] = useState(true);
   const [canManage, setCanManage] = useState(false);
   const [notFound, setNotFound] = useState(false);
-  const [addedMercenaryIds, setAddedMercenaryIds] = useState<Set<string>>(new Set());
-  const [showMercenaryPicker, setShowMercenaryPicker] = useState(false);
+  const [addedMemberIds, setAddedMemberIds] = useState<Set<string>>(new Set());
+  const [showAddPicker, setShowAddPicker] = useState(false);
   const [creatingRound, setCreatingRound] = useState(false);
   const [showRoundModal, setShowRoundModal] = useState(false);
   const [roundDate, setRoundDate] = useState("");
@@ -153,16 +153,22 @@ export default function ScrimmageLeagueDetailPage() {
     if (res.ok) router.push("/scrimmage");
   }
 
-  const regularRoster = roster.filter(m => !m.is_mercenary);
-  const mercenaryPool = roster.filter(m => m.is_mercenary);
-  const visibleMercenaries = mercenaryPool.filter(m => addedMercenaryIds.has(m.id) || squadMemberMap[m.id]);
-  const availableMercenaries = mercenaryPool.filter(m => !addedMercenaryIds.has(m.id) && !squadMemberMap[m.id]);
-  const teamSplitRoster = [...regularRoster, ...visibleMercenaries];
+  const teamSplitRoster = roster.filter(m => addedMemberIds.has(m.id) || squadMemberMap[m.id]);
+  const availableToAdd = roster.filter(m => !addedMemberIds.has(m.id) && !squadMemberMap[m.id]);
   const unassigned = teamSplitRoster.filter(m => !squadMemberMap[m.id]);
 
-  function addMercenary(memberId: string) {
-    setAddedMercenaryIds(prev => new Set(prev).add(memberId));
-    setShowMercenaryPicker(false);
+  function addMember(memberId: string) {
+    setAddedMemberIds(prev => new Set(prev).add(memberId));
+    setShowAddPicker(false);
+  }
+
+  function removeMember(memberId: string) {
+    setAddedMemberIds(prev => {
+      const next = new Set(prev);
+      next.delete(memberId);
+      return next;
+    });
+    if (squadMemberMap[memberId]) assignMember(memberId, null);
   }
 
   const formatDate = (d: string | null) =>
@@ -297,48 +303,60 @@ export default function ScrimmageLeagueDetailPage() {
             <Users size={13} className="text-gray-500" />
             <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">고정 팀 배정</p>
           </div>
-          <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
-            {teamSplitRoster.map((m, i) => (
-              <div key={m.id} className={`flex items-center justify-between px-4 py-3 ${i < teamSplitRoster.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
-                <span className="text-sm text-gray-200 truncate flex items-center gap-1.5">
-                  {m.name}
-                  {m.is_mercenary && (
-                    <span className="inline-flex items-center gap-0.5 text-[9px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full shrink-0">
-                      <Zap size={9} /> 용병
-                    </span>
-                  )}
-                </span>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {squads.map(s => (
-                    <button
-                      key={s.id}
-                      disabled={!canManage}
-                      onClick={() => assignMember(m.id, squadMemberMap[m.id] === s.id ? null : s.id)}
-                      className={`text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors ${
-                        squadMemberMap[m.id] === s.id ? "bg-emerald-500 text-black" : "bg-white/5 text-gray-500 hover:bg-white/10"
-                      }`}
-                    >
-                      {s.name}
-                    </button>
-                  ))}
+          {teamSplitRoster.length === 0 ? (
+            <div className="text-center py-10 bg-gray-900 border border-white/5 rounded-lg text-sm text-gray-600">
+              아래에서 참가 인원을 추가해주세요
+            </div>
+          ) : (
+            <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
+              {teamSplitRoster.map((m, i) => (
+                <div key={m.id} className={`flex items-center justify-between px-4 py-3 ${i < teamSplitRoster.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
+                  <span className="text-sm text-gray-200 truncate flex items-center gap-1.5">
+                    {m.name}
+                    {m.is_mercenary && (
+                      <span className="inline-flex items-center gap-0.5 text-[9px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full shrink-0">
+                        <Zap size={9} /> 용병
+                      </span>
+                    )}
+                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {squads.map(s => (
+                      <button
+                        key={s.id}
+                        disabled={!canManage}
+                        onClick={() => assignMember(m.id, squadMemberMap[m.id] === s.id ? null : s.id)}
+                        className={`text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors ${
+                          squadMemberMap[m.id] === s.id ? "bg-emerald-500 text-black" : "bg-white/5 text-gray-500 hover:bg-white/10"
+                        }`}
+                      >
+                        {s.name}
+                      </button>
+                    ))}
+                    {canManage && (
+                      <button onClick={() => removeMember(m.id)} className="text-gray-700 hover:text-red-400 transition-colors">
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {canManage && (
             <div className="relative mt-2">
-              <button onClick={() => setShowMercenaryPicker(v => !v)} className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 font-semibold px-1 py-1">
-                <Plus size={13} /> 용병 추가
+              <button onClick={() => setShowAddPicker(v => !v)} className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-semibold px-1 py-1">
+                <Plus size={13} /> 인원 추가
               </button>
-              {showMercenaryPicker && (
-                <div className="absolute z-10 mt-1 left-0 bg-gray-900 border border-white/10 rounded-xl p-2 shadow-xl min-w-[160px]">
-                  {availableMercenaries.length === 0 ? (
-                    <p className="text-xs text-gray-600 px-2 py-1.5">{mercenaryPool.length === 0 ? "등록된 용병이 없어요" : "추가할 용병이 없어요"}</p>
+              {showAddPicker && (
+                <div className="absolute z-10 mt-1 left-0 bg-gray-900 border border-white/10 rounded-xl p-2 shadow-xl min-w-[180px] max-h-64 overflow-y-auto">
+                  {availableToAdd.length === 0 ? (
+                    <p className="text-xs text-gray-600 px-2 py-1.5">추가할 인원이 없어요</p>
                   ) : (
-                    availableMercenaries.map(m => (
-                      <button key={m.id} onClick={() => addMercenary(m.id)} className="w-full text-left text-sm text-gray-200 hover:bg-white/5 px-2 py-1.5 rounded-lg">
+                    availableToAdd.map(m => (
+                      <button key={m.id} onClick={() => addMember(m.id)} className="w-full text-left text-sm text-gray-200 hover:bg-white/5 px-2 py-1.5 rounded-lg flex items-center gap-1.5">
                         {m.name}
+                        {m.is_mercenary && <Zap size={10} className="text-amber-400 shrink-0" />}
                       </button>
                     ))
                   )}
