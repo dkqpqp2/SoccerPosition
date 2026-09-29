@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
-import { Swords, Link2, Check, Trash2, Users } from "lucide-react";
+import { Swords, Link2, Check, Trash2, Users, Trophy, X } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import { FORMATIONS, PositionSlot, SOCCER_FORMATIONS, FUTSAL_FORMATIONS } from "@/lib/formations";
 
@@ -42,6 +42,20 @@ interface CustomFormation {
   slots: PositionSlot[];
 }
 
+interface Fixture {
+  id: string;
+  squad_a_id: string;
+  squad_b_id: string;
+  score_a: number | null;
+  score_b: number | null;
+}
+
+interface StatEntry {
+  member_id: string;
+  goals: number;
+  assists: number;
+}
+
 const SPORT_LABEL: Record<string, string> = { soccer: "축구", futsal: "풋살" };
 
 export default function ScrimmageDetailPage() {
@@ -60,6 +74,11 @@ export default function ScrimmageDetailPage() {
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [fixtures, setFixtures] = useState<Fixture[]>([]);
+  const [statsMap, setStatsMap] = useState<Record<string, { goals: number; assists: number }>>({});
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [statsDraft, setStatsDraft] = useState<StatEntry[]>([]);
+  const [statsSaving, setStatsSaving] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -88,6 +107,10 @@ export default function ScrimmageDetailPage() {
     const map: Record<string, string> = {};
     for (const sm of data.squad_members ?? []) map[sm.member_id] = sm.squad_id;
     setSquadMemberMap(map);
+    setFixtures(data.fixtures ?? []);
+    const sm: Record<string, { goals: number; assists: number }> = {};
+    for (const s of data.stats ?? []) sm[s.member_id] = { goals: s.goals, assists: s.assists };
+    setStatsMap(sm);
     setActiveSquadId(prev => prev ?? (data.squads?.[0]?.id ?? null));
     setLoading(false);
   }
@@ -156,6 +179,61 @@ export default function ScrimmageDetailPage() {
     setSaving(false);
   }
 
+  function updateFixtureLocal(fixtureId: string, patch: Partial<Fixture>) {
+    setFixtures(prev => prev.map(f => (f.id === fixtureId ? { ...f, ...patch } : f)));
+  }
+
+  async function saveFixtureScore(fixtureId: string, scoreA: number | null, scoreB: number | null) {
+    await fetch(`/api/scrimmages/${id}/fixtures/${fixtureId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ score_a: scoreA, score_b: scoreB }),
+    });
+  }
+
+  const standings = useMemo(() => {
+    const table: Record<string, { squadId: string; name: string; w: number; d: number; l: number; gf: number; ga: number; pts: number }> = {};
+    for (const s of squads) table[s.id] = { squadId: s.id, name: s.name, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 };
+    for (const f of fixtures) {
+      if (f.score_a === null || f.score_b === null) continue;
+      const a = table[f.squad_a_id];
+      const b = table[f.squad_b_id];
+      if (!a || !b) continue;
+      a.gf += f.score_a; a.ga += f.score_b;
+      b.gf += f.score_b; b.ga += f.score_a;
+      if (f.score_a > f.score_b) { a.w++; a.pts += 3; b.l++; }
+      else if (f.score_a < f.score_b) { b.w++; b.pts += 3; a.l++; }
+      else { a.d++; b.d++; a.pts++; b.pts++; }
+    }
+    return Object.values(table).sort((x, y) => y.pts - x.pts || (y.gf - y.ga) - (x.gf - x.ga));
+  }, [squads, fixtures]);
+
+  function openStatsModal() {
+    const draft: StatEntry[] = roster
+      .filter(m => squadMemberMap[m.id])
+      .map(m => ({ member_id: m.id, goals: statsMap[m.id]?.goals ?? 0, assists: statsMap[m.id]?.assists ?? 0 }));
+    setStatsDraft(draft);
+    setShowStatsModal(true);
+  }
+
+  function updateStatDraft(memberId: string, field: "goals" | "assists", delta: number) {
+    setStatsDraft(prev => prev.map(e => (e.member_id === memberId ? { ...e, [field]: Math.max(0, e[field] + delta) } : e)));
+  }
+
+  async function saveStats() {
+    setStatsSaving(true);
+    await fetch(`/api/scrimmages/${id}/stats`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ stats: statsDraft }),
+    });
+    const sm: Record<string, { goals: number; assists: number }> = {};
+    for (const e of statsDraft) if (e.goals > 0 || e.assists > 0) sm[e.member_id] = { goals: e.goals, assists: e.assists };
+    setStatsMap(sm);
+    setStatsSaving(false);
+    setShowStatsModal(false);
+  }
+
   async function deleteScrimmage() {
     if (!confirm("이 내전을 삭제할까요?")) return;
     const res = await fetch(`/api/scrimmages/${id}`, { method: "DELETE" });
@@ -212,6 +290,11 @@ export default function ScrimmageDetailPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {canManage && (
+              <button onClick={openStatsModal} className="flex items-center gap-1.5 text-xs bg-gray-900 border border-white/10 hover:border-white/20 text-gray-300 px-3 py-2 rounded-xl transition-colors">
+                <Trophy size={14} /> 골/어시
+              </button>
+            )}
             <button onClick={shareLink} className="flex items-center gap-1.5 text-xs bg-gray-900 border border-white/10 hover:border-white/20 text-gray-300 px-3 py-2 rounded-xl transition-colors">
               {linkCopied ? <Check size={14} className="text-emerald-400" /> : <Link2 size={14} />}
               {linkCopied ? "복사됨" : "공유"}
@@ -223,6 +306,77 @@ export default function ScrimmageDetailPage() {
             )}
           </div>
         </div>
+
+        {/* 결과 */}
+        {fixtures.length > 0 && (
+          <div>
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <Trophy size={13} className="text-gray-500" />
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">결과</p>
+            </div>
+            <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden mb-3">
+              {fixtures.map((f, i) => {
+                const squadA = squads.find(s => s.id === f.squad_a_id);
+                const squadB = squads.find(s => s.id === f.squad_b_id);
+                return (
+                  <div key={f.id} className={`flex items-center justify-center gap-3 px-4 py-3 ${i < fixtures.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
+                    <span className="text-sm text-gray-300 font-medium w-16 text-right truncate">{squadA?.name}</span>
+                    {canManage ? (
+                      <>
+                        <input
+                          type="number" min={0} inputMode="numeric"
+                          value={f.score_a ?? ""}
+                          onChange={e => updateFixtureLocal(f.id, { score_a: e.target.value === "" ? null : Number(e.target.value) })}
+                          onBlur={() => saveFixtureScore(f.id, f.score_a, f.score_b)}
+                          className="w-12 bg-gray-800 border border-white/10 focus:border-emerald-500 rounded-lg px-2 py-1.5 text-center text-sm text-white focus:outline-none"
+                        />
+                        <span className="text-gray-600">:</span>
+                        <input
+                          type="number" min={0} inputMode="numeric"
+                          value={f.score_b ?? ""}
+                          onChange={e => updateFixtureLocal(f.id, { score_b: e.target.value === "" ? null : Number(e.target.value) })}
+                          onBlur={() => saveFixtureScore(f.id, f.score_a, f.score_b)}
+                          className="w-12 bg-gray-800 border border-white/10 focus:border-emerald-500 rounded-lg px-2 py-1.5 text-center text-sm text-white focus:outline-none"
+                        />
+                      </>
+                    ) : (
+                      <span className="text-sm font-bold text-white">{f.score_a ?? "-"} : {f.score_b ?? "-"}</span>
+                    )}
+                    <span className="text-sm text-gray-300 font-medium w-16 truncate">{squadB?.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 순위표 */}
+            <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-gray-600 border-b border-white/5">
+                    <th className="text-left font-normal px-3 py-2">팀</th>
+                    <th className="font-normal px-1.5 py-2">승</th>
+                    <th className="font-normal px-1.5 py-2">무</th>
+                    <th className="font-normal px-1.5 py-2">패</th>
+                    <th className="font-normal px-1.5 py-2">득실</th>
+                    <th className="font-normal px-2 py-2">승점</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {standings.map((s, i) => (
+                    <tr key={s.squadId} className={i < standings.length - 1 ? "border-b border-white/[0.03]" : ""}>
+                      <td className="px-3 py-2 text-gray-200 font-medium">{s.name}</td>
+                      <td className="text-center px-1.5 py-2 text-gray-400">{s.w}</td>
+                      <td className="text-center px-1.5 py-2 text-gray-400">{s.d}</td>
+                      <td className="text-center px-1.5 py-2 text-gray-400">{s.l}</td>
+                      <td className="text-center px-1.5 py-2 text-gray-400">{s.gf - s.ga > 0 ? `+${s.gf - s.ga}` : s.gf - s.ga}</td>
+                      <td className="text-center px-2 py-2 text-emerald-400 font-bold">{s.pts}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* 팀 나누기 */}
         <div>
@@ -365,6 +519,58 @@ export default function ScrimmageDetailPage() {
           )}
         </div>
       </div>
+
+      {showStatsModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setShowStatsModal(false)}>
+          <div className="bg-gray-900 border border-white/10 rounded-2xl p-5 w-full max-w-sm max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-white">골/어시 기록</h2>
+              <button onClick={() => setShowStatsModal(false)} className="text-gray-500 hover:text-white"><X size={18} /></button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 -mx-1 px-1 space-y-2">
+              {statsDraft.length === 0 ? (
+                <p className="text-center text-xs text-gray-600 py-8">팀 배정된 선수가 없어요</p>
+              ) : (
+                statsDraft.map(entry => {
+                  const member = roster.find(m => m.id === entry.member_id);
+                  const squad = squads.find(s => s.id === squadMemberMap[entry.member_id]);
+                  return (
+                    <div key={entry.member_id} className="flex items-center justify-between bg-white/[0.03] rounded-xl px-3 py-2.5">
+                      <div className="min-w-0">
+                        <p className="text-sm text-gray-200 truncate">{member?.name}</p>
+                        <p className="text-[10px] text-gray-600">{squad?.name}</p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-gray-500">골</span>
+                          <button onClick={() => updateStatDraft(entry.member_id, "goals", -1)} className="w-6 h-6 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10">-</button>
+                          <span className="w-4 text-center text-sm font-bold text-white">{entry.goals}</span>
+                          <button onClick={() => updateStatDraft(entry.member_id, "goals", 1)} className="w-6 h-6 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10">+</button>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-gray-500">어시</span>
+                          <button onClick={() => updateStatDraft(entry.member_id, "assists", -1)} className="w-6 h-6 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10">-</button>
+                          <span className="w-4 text-center text-sm font-bold text-white">{entry.assists}</span>
+                          <button onClick={() => updateStatDraft(entry.member_id, "assists", 1)} className="w-6 h-6 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10">+</button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <button
+              onClick={saveStats}
+              disabled={statsSaving}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black py-3 rounded-xl font-bold transition-colors mt-4"
+            >
+              {statsSaving ? "저장 중..." : "저장"}
+            </button>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }

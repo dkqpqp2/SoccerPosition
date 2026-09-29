@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
   if (error || !scrimmage) return NextResponse.json({ error: error?.message ?? "생성 실패" }, { status: 500 });
 
-  const { error: squadError } = await supabaseAdmin
+  const { data: squads, error: squadError } = await supabaseAdmin
     .from("scrimmage_squads")
     .insert(
       Array.from({ length: squadCount }, (_, i) => ({
@@ -67,11 +67,31 @@ export async function POST(req: NextRequest) {
         name: SQUAD_NAMES[i],
         sort_order: i,
       }))
-    );
+    )
+    .select();
 
-  if (squadError) {
+  if (squadError || !squads) {
     await supabaseAdmin.from("scrimmages").delete().eq("id", scrimmage.id);
-    return NextResponse.json({ error: squadError.message }, { status: 500 });
+    return NextResponse.json({ error: squadError?.message ?? "생성 실패" }, { status: 500 });
+  }
+
+  // 스쿼드 간 맞대결 전체 조합(라운드로빈) 자동 생성
+  const sortedSquads = [...squads].sort((a, b) => a.sort_order - b.sort_order);
+  const fixtures: { scrimmage_id: string; squad_a_id: string; squad_b_id: string; sort_order: number }[] = [];
+  for (let i = 0; i < sortedSquads.length; i++) {
+    for (let j = i + 1; j < sortedSquads.length; j++) {
+      fixtures.push({
+        scrimmage_id: scrimmage.id,
+        squad_a_id: sortedSquads[i].id,
+        squad_b_id: sortedSquads[j].id,
+        sort_order: fixtures.length,
+      });
+    }
+  }
+  const { error: fixtureError } = await supabaseAdmin.from("scrimmage_fixtures").insert(fixtures);
+  if (fixtureError) {
+    await supabaseAdmin.from("scrimmages").delete().eq("id", scrimmage.id);
+    return NextResponse.json({ error: fixtureError.message }, { status: 500 });
   }
 
   return NextResponse.json(scrimmage);

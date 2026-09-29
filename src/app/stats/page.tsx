@@ -26,8 +26,15 @@ interface MatchResult {
   score_them: number;
 }
 
+interface ScrimmageLeaderboardEntry {
+  member_id: string;
+  name: string;
+  goals: number;
+  assists: number;
+}
+
 type SortKey = "goals" | "assists" | "attendance_rate" | "name";
-type MainTab = "stats" | "records";
+type MainTab = "stats" | "records" | "scrimmage";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const PAGE_SIZE    = 10;
@@ -53,6 +60,8 @@ export default function StatsPage() {
   const [mainTab,   setMainTab]   = useState<MainTab>("stats");
   const [results,   setResults]   = useState<MatchResult[]>([]);
   const [resLoading, setResLoading] = useState(false);
+  const [scrimmageBoard, setScrimmageBoard] = useState<ScrimmageLeaderboardEntry[]>([]);
+  const [scrimmageLoading, setScrimmageLoading] = useState(false);
 
   const windowYears = [baseYear, baseYear + 1, baseYear + 2].map(String);
 
@@ -70,6 +79,14 @@ export default function StatsPage() {
     const res = await fetch("/api/match-results");
     if (res.ok) setResults(await res.json());
     setResLoading(false);
+  }
+
+  async function fetchScrimmageBoard() {
+    setScrimmageLoading(true);
+    const res = await fetch("/api/scrimmages/leaderboard");
+    const data = await res.json();
+    setScrimmageBoard(Array.isArray(data) ? data : []);
+    setScrimmageLoading(false);
   }
 
   const canManageStats = userRole === "owner" || userRole === "manager" || userRole === "president";
@@ -156,11 +173,42 @@ export default function StatsPage() {
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold transition-all ${mainTab === "records" ? "bg-sky-500 text-white shadow" : "text-gray-500 hover:text-white"}`}>
             <Trophy size={15} strokeWidth={2} /> 팀 전적
           </button>
+          {userRole === "owner" && (
+            <button onClick={() => { setMainTab("scrimmage"); if (scrimmageBoard.length === 0) fetchScrimmageBoard(); }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold transition-all ${mainTab === "scrimmage" ? "bg-amber-500 text-black shadow" : "text-gray-500 hover:text-white"}`}>
+              <Medal size={15} strokeWidth={2} /> 내전 기록
+            </button>
+          )}
         </div>
 
         {/* ── 팀 전적 탭 ── */}
         {mainTab === "records" && (
           <RecordsTab results={results} loading={resLoading} />
+        )}
+
+        {/* ── 내전 기록 탭 ── */}
+        {mainTab === "scrimmage" && (
+          <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
+            {scrimmageLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : scrimmageBoard.length === 0 ? (
+              <div className="text-center py-16">
+                <Medal size={40} strokeWidth={1.5} className="mx-auto mb-3 opacity-20" />
+                <p className="text-gray-600 text-sm">아직 내전 기록이 없어요</p>
+              </div>
+            ) : (
+              scrimmageBoard.map((p, i) => (
+                <div key={p.member_id} className={`flex items-center gap-3 px-4 py-3 ${i < scrimmageBoard.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
+                  <span className={`w-5 text-sm font-bold text-center ${i < 3 ? "text-amber-400" : "text-gray-600"}`}>{i + 1}</span>
+                  <span className="flex-1 text-sm text-gray-200 truncate">{p.name}</span>
+                  <span className="text-xs text-emerald-400 font-bold w-14 text-right">{p.goals}골</span>
+                  <span className="text-xs text-sky-400 font-bold w-14 text-right">{p.assists}도움</span>
+                </div>
+              ))
+            )}
+          </div>
         )}
 
         {mainTab === "stats" && loading ? (
