@@ -25,6 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (typeof body.formation_name === "string" || body.formation_name === null) update.formation_name = body.formation_name;
   if (Array.isArray(body.formation_slots) || body.formation_slots === null) update.formation_slots = body.formation_slots;
   if (body.assigned && typeof body.assigned === "object") update.assigned = body.assigned;
+  if (typeof body.captain_member_id === "string" || body.captain_member_id === null) update.captain_member_id = body.captain_member_id;
 
   if (Object.keys(update).length === 0) return NextResponse.json({ error: "수정할 내용이 없어요" }, { status: 400 });
 
