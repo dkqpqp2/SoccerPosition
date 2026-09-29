@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
-import { Swords, Link2, Check, Trash2, Users, Trophy, X, Zap, Plus } from "lucide-react";
+import { Swords, Link2, Check, Trash2, Users, Trophy, X, Zap, Plus, ChevronLeft } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import { FORMATIONS, PositionSlot, SOCCER_FORMATIONS, FUTSAL_FORMATIONS } from "@/lib/formations";
 
@@ -36,6 +36,7 @@ interface ScrimmageData {
   title: string | null;
   sport: "soccer" | "futsal";
   match_date: string | null;
+  league_id: string | null;
 }
 
 interface CustomFormation {
@@ -340,6 +341,14 @@ export default function ScrimmageDetailPage() {
   return (
     <AppLayout title={scrimmage.title || "내전"}>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* 뒤로가기 */}
+        <button
+          onClick={() => router.push(scrimmage.league_id ? `/scrimmage-league/${scrimmage.league_id}` : "/scrimmage")}
+          className="flex items-center gap-1 text-xs text-gray-500 hover:text-white transition-colors -mt-2 -mb-1"
+        >
+          <ChevronLeft size={14} /> {scrimmage.league_id ? "리그로" : "내전 목록"}
+        </button>
+
         {/* 헤더 */}
         <div className="flex items-center justify-between">
           <div>

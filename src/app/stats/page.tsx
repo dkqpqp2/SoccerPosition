@@ -186,27 +186,43 @@ export default function StatsPage() {
 
         {/* ── 내전 기록 탭 ── */}
         {mainTab === "scrimmage" && (
-          <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
-            {scrimmageLoading ? (
-              <div className="flex items-center justify-center py-20">
-                <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : scrimmageBoard.length === 0 ? (
-              <div className="text-center py-16">
-                <Medal size={40} strokeWidth={1.5} className="mx-auto mb-3 opacity-20" />
-                <p className="text-gray-600 text-sm">아직 내전 기록이 없어요</p>
-              </div>
-            ) : (
-              scrimmageBoard.map((p, i) => (
-                <div key={p.member_id} className={`flex items-center gap-3 px-4 py-3 ${i < scrimmageBoard.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
-                  <span className={`w-5 text-sm font-bold text-center ${i < 3 ? "text-amber-400" : "text-gray-600"}`}>{i + 1}</span>
-                  <span className="flex-1 text-sm text-gray-200 truncate">{p.name}</span>
-                  <span className="text-xs text-emerald-400 font-bold w-14 text-right">{p.goals}골</span>
-                  <span className="text-xs text-sky-400 font-bold w-14 text-right">{p.assists}도움</span>
-                </div>
-              ))
-            )}
-          </div>
+          scrimmageLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : scrimmageBoard.length === 0 ? (
+            <div className="text-center py-16 bg-gray-900 border border-white/5 rounded-lg">
+              <Medal size={40} strokeWidth={1.5} className="mx-auto mb-3 opacity-20" />
+              <p className="text-gray-600 text-sm">아직 내전 기록이 없어요</p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {([
+                { label: "득점왕", key: "goals" as const, unit: "골", color: "text-emerald-400" },
+                { label: "어시왕", key: "assists" as const, unit: "도움", color: "text-sky-400" },
+              ]).map(({ label, key, unit, color }) => {
+                const ranked = [...scrimmageBoard].filter(p => p[key] > 0).sort((a, b) => b[key] - a[key]);
+                return (
+                  <div key={key}>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-2">{label}</p>
+                    <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
+                      {ranked.length === 0 ? (
+                        <p className="text-center text-xs text-gray-600 py-6">기록 없음</p>
+                      ) : (
+                        ranked.map((p, i) => (
+                          <div key={p.member_id} className={`flex items-center gap-3 px-4 py-3 ${i < ranked.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
+                            <span className={`w-5 text-sm font-bold text-center ${i < 3 ? "text-amber-400" : "text-gray-600"}`}>{i + 1}</span>
+                            <span className="flex-1 text-sm text-gray-200 truncate">{p.name}</span>
+                            <span className={`text-sm font-bold ${color}`}>{p[key]}{unit}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
         )}
 
         {mainTab === "stats" && loading ? (
