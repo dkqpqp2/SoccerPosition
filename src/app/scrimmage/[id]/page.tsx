@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
-import { Swords, Link2, Check, Trash2, Users, Trophy, X } from "lucide-react";
+import { Swords, Link2, Check, Trash2, Users, Trophy, X, Zap, Plus } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import { FORMATIONS, PositionSlot, SOCCER_FORMATIONS, FUTSAL_FORMATIONS } from "@/lib/formations";
 
@@ -26,6 +26,7 @@ interface Squad {
   formation_name: string | null;
   formation_slots: PositionSlot[] | null;
   assigned: Record<string, Member | null>;
+  captain_member_id: string | null;
   sort_order: number;
 }
 
@@ -79,6 +80,8 @@ export default function ScrimmageDetailPage() {
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [statsDraft, setStatsDraft] = useState<StatEntry[]>([]);
   const [statsSaving, setStatsSaving] = useState(false);
+  const [addedMercenaryIds, setAddedMercenaryIds] = useState<Set<string>>(new Set());
+  const [showMercenaryPicker, setShowMercenaryPicker] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/");
@@ -130,6 +133,32 @@ export default function ScrimmageDetailPage() {
   }
 
   const activeSquad = squads.find(s => s.id === activeSquadId) ?? null;
+
+  const regularRoster = roster.filter(m => !m.is_mercenary);
+  const mercenaryPool = roster.filter(m => m.is_mercenary);
+  const visibleMercenaries = mercenaryPool.filter(m => addedMercenaryIds.has(m.id) || squadMemberMap[m.id]);
+  const availableMercenaries = mercenaryPool.filter(m => !addedMercenaryIds.has(m.id) && !squadMemberMap[m.id]);
+  const teamSplitRoster = [...regularRoster, ...visibleMercenaries];
+
+  function addMercenary(memberId: string) {
+    setAddedMercenaryIds(prev => new Set(prev).add(memberId));
+    setShowMercenaryPicker(false);
+  }
+
+  async function setCaptain(memberId: string | null) {
+    if (!activeSquad) return;
+    const patch: Partial<Squad> = { captain_member_id: memberId };
+    if (memberId) {
+      const captain = teamSplitRoster.find(m => m.id === memberId);
+      if (captain) patch.name = `${captain.name}팀`;
+    }
+    updateSquadLocal(activeSquad.id, patch);
+    await fetch(`/api/scrimmages/${id}/squads/${activeSquad.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+  }
 
   const availableFormationNames = useMemo(() => {
     if (!scrimmage) return [];
@@ -266,7 +295,7 @@ export default function ScrimmageDetailPage() {
     setTimeout(() => setLinkCopied(false), 2000);
   }
 
-  const unassigned = roster.filter(m => !squadMemberMap[m.id]);
+  const unassigned = teamSplitRoster.filter(m => !squadMemberMap[m.id]);
 
   if (loading || !scrimmage) {
     return (
@@ -385,9 +414,16 @@ export default function ScrimmageDetailPage() {
             <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">팀 나누기</p>
           </div>
           <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
-            {roster.map((m, i) => (
-              <div key={m.id} className={`flex items-center justify-between px-4 py-3 ${i < roster.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
-                <span className="text-sm text-gray-200 truncate">{m.name}</span>
+            {teamSplitRoster.map((m, i) => (
+              <div key={m.id} className={`flex items-center justify-between px-4 py-3 ${i < teamSplitRoster.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
+                <span className="text-sm text-gray-200 truncate flex items-center gap-1.5">
+                  {m.name}
+                  {m.is_mercenary && (
+                    <span className="inline-flex items-center gap-0.5 text-[9px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full shrink-0">
+                      <Zap size={9} /> 용병
+                    </span>
+                  )}
+                </span>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {squads.map(s => (
                     <button
@@ -407,6 +443,37 @@ export default function ScrimmageDetailPage() {
               </div>
             ))}
           </div>
+
+          {canManage && (
+            <div className="relative mt-2">
+              <button
+                onClick={() => setShowMercenaryPicker(v => !v)}
+                className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 font-semibold px-1 py-1"
+              >
+                <Plus size={13} /> 용병 추가
+              </button>
+              {showMercenaryPicker && (
+                <div className="absolute z-10 mt-1 left-0 bg-gray-900 border border-white/10 rounded-xl p-2 shadow-xl min-w-[160px]">
+                  {availableMercenaries.length === 0 ? (
+                    <p className="text-xs text-gray-600 px-2 py-1.5">
+                      {mercenaryPool.length === 0 ? "등록된 용병이 없어요" : "추가할 용병이 없어요"}
+                    </p>
+                  ) : (
+                    availableMercenaries.map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() => addMercenary(m.id)}
+                        className="w-full text-left text-sm text-gray-200 hover:bg-white/5 px-2 py-1.5 rounded-lg"
+                      >
+                        {m.name}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {unassigned.length > 0 && (
             <p className="text-[11px] text-gray-600 mt-2">미배정 {unassigned.length}명</p>
           )}
@@ -430,6 +497,19 @@ export default function ScrimmageDetailPage() {
 
           {activeSquad && (
             <div className="space-y-3">
+              {canManage && (
+                <select
+                  value={activeSquad.captain_member_id ?? ""}
+                  onChange={e => setCaptain(e.target.value || null)}
+                  className="w-full bg-gray-800 border border-white/10 focus:border-emerald-500 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none"
+                >
+                  <option value="">주장 선택 (선택 시 팀명이 자동으로 바뀌어요)</option>
+                  {teamSplitRoster.filter(m => squadMemberMap[m.id] === activeSquad.id).map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              )}
+
               {canManage && (
                 <select
                   value={activeSquad.formation_name ?? ""}
