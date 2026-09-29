@@ -1,0 +1,41 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase";
+import { getUserAndTeam, getUserRole, canManage } from "@/lib/team";
+
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string; squadId: string }> }) {
+  const { id, squadId } = await params;
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { userId, teamId } = await getUserAndTeam(session.user.id);
+  if (!userId || !teamId) return NextResponse.json({ error: "Team not found" }, { status: 404 });
+
+  const role = await getUserRole(userId, teamId);
+  if (!canManage(role)) return NextResponse.json({ error: "관리자만 수정할 수 있어요" }, { status: 403 });
+
+  const { data: scrimmage } = await supabaseAdmin.from("scrimmages").select("id").eq("id", id).eq("team_id", teamId).single();
+  if (!scrimmage) return NextResponse.json({ error: "내전을 찾을 수 없어요" }, { status: 404 });
+
+  const body = await req.json();
+  const update: Record<string, unknown> = {};
+  if (typeof body.name === "string") update.name = body.name.trim();
+  if (typeof body.color === "string" || body.color === null) update.color = body.color;
+  if (typeof body.formation_name === "string" || body.formation_name === null) update.formation_name = body.formation_name;
+  if (Array.isArray(body.formation_slots) || body.formation_slots === null) update.formation_slots = body.formation_slots;
+  if (body.assigned && typeof body.assigned === "object") update.assigned = body.assigned;
+
+  if (Object.keys(update).length === 0) return NextResponse.json({ error: "수정할 내용이 없어요" }, { status: 400 });
+
+  const { data, error } = await supabaseAdmin
+    .from("scrimmage_squads")
+    .update(update)
+    .eq("id", squadId)
+    .eq("scrimmage_id", id)
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(data);
+}
