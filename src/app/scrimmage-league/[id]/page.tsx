@@ -375,6 +375,15 @@ export default function ScrimmageLeagueDetailPage() {
                       <p className="text-xs text-gray-600 px-2 py-2">추가할 팀원이 없어요</p>
                     ) : (
                       <>
+                        <button
+                          onClick={() => {
+                            const allSelected = regularAvailable.every(m => checkedRegular.has(m.id));
+                            setCheckedRegular(allSelected ? new Set() : new Set(regularAvailable.map(m => m.id)));
+                          }}
+                          className="w-full text-left text-xs text-gray-500 hover:text-white px-2 py-1.5"
+                        >
+                          {regularAvailable.every(m => checkedRegular.has(m.id)) ? "전체 해제" : `전체 선택 (${regularAvailable.length}명)`}
+                        </button>
                         <div className="max-h-64 overflow-y-auto">
                           {regularAvailable.map(m => {
                             const isChecked = checkedRegular.has(m.id);
