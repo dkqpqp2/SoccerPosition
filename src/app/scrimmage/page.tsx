@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Swords, Trophy, Plus, X } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
+import ScrimmageDatePicker from "@/components/ScrimmageDatePicker";
 
 interface Scrimmage {
   id: string;
@@ -229,12 +230,7 @@ export default function ScrimmagePage() {
               {mode === "casual" && (
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">날짜</label>
-                  <input
-                    type="date"
-                    value={matchDate}
-                    onChange={e => setMatchDate(e.target.value)}
-                    className="w-full bg-gray-800 border border-white/10 focus:border-emerald-500 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none"
-                  />
+                  <ScrimmageDatePicker value={matchDate} onChange={setMatchDate} />
                 </div>
               )}
 

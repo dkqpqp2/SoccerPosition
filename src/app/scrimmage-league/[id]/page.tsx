@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Trophy, Plus, Trash2, Users, Medal, Zap, Calendar, X, ChevronDown, Check } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import ScrimmageSelect from "@/components/ScrimmageSelect";
+import ScrimmageDatePicker from "@/components/ScrimmageDatePicker";
 
 interface Member {
   id: string;
@@ -495,12 +496,9 @@ export default function ScrimmageLeagueDetailPage() {
           <div className="bg-gray-900 border border-white/10 rounded-2xl p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <h2 className="text-base font-bold text-white mb-4">회차 만들기</h2>
             <label className="text-xs text-gray-500 mb-1 block">날짜</label>
-            <input
-              type="date"
-              value={roundDate}
-              onChange={e => setRoundDate(e.target.value)}
-              className="w-full bg-gray-800 border border-white/10 focus:border-emerald-500 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none mb-4"
-            />
+            <div className="mb-4">
+              <ScrimmageDatePicker value={roundDate} onChange={setRoundDate} />
+            </div>
             <p className="text-xs text-gray-600 mb-4">현재 고정 팀 배정을 그대로 복사해서 새 회차를 만들어요. 결석자는 회차 화면에서 배정을 해제하면 돼요.</p>
             <button
               onClick={createRound}
