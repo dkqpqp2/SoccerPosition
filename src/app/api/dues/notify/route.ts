@@ -73,6 +73,7 @@ export async function POST(req: Request) {
 
   const notifications = unpaidUserIds.map(uid => ({
     user_id: uid,
+    team_id: teamId,
     type: "dues_request",
     title: "💰 회비 납부 요청",
     body: `${monthLabel} 회비${defaultAmount > 0 ? `(${defaultAmount.toLocaleString("ko-KR")}원)` : ""}가 아직 납부되지 않았어요.`,
