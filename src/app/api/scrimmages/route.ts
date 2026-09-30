@@ -2,20 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getUserAndTeam, getUserRole, isOwner } from "@/lib/team";
+import { getUserAndTeam, getUserRole, canManageScrimmage } from "@/lib/team";
 
 const SQUAD_NAMES = ["A팀", "B팀", "C팀", "D팀"];
 
-// TODO: 내전 기능 테스트 중 — 지금은 owner에게만 공개. 정식 오픈 시 이 체크 제거
+// 목록은 팀원 전체 공개 (경기 관리 화면에서도 함께 보임)
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { userId, teamId } = await getUserAndTeam(session.user.id);
-  if (!userId || !teamId) return NextResponse.json([]);
-
-  const role = await getUserRole(userId, teamId);
-  if (!isOwner(role)) return NextResponse.json([]);
+  const { teamId } = await getUserAndTeam(session.user.id);
+  if (!teamId) return NextResponse.json([]);
 
   const { data: scrimmages, error } = await supabaseAdmin
     .from("scrimmages")
@@ -38,7 +35,7 @@ export async function POST(req: NextRequest) {
   if (!userId || !teamId) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
   const role = await getUserRole(userId, teamId);
-  if (!isOwner(role)) return NextResponse.json({ error: "관리자만 내전을 만들 수 있어요" }, { status: 403 });
+  if (!canManageScrimmage(role)) return NextResponse.json({ error: "관리자·매니저·회장만 내전을 만들 수 있어요" }, { status: 403 });
 
   const { title, sport, match_date, squad_count } = await req.json();
   const squadCount = Math.min(4, Math.max(2, Number(squad_count) || 2));

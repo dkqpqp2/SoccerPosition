@@ -90,6 +90,7 @@ export async function POST(req: NextRequest) {
       const dateLabel = `${mon}월 ${day}일`;
       const notifications = members.map(m => ({
         user_id: m.user_id,
+        team_id: teamId,
         type: "match_created",
         title: "새 경기가 등록됐어요 ⚽",
         body: `${dateLabel} 경기가 추가됐어요. 출석 여부를 알려주세요!`,

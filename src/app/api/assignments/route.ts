@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
       if (members && members.length > 0) {
         const notifications = members.map((m: any) => ({
           user_id: m.user_id,
+          team_id: teamId,
           type: "position_assigned",
           title: "포지션 배정 알림 ⚽",
           body: `${matchLabel} [${session_name}]에 배정되셨습니다. 포지션을 확인해보세요!`,

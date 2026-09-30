@@ -150,6 +150,7 @@ export async function POST(req: Request) {
     if (members && members.length > 0) {
       const notifications = members.map((m) => ({
         user_id: m.user_id,
+        team_id: teamId,
         type: "vote_created",
         title: "새 투표가 등록됐어요 🗳️",
         body: `"${vote.title}" 투표에 참여해보세요!`,

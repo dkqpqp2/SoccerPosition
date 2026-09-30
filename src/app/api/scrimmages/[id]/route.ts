@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getUserAndTeam, getUserRole, isOwner } from "@/lib/team";
+import { getUserAndTeam, getUserRole, canManageScrimmage } from "@/lib/team";
 
-// TODO: 내전 기능 테스트 중 — 지금은 owner와 (해당 내전의) 스쿼드 주장에게만 공개. 정식 오픈 시 이 체크 제거
+// 팀원 전체 열람 가능. 단, 관리자·매니저·회장이 아니면 자기 스쿼드가 아닌 다른 스쿼드의
+// 포메이션·포지션 배정은 응답에서 가려서 보내줌 (결과·순위표·팀 구성은 그대로 공개)
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await getServerSession(authOptions);
@@ -14,7 +15,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!userId || !teamId) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
   const role = await getUserRole(userId, teamId);
-  const owner = isOwner(role);
+  const privileged = canManageScrimmage(role);
 
   const [{ data: scrimmage }, { data: squads }, { data: squadMembers }, { data: roster }, { data: fixtures }, { data: stats }, { data: myMembers }] = await Promise.all([
     supabaseAdmin.from("scrimmages").select("*").eq("id", id).eq("team_id", teamId).single(),
@@ -33,20 +34,28 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   if (!scrimmage) return NextResponse.json({ error: "내전을 찾을 수 없어요" }, { status: 404 });
 
-  // 내가 주장으로 지정된 스쿼드가 있는지 확인 (중복 team_members 대비 전부 조회)
+  // 중복 team_members 대비 내 소속 member id 전부 확인
   const myMemberIds = new Set((myMembers ?? []).map(m => m.id));
   const myCaptainSquad = (squads ?? []).find(s => s.captain_member_id && myMemberIds.has(s.captain_member_id));
+  const mySquadMembership = (squadMembers ?? []).find(sm => myMemberIds.has(sm.member_id));
+  const mySquadId = mySquadMembership?.squad_id ?? null;
 
-  if (!owner && !myCaptainSquad) return NextResponse.json({ error: "내전을 찾을 수 없어요" }, { status: 404 });
+  const visibleSquads = (squads ?? []).map(s => {
+    const canSeeFormation = privileged || s.id === mySquadId;
+    return canSeeFormation
+      ? { ...s, redacted: false }
+      : { ...s, formation_slots: null, assigned: {}, redacted: true };
+  });
 
   return NextResponse.json({
     scrimmage,
-    squads: squads ?? [],
+    squads: visibleSquads,
     squad_members: squadMembers ?? [],
     roster: roster ?? [],
     fixtures: fixtures ?? [],
     stats: stats ?? [],
     my_captain_squad_id: myCaptainSquad?.id ?? null,
+    my_squad_id: mySquadId,
   });
 }
 
@@ -59,7 +68,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!userId || !teamId) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
   const role = await getUserRole(userId, teamId);
-  if (!isOwner(role)) return NextResponse.json({ error: "관리자만 삭제할 수 있어요" }, { status: 403 });
+  if (!canManageScrimmage(role)) return NextResponse.json({ error: "관리자·매니저·회장만 삭제할 수 있어요" }, { status: 403 });
 
   const { error } = await supabaseAdmin.from("scrimmages").delete().eq("id", id).eq("team_id", teamId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

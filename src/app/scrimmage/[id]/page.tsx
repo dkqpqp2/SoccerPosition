@@ -3,8 +3,9 @@
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
-import { Swords, Link2, Check, Trash2, Users, Trophy, X, Zap, Plus } from "lucide-react";
+import { Swords, Link2, Check, Trash2, Users, Trophy, X, Zap, ChevronLeft, ChevronDown } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
+import ScrimmageSelect from "@/components/ScrimmageSelect";
 import { FORMATIONS, PositionSlot, SOCCER_FORMATIONS, FUTSAL_FORMATIONS } from "@/lib/formations";
 
 interface Member {
@@ -28,6 +29,7 @@ interface Squad {
   assigned: Record<string, Member | null>;
   captain_member_id: string | null;
   sort_order: number;
+  redacted: boolean;
 }
 
 interface ScrimmageData {
@@ -35,6 +37,7 @@ interface ScrimmageData {
   title: string | null;
   sport: "soccer" | "futsal";
   match_date: string | null;
+  league_id: string | null;
 }
 
 interface CustomFormation {
@@ -80,9 +83,13 @@ export default function ScrimmageDetailPage() {
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [statsDraft, setStatsDraft] = useState<StatEntry[]>([]);
   const [statsSaving, setStatsSaving] = useState(false);
-  const [addedMercenaryIds, setAddedMercenaryIds] = useState<Set<string>>(new Set());
-  const [showMercenaryPicker, setShowMercenaryPicker] = useState(false);
+  const [addedMemberIds, setAddedMemberIds] = useState<Set<string>>(new Set());
+  const [showRegularPanel, setShowRegularPanel] = useState(false);
+  const [showMercenaryPanel, setShowMercenaryPanel] = useState(false);
+  const [checkedRegular, setCheckedRegular] = useState<Set<string>>(new Set());
+  const [checkedMercenary, setCheckedMercenary] = useState<Set<string>>(new Set());
   const [myCaptainSquadId, setMyCaptainSquadId] = useState<string | null>(null);
+  const [mySquadId, setMySquadId] = useState<string | null>(null);
   const [editLinkCopied, setEditLinkCopied] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
@@ -98,8 +105,8 @@ export default function ScrimmageDetailPage() {
   async function fetchRole() {
     const res = await fetch("/api/user/profile");
     const data = await res.json();
-    // 내전 기능 테스트 중 — 지금은 owner만 관리 가능 (정식 오픈 시 매니저급으로 확장)
-    setCanManage(data.role === "owner");
+    // 내전 생성·관리는 관리자·매니저·회장만 가능
+    setCanManage(data.role === "owner" || data.role === "manager" || data.role === "president");
   }
 
   async function fetchDetail() {
@@ -118,7 +125,8 @@ export default function ScrimmageDetailPage() {
     for (const s of data.stats ?? []) sm[s.member_id] = { goals: s.goals, assists: s.assists };
     setStatsMap(sm);
     setMyCaptainSquadId(data.my_captain_squad_id ?? null);
-    setActiveSquadId(prev => prev ?? data.my_captain_squad_id ?? (data.squads?.[0]?.id ?? null));
+    setMySquadId(data.my_squad_id ?? null);
+    setActiveSquadId(prev => prev ?? data.my_captain_squad_id ?? data.my_squad_id ?? (data.squads?.[0]?.id ?? null));
     setLoading(false);
   }
 
@@ -139,15 +147,36 @@ export default function ScrimmageDetailPage() {
   const activeSquad = squads.find(s => s.id === activeSquadId) ?? null;
   const canEditActiveSquad = canManage || (!!activeSquad && myCaptainSquadId === activeSquad.id);
 
-  const regularRoster = roster.filter(m => !m.is_mercenary);
-  const mercenaryPool = roster.filter(m => m.is_mercenary);
-  const visibleMercenaries = mercenaryPool.filter(m => addedMercenaryIds.has(m.id) || squadMemberMap[m.id]);
-  const availableMercenaries = mercenaryPool.filter(m => !addedMercenaryIds.has(m.id) && !squadMemberMap[m.id]);
-  const teamSplitRoster = [...regularRoster, ...visibleMercenaries];
+  const teamSplitRoster = roster.filter(m => addedMemberIds.has(m.id) || squadMemberMap[m.id]);
+  const regularAvailable = roster.filter(m => !m.is_mercenary && !addedMemberIds.has(m.id) && !squadMemberMap[m.id]);
+  const mercenaryAvailable = roster.filter(m => m.is_mercenary && !addedMemberIds.has(m.id) && !squadMemberMap[m.id]);
 
-  function addMercenary(memberId: string) {
-    setAddedMercenaryIds(prev => new Set(prev).add(memberId));
-    setShowMercenaryPicker(false);
+  function toggleChecked(set: Set<string>, setter: (s: Set<string>) => void, memberId: string) {
+    const next = new Set(set);
+    if (next.has(memberId)) next.delete(memberId);
+    else next.add(memberId);
+    setter(next);
+  }
+
+  function confirmAddRegular() {
+    setAddedMemberIds(prev => new Set([...prev, ...checkedRegular]));
+    setCheckedRegular(new Set());
+    setShowRegularPanel(false);
+  }
+
+  function confirmAddMercenary() {
+    setAddedMemberIds(prev => new Set([...prev, ...checkedMercenary]));
+    setCheckedMercenary(new Set());
+    setShowMercenaryPanel(false);
+  }
+
+  function removeMember(memberId: string) {
+    setAddedMemberIds(prev => {
+      const next = new Set(prev);
+      next.delete(memberId);
+      return next;
+    });
+    if (squadMemberMap[memberId]) assignMember(memberId, null);
   }
 
   async function setCaptain(memberId: string | null) {
@@ -337,6 +366,14 @@ export default function ScrimmageDetailPage() {
   return (
     <AppLayout title={scrimmage.title || "내전"}>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        {/* 뒤로가기 */}
+        <button
+          onClick={() => router.push(scrimmage.league_id ? `/scrimmage-league/${scrimmage.league_id}` : "/scrimmage")}
+          className="flex items-center gap-1 text-xs text-gray-500 hover:text-white transition-colors -mt-2 -mb-1"
+        >
+          <ChevronLeft size={14} /> {scrimmage.league_id ? "리그로" : "내전 목록"}
+        </button>
+
         {/* 헤더 */}
         <div className="flex items-center justify-between">
           <div>
@@ -446,64 +483,150 @@ export default function ScrimmageDetailPage() {
             <Users size={13} className="text-gray-500" />
             <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">팀 나누기</p>
           </div>
-          <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
-            {teamSplitRoster.map((m, i) => (
-              <div key={m.id} className={`flex items-center justify-between px-4 py-3 ${i < teamSplitRoster.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
-                <span className="text-sm text-gray-200 truncate flex items-center gap-1.5">
-                  {m.name}
-                  {m.is_mercenary && (
-                    <span className="inline-flex items-center gap-0.5 text-[9px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full shrink-0">
-                      <Zap size={9} /> 용병
-                    </span>
-                  )}
-                </span>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {squads.map(s => (
-                    <button
-                      key={s.id}
-                      disabled={!canManage}
-                      onClick={() => assignMember(m.id, squadMemberMap[m.id] === s.id ? null : s.id)}
-                      className={`text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors ${
-                        squadMemberMap[m.id] === s.id
-                          ? "bg-emerald-500 text-black"
-                          : "bg-white/5 text-gray-500 hover:bg-white/10"
-                      }`}
-                    >
-                      {s.name}
-                    </button>
-                  ))}
+          {teamSplitRoster.length === 0 ? (
+            <div className="text-center py-10 bg-gray-900 border border-white/5 rounded-lg text-sm text-gray-600">
+              아래에서 참가 인원을 추가해주세요
+            </div>
+          ) : (
+            <div className="bg-gray-900 border border-white/5 rounded-lg overflow-hidden">
+              {teamSplitRoster.map((m, i) => (
+                <div key={m.id} className={`flex items-center justify-between px-4 py-3 ${i < teamSplitRoster.length - 1 ? "border-b border-white/[0.03]" : ""}`}>
+                  <span className="text-sm text-gray-200 truncate flex items-center gap-1.5">
+                    {m.name}
+                    {m.is_mercenary && (
+                      <span className="inline-flex items-center gap-0.5 text-[9px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full shrink-0">
+                        <Zap size={9} /> 용병
+                      </span>
+                    )}
+                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {squads.map(s => (
+                      <button
+                        key={s.id}
+                        disabled={!canManage}
+                        onClick={() => assignMember(m.id, squadMemberMap[m.id] === s.id ? null : s.id)}
+                        className={`text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors ${
+                          squadMemberMap[m.id] === s.id
+                            ? "bg-emerald-500 text-black"
+                            : "bg-white/5 text-gray-500 hover:bg-white/10"
+                        }`}
+                      >
+                        {s.name}
+                      </button>
+                    ))}
+                    {canManage && (
+                      <button onClick={() => removeMember(m.id)} className="text-gray-700 hover:text-red-400 transition-colors">
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {canManage && (
-            <div className="relative mt-2">
-              <button
-                onClick={() => setShowMercenaryPicker(v => !v)}
-                className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 font-semibold px-1 py-1"
-              >
-                <Plus size={13} /> 용병 추가
-              </button>
-              {showMercenaryPicker && (
-                <div className="absolute z-10 mt-1 left-0 bg-gray-900 border border-white/10 rounded-xl p-2 shadow-xl min-w-[160px]">
-                  {availableMercenaries.length === 0 ? (
-                    <p className="text-xs text-gray-600 px-2 py-1.5">
-                      {mercenaryPool.length === 0 ? "등록된 용병이 없어요" : "추가할 용병이 없어요"}
-                    </p>
-                  ) : (
-                    availableMercenaries.map(m => (
-                      <button
-                        key={m.id}
-                        onClick={() => addMercenary(m.id)}
-                        className="w-full text-left text-sm text-gray-200 hover:bg-white/5 px-2 py-1.5 rounded-lg"
-                      >
-                        {m.name}
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
+            <div className="mt-2 space-y-2">
+              {/* 팀원 추가 */}
+              <div>
+                <button
+                  onClick={() => setShowRegularPanel(v => !v)}
+                  className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-semibold px-1 py-1"
+                >
+                  <ChevronDown size={14} className={`transition-transform ${showRegularPanel ? "rotate-180" : ""}`} />
+                  팀원 추가 {regularAvailable.length > 0 && `(${regularAvailable.length}명)`}
+                </button>
+                {showRegularPanel && (
+                  <div className="bg-gray-900 border border-white/10 rounded-xl p-2 mt-1">
+                    {regularAvailable.length === 0 ? (
+                      <p className="text-xs text-gray-600 px-2 py-2">추가할 팀원이 없어요</p>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => {
+                            const allSelected = regularAvailable.every(m => checkedRegular.has(m.id));
+                            setCheckedRegular(allSelected ? new Set() : new Set(regularAvailable.map(m => m.id)));
+                          }}
+                          className="w-full text-left text-xs text-gray-500 hover:text-white px-2 py-1.5"
+                        >
+                          {regularAvailable.every(m => checkedRegular.has(m.id)) ? "전체 해제" : `전체 선택 (${regularAvailable.length}명)`}
+                        </button>
+                        <div className="max-h-64 overflow-y-auto themed-scroll">
+                          {regularAvailable.map(m => {
+                            const isChecked = checkedRegular.has(m.id);
+                            return (
+                              <button
+                                key={m.id}
+                                onClick={() => toggleChecked(checkedRegular, setCheckedRegular, m.id)}
+                                className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${isChecked ? "bg-emerald-500/10" : "hover:bg-white/5"}`}
+                              >
+                                <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${isChecked ? "border-emerald-400 bg-emerald-400" : "border-gray-600"}`}>
+                                  {isChecked && <Check size={11} strokeWidth={3} className="text-gray-900" />}
+                                </span>
+                                <span className={`text-sm ${isChecked ? "text-emerald-300" : "text-gray-200"}`}>{m.name}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <button
+                          onClick={confirmAddRegular}
+                          disabled={checkedRegular.size === 0}
+                          className="w-full mt-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:hover:bg-emerald-500 text-black text-sm font-bold py-2 rounded-lg transition-colors"
+                        >
+                          {checkedRegular.size > 0 ? `${checkedRegular.size}명 추가` : "추가"}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 용병 추가 */}
+              <div>
+                <button
+                  onClick={() => setShowMercenaryPanel(v => !v)}
+                  className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 font-semibold px-1 py-1"
+                >
+                  <ChevronDown size={14} className={`transition-transform ${showMercenaryPanel ? "rotate-180" : ""}`} />
+                  용병 추가 {mercenaryAvailable.length > 0 && `(${mercenaryAvailable.length}명)`}
+                </button>
+                {showMercenaryPanel && (
+                  <div className="bg-gray-900 border border-white/10 rounded-xl p-2 mt-1">
+                    {mercenaryAvailable.length === 0 ? (
+                      <p className="text-xs text-gray-600 px-2 py-2">추가할 용병이 없어요</p>
+                    ) : (
+                      <>
+                        <div className="max-h-64 overflow-y-auto themed-scroll">
+                          {mercenaryAvailable.map(m => {
+                            const isChecked = checkedMercenary.has(m.id);
+                            return (
+                              <button
+                                key={m.id}
+                                onClick={() => toggleChecked(checkedMercenary, setCheckedMercenary, m.id)}
+                                className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors ${isChecked ? "bg-amber-500/10" : "hover:bg-white/5"}`}
+                              >
+                                <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${isChecked ? "border-amber-400 bg-amber-400" : "border-gray-600"}`}>
+                                  {isChecked && <Check size={11} strokeWidth={3} className="text-gray-900" />}
+                                </span>
+                                <span className={`text-sm flex items-center gap-1 ${isChecked ? "text-amber-300" : "text-gray-200"}`}>
+                                  {m.name} <Zap size={10} className="text-amber-400 shrink-0" />
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <button
+                          onClick={confirmAddMercenary}
+                          disabled={checkedMercenary.size === 0}
+                          className="w-full mt-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:hover:bg-amber-500 text-black text-sm font-bold py-2 rounded-lg transition-colors"
+                        >
+                          {checkedMercenary.size > 0 ? `${checkedMercenary.size}명 추가` : "추가"}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -531,35 +654,34 @@ export default function ScrimmageDetailPage() {
           {activeSquad && (
             <div className="space-y-3">
               {canManage && (
-                <select
+                <ScrimmageSelect
                   value={activeSquad.captain_member_id ?? ""}
-                  onChange={e => setCaptain(e.target.value || null)}
-                  className="w-full bg-gray-800 border border-white/10 focus:border-emerald-500 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none"
-                >
-                  <option value="">주장 선택 (선택 시 팀명이 자동으로 바뀌어요)</option>
-                  {teamSplitRoster.filter(m => squadMemberMap[m.id] === activeSquad.id).map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
+                  onChange={v => setCaptain(v || null)}
+                  placeholder="주장 선택 (선택 시 팀명이 자동으로 바뀌어요)"
+                  options={[
+                    { value: "", label: "주장 선택 (선택 시 팀명이 자동으로 바뀌어요)" },
+                    ...teamSplitRoster.filter(m => squadMemberMap[m.id] === activeSquad.id).map(m => ({ value: m.id, label: m.name })),
+                  ]}
+                />
               )}
 
               {canEditActiveSquad && (
-                <select
+                <ScrimmageSelect
                   value={activeSquad.formation_name ?? ""}
-                  onChange={e => applyFormation(e.target.value)}
-                  className="w-full bg-gray-800 border border-white/10 focus:border-emerald-500 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none"
-                >
-                  <option value="" disabled>포메이션 선택</option>
-                  {availableFormationNames.map(n => <option key={n} value={n}>{n}</option>)}
-                  {customFormations.length > 0 && (
-                    <optgroup label="커스텀">
-                      {customFormations.map(f => <option key={f.id} value={f.name}>{f.name}</option>)}
-                    </optgroup>
-                  )}
-                </select>
+                  onChange={applyFormation}
+                  placeholder="포메이션 선택"
+                  options={availableFormationNames.map(n => ({ value: n, label: n }))}
+                  groups={customFormations.length > 0 ? [{ label: "커스텀", options: customFormations.map(f => ({ value: f.name, label: f.name })) }] : []}
+                />
               )}
 
-              {activeSquad.formation_slots ? (
+              {activeSquad.redacted ? (
+                <div className="text-center py-12 text-gray-600 text-sm">
+                  <Swords size={28} strokeWidth={1.5} className="mx-auto mb-2 opacity-30" />
+                  <p>이 팀 라인업은 비공개예요</p>
+                  <p className="text-xs text-gray-700 mt-1">배정된 팀원만 볼 수 있어요</p>
+                </div>
+              ) : activeSquad.formation_slots ? (
                 <>
                   <div
                     className="relative w-full rounded-lg overflow-hidden select-none"
@@ -641,7 +763,7 @@ export default function ScrimmageDetailPage() {
               <button onClick={() => setShowStatsModal(false)} className="text-gray-500 hover:text-white"><X size={18} /></button>
             </div>
 
-            <div className="overflow-y-auto flex-1 -mx-1 px-1 space-y-2">
+            <div className="overflow-y-auto flex-1 -mx-1 px-1 space-y-2 themed-scroll">
               {statsDraft.length === 0 ? (
                 <p className="text-center text-xs text-gray-600 py-8">팀 배정된 선수가 없어요</p>
               ) : (

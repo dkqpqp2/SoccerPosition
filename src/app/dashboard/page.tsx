@@ -196,9 +196,13 @@ export default function Dashboard() {
     const res = await fetch("/api/team");
     if (res.status === 403) {
       // 강퇴/탈퇴된 경우 → 페이지 새로고침으로 내 팀으로 전환
+      // 전환 후에도 403이 반복되는 데이터 꼬임 상태 대비 — 한 세션에 한 번만 재시도
+      if (sessionStorage.getItem("team403Reloaded")) return;
+      sessionStorage.setItem("team403Reloaded", "1");
       window.location.reload();
       return;
     }
+    sessionStorage.removeItem("team403Reloaded");
     if (res.ok) setTeam(await res.json());
   }
 

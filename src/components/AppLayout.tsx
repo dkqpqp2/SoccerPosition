@@ -28,7 +28,7 @@ const NAV_ITEMS: { path: string; icon: LucideIcon; label: string; managerOnly?: 
   { path: "/matches", icon: Calendar, label: "경기 관리" },
   { path: "/assign", icon: Target, label: "포지션 배정", managerOnly: true },
   { path: "/feedback", icon: FileText, label: "경기 피드백" },
-  { path: "/scrimmage", icon: Swords, label: "내전", ownerOnlyHidden: true },
+  { path: "/scrimmage", icon: Swords, label: "내전" },
   { path: "/votes", icon: Vote, label: "투표", group: "커뮤니티" },
   { path: "/board", icon: MessageCircle, label: "게시판" },
   { path: "/videos", icon: Clapperboard, label: "영상 추천" },
