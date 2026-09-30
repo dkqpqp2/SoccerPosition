@@ -34,7 +34,7 @@ export default function SpmLogo({ size = "md", showText = true, clickable = fals
       {showText && (
         <div className="flex flex-col leading-none">
           <span className={`font-black text-white tracking-tight ${fontSize}`} style={{ letterSpacing: "-0.5px" }}>
-            Soccer Position
+            Sports Position
           </span>
           <span className={`font-bold text-emerald-400 tracking-widest uppercase ${subSize}`}>
             Management
