@@ -115,17 +115,27 @@ export default function TacticsBoardPage() {
     setDraft(null);
   }
 
-  function arrowPath(a: { x1: number; y1: number; x2: number; y2: number; mode: LineMode }) {
-    if (a.mode === "straight") return `M ${a.x1} ${a.y1} L ${a.x2} ${a.y2}`;
+  function controlPoint(a: { x1: number; y1: number; x2: number; y2: number }) {
     const mx = (a.x1 + a.x2) / 2;
     const my = (a.y1 + a.y2) / 2;
     const dx = a.x2 - a.x1;
     const dy = a.y2 - a.y1;
     const len = Math.hypot(dx, dy) || 1;
     const offset = len * 0.2;
-    const cx = mx + (-dy / len) * offset;
-    const cy = my + (dx / len) * offset;
+    return { cx: mx + (-dy / len) * offset, cy: my + (dx / len) * offset };
+  }
+
+  function arrowPath(a: { x1: number; y1: number; x2: number; y2: number; mode: LineMode }) {
+    if (a.mode === "straight") return `M ${a.x1} ${a.y1} L ${a.x2} ${a.y2}`;
+    const { cx, cy } = controlPoint(a);
     return `M ${a.x1} ${a.y1} Q ${cx} ${cy} ${a.x2} ${a.y2}`;
+  }
+
+  // 화살표 번호 라벨을 놓을 위치 — 직선은 중점, 곡선은 베지어 곡선의 실제 중점(t=0.5)
+  function arrowLabelPos(a: { x1: number; y1: number; x2: number; y2: number; mode: LineMode }) {
+    if (a.mode === "straight") return { x: (a.x1 + a.x2) / 2, y: (a.y1 + a.y2) / 2 };
+    const { cx, cy } = controlPoint(a);
+    return { x: 0.25 * a.x1 + 0.5 * cx + 0.25 * a.x2, y: 0.25 * a.y1 + 0.5 * cy + 0.25 * a.y2 };
   }
 
   function changeFormation(name: string) {
@@ -358,11 +368,25 @@ export default function TacticsBoardPage() {
             )}
           </svg>
 
+          {/* 화살표 순서 번호 */}
+          {arrows.map((a, i) => {
+            const pos = arrowLabelPos(a);
+            return (
+              <div
+                key={a.id}
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-black text-white shadow pointer-events-none"
+                style={{ left: `${pos.x}%`, top: `${pos.y}%`, background: LINE_COLORS[a.type] }}
+              >
+                {i + 1}
+              </div>
+            );
+          })}
+
           {tokens.map(t => (
             <div
               key={t.id}
               onPointerDown={e => { if (editable) { e.stopPropagation(); setDraggingId(t.id); } }}
-              className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full border-2 shadow-lg text-[10px] font-black group ${
+              className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full border-2 shadow-lg text-[10px] font-black ${
                 t.team === "us" ? "bg-emerald-400 border-emerald-300 text-gray-900" : "bg-white border-gray-300 text-gray-900"
               } ${editable ? "cursor-grab active:cursor-grabbing" : ""}`}
               style={{ left: `${t.x}%`, top: `${t.y}%` }}
@@ -372,7 +396,7 @@ export default function TacticsBoardPage() {
                 <button
                   onPointerDown={e => e.stopPropagation()}
                   onClick={() => removeToken(t.id)}
-                  className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-gray-900 border border-white/20 text-gray-400 hover:text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-gray-900 border border-white/20 text-gray-400 hover:text-red-400 flex items-center justify-center transition-colors"
                 >
                   <X size={10} />
                 </button>
