@@ -36,6 +36,10 @@ export async function POST(
 
   const { id: memberId } = await params;
 
+  const { data: targetMember } = await supabaseAdmin
+    .from("team_members").select("id").eq("id", memberId).eq("team_id", teamId).maybeSingle();
+  if (!targetMember) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
+
   const { error } = await supabaseAdmin
     .from("member_evaluations")
     .upsert(

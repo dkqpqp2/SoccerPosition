@@ -156,21 +156,32 @@ export async function POST(req: NextRequest) {
       { onConflict: "team_id,year" }
     );
 
-  // 선수별 통계 저장 (games_played = extra_games)
+  // 선수별 통계 저장 (games_played = extra_games) — member_id가 실제 이 팀 소속인 것만 허용
   if (entries.length > 0) {
-    const rows = entries.map(e => ({
-      team_id:      teamId,
-      member_id:    e.member_id,
-      year,
-      goals:        e.goals,
-      assists:      e.assists,
-      games_played: e.extra_games,  // extra_games → games_played 컬럼에 저장
-      updated_at:   new Date().toISOString(),
-    }));
-    const { error } = await supabaseAdmin
-      .from("player_stats")
-      .upsert(rows, { onConflict: "team_id,member_id,year" });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    const { data: validMembers } = await supabaseAdmin
+      .from("team_members")
+      .select("id")
+      .eq("team_id", teamId)
+      .in("id", entries.map(e => e.member_id));
+    const validIds = new Set((validMembers ?? []).map(m => m.id));
+
+    const rows = entries
+      .filter(e => validIds.has(e.member_id))
+      .map(e => ({
+        team_id:      teamId,
+        member_id:    e.member_id,
+        year,
+        goals:        e.goals,
+        assists:      e.assists,
+        games_played: e.extra_games,  // extra_games → games_played 컬럼에 저장
+        updated_at:   new Date().toISOString(),
+      }));
+    if (rows.length > 0) {
+      const { error } = await supabaseAdmin
+        .from("player_stats")
+        .upsert(rows, { onConflict: "team_id,member_id,year" });
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ success: true });

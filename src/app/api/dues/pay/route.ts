@@ -28,6 +28,12 @@ export async function POST(req: Request) {
   const { month, user_id: targetUserId, is_manual } = await req.json();
   if (!month || !targetUserId) return NextResponse.json({ error: "month, user_id 필요" }, { status: 400 });
 
+  // targetUserId가 실제 이 팀 소속인지 검증 (is_manual이면 team_members.id, 아니면 team_members.user_id)
+  const { data: targetMember } = is_manual
+    ? await supabaseAdmin.from("team_members").select("id").eq("id", targetUserId).eq("team_id", teamId).maybeSingle()
+    : await supabaseAdmin.from("team_members").select("id").eq("user_id", targetUserId).eq("team_id", teamId).maybeSingle();
+  if (!targetMember) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
+
   const { startDate, endDate, year, mon } = getMonthRange(month);
 
   // 항상 최신 기본 회비 조회
@@ -168,6 +174,12 @@ export async function DELETE(req: Request) {
 
   const { month, user_id: targetUserId, is_manual } = await req.json();
   if (!month || !targetUserId) return NextResponse.json({ error: "month, user_id 필요" }, { status: 400 });
+
+  // targetUserId가 실제 이 팀 소속인지 검증 (is_manual이면 team_members.id, 아니면 team_members.user_id)
+  const { data: targetMember } = is_manual
+    ? await supabaseAdmin.from("team_members").select("id").eq("id", targetUserId).eq("team_id", teamId).maybeSingle()
+    : await supabaseAdmin.from("team_members").select("id").eq("user_id", targetUserId).eq("team_id", teamId).maybeSingle();
+  if (!targetMember) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
 
   const { startDate, endDate } = getMonthRange(month);
 

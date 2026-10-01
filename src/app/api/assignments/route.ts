@@ -86,10 +86,11 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 해당 멤버들의 user_id 조회 (로그인 계정 있는 팀원만)
+      // 해당 멤버들의 user_id 조회 (로그인 계정 있는 팀원만, 이 팀 소속만)
       const { data: members } = await supabaseAdmin
         .from("team_members")
         .select("id, user_id, name")
+        .eq("team_id", teamId)
         .in("id", assignedMemberIds)
         .not("user_id", "is", null);
 
