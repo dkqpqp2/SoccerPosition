@@ -40,6 +40,18 @@ const NAV_ITEMS: { path: string; icon: LucideIcon; label: string; managerOnly?: 
   { path: "/matching", icon: Handshake, label: "팀 매칭", adminOnly: true },
 ];
 
+// 페이지 이동마다 AppLayout이 다시 마운트되면서 역할 정보를 처음부터 다시 불러오는 동안
+// 사이드바 메뉴가 비었다 채워지는 깜빡임이 생김 — 모듈 스코프에 마지막 값을 기억해뒀다가
+// 다음 마운트 때 바로 보여주고, 그 뒤로 조용히 최신값으로 갱신
+let sidebarCache: {
+  teamName: string;
+  teamLogoUrl: string | null;
+  avgAge: number | null;
+  isOwner: boolean;
+  userRole: string | null;
+  teamId: string | null;
+} | null = null;
+
 // 모바일 하단 탭바는 그룹 단위(팀/경기/커뮤니티/관리)로 묶어서 표시
 const GROUP_ICONS: Record<string, LucideIcon> = {
   "팀": Home,
@@ -65,14 +77,14 @@ export default function AppLayout({ children, title, helpContent }: { children: 
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [teamName, setTeamName] = useState("우리팀");
-  const [teamLogoUrl, setTeamLogoUrl] = useState<string | null>(null);
-  const [avgAge, setAvgAge] = useState<number | null>(null);
+  const [teamName, setTeamName] = useState(() => sidebarCache?.teamName ?? "우리팀");
+  const [teamLogoUrl, setTeamLogoUrl] = useState<string | null>(() => sidebarCache?.teamLogoUrl ?? null);
+  const [avgAge, setAvgAge] = useState<number | null>(() => sidebarCache?.avgAge ?? null);
   const [pendingMatches, setPendingMatches] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [isOwner, setIsOwner] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [teamId, setTeamId] = useState<string | null>(null);
+  const [isOwner, setIsOwner] = useState(() => sidebarCache?.isOwner ?? false);
+  const [userRole, setUserRole] = useState<string | null>(() => sidebarCache?.userRole ?? null);
+  const [teamId, setTeamId] = useState<string | null>(() => sidebarCache?.teamId ?? null);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   useEffect(() => { setOpenGroup(null); }, [pathname]);
@@ -84,12 +96,19 @@ export default function AppLayout({ children, title, helpContent }: { children: 
 
   function fetchSidebarData() {
     fetch("/api/user/profile").then(r => r.json()).then(d => {
-      if (d.team_name) setTeamName(d.team_name);
-      setTeamLogoUrl(d.team_logo_url ?? null);
-      if (d.avg_age !== undefined) setAvgAge(d.avg_age ?? null);
-      setIsOwner(!!d.is_owner);
-      setUserRole(d.role ?? null);
-      setTeamId(d.team_id ?? null);
+      const teamName = d.team_name ?? sidebarCache?.teamName ?? "우리팀";
+      const teamLogoUrl = d.team_logo_url ?? null;
+      const avgAge = d.avg_age !== undefined ? (d.avg_age ?? null) : (sidebarCache?.avgAge ?? null);
+      const isOwner = !!d.is_owner;
+      const userRole = d.role ?? null;
+      const teamId = d.team_id ?? null;
+      setTeamName(teamName);
+      setTeamLogoUrl(teamLogoUrl);
+      setAvgAge(avgAge);
+      setIsOwner(isOwner);
+      setUserRole(userRole);
+      setTeamId(teamId);
+      sidebarCache = { teamName, teamLogoUrl, avgAge, isOwner, userRole, teamId };
     }).catch(() => {});
     fetch("/api/matching/requests").then(r => r.json()).then((data: { status: string }[]) => {
       if (Array.isArray(data)) setPendingMatches(data.filter(r => r.status === "pending").length);
