@@ -35,6 +35,7 @@ export async function GET() {
   const { data: members } = await supabaseAdmin
     .from("team_members")
     .select("id, name")
+    .eq("team_id", teamId)
     .in("id", memberIds);
 
   const nameMap: Record<string, string> = {};

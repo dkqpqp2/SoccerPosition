@@ -22,6 +22,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { data: league } = await supabaseAdmin.from("scrimmage_leagues").select("id").eq("id", id).eq("team_id", teamId).single();
   if (!league) return NextResponse.json({ error: "리그를 찾을 수 없어요" }, { status: 404 });
 
+  // member_id가 실제 이 팀 소속인지 검증 (다른 팀 member_id가 섞여 들어오는 것 방지)
+  const { data: member } = await supabaseAdmin.from("team_members").select("id").eq("id", member_id).eq("team_id", teamId).single();
+  if (!member) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
+
   if (!squad_id) {
     const { error } = await supabaseAdmin
       .from("scrimmage_league_squad_members")
@@ -31,6 +35,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
   }
+
+  // squad_id가 실제 이 리그 소속인지 검증
+  const { data: squad } = await supabaseAdmin.from("scrimmage_league_squads").select("id").eq("id", squad_id).eq("league_id", id).single();
+  if (!squad) return NextResponse.json({ error: "스쿼드를 찾을 수 없어요" }, { status: 404 });
 
   const { error } = await supabaseAdmin
     .from("scrimmage_league_squad_members")
