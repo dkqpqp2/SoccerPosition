@@ -46,7 +46,7 @@ export default function TacticsListPage() {
       body: JSON.stringify({
         title,
         formation_name: formationName,
-        tokens: FORMATIONS[formationName].slots.map(s => ({ id: s.id, x: s.x, y: s.y, team: "us", label: s.label })),
+        tokens: FORMATIONS[formationName].slots.map(s => ({ id: s.id, x: s.x, y: s.y, team: "us", label: s.label, pos: s.label })),
         arrows: [],
       }),
     });
