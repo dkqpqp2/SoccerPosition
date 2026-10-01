@@ -14,14 +14,17 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const matchId = searchParams.get("matchId");
+  const all = searchParams.get("all");
 
   let query = supabaseAdmin
     .from("position_assignments")
-    .select("*")
+    .select("*, matches(title, match_date)")
     .eq("team_id", teamId)
-    .order("session_name", { ascending: true });
+    .order(all ? "created_at" : "session_name", { ascending: !all });
 
-  if (matchId) {
+  if (all) {
+    // 전체 세션 조회 (전술판 "배정 불러오기" 등에서 사용) — match 유무 상관없이 전부
+  } else if (matchId) {
     query = query.eq("match_id", matchId);
   } else {
     query = query.is("match_id", null);
