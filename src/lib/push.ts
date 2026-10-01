@@ -38,3 +38,33 @@ export async function sendPushToTeam(teamId: string, payload: PushPayload, exclu
     )
   );
 }
+
+// 특정 user_id들에게만 발송 (팀 전체가 아니라 배정된 사람에게만 알릴 때 등)
+export async function sendPushToUsers(userIds: string[], payload: PushPayload) {
+  if (userIds.length === 0) return;
+
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT!,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  );
+  const { data: subs } = await supabaseAdmin
+    .from("push_subscriptions")
+    .select("endpoint, p256dh, auth")
+    .in("user_id", userIds);
+
+  if (!subs?.length) return;
+
+  await Promise.allSettled(
+    subs.map(sub =>
+      webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        JSON.stringify(payload)
+      ).catch(async (err) => {
+        if (err.statusCode === 404 || err.statusCode === 410) {
+          await supabaseAdmin.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+        }
+      })
+    )
+  );
+}
