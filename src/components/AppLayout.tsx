@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import {
   Home, Users, HeartPulse, LayoutGrid, Calendar, Target, FileText,
   Vote, Wallet, BarChart3, MessageCircle, Clapperboard, Handshake,
-  User, Bell, Lightbulb, X, Swords, type LucideIcon,
+  User, Bell, Lightbulb, X, Swords, PenTool, Share2, type LucideIcon,
 } from "lucide-react";
 import SpmLogo from "@/components/SpmLogo";
 import InAppUpdateBanner from "@/components/InAppUpdateBanner";
@@ -28,6 +28,8 @@ const NAV_ITEMS: { path: string; icon: LucideIcon; label: string; managerOnly?: 
   { path: "/formations", icon: LayoutGrid, label: "포메이션", managerOnly: true, group: "경기" },
   { path: "/matches", icon: Calendar, label: "경기 관리" },
   { path: "/assign", icon: Target, label: "포지션 배정", managerOnly: true },
+  { path: "/tactics", icon: PenTool, label: "전술판", managerOnly: true },
+  { path: "/tactics/shared", icon: Share2, label: "전술 공유" },
   { path: "/feedback", icon: FileText, label: "경기 피드백" },
   { path: "/scrimmage", icon: Swords, label: "내전" },
   { path: "/votes", icon: Vote, label: "투표", group: "커뮤니티" },
