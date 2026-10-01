@@ -14,12 +14,13 @@ export async function GET(req: NextRequest) {
 
   const year = parseInt(req.nextUrl.searchParams.get("year") ?? String(new Date().getFullYear()));
 
-  // 정규 팀원 목록
+  // 정규 팀원 목록 (나간 팀원 제외)
   const { data: members } = await supabaseAdmin
     .from("team_members")
     .select("id, name")
     .eq("team_id", teamId)
     .eq("is_mercenary", false)
+    .is("left_at", null)
     .order("name");
 
   if (!members || members.length === 0) {
