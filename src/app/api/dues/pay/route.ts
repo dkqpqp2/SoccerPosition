@@ -29,10 +29,11 @@ export async function POST(req: Request) {
   if (!month || !targetUserId) return NextResponse.json({ error: "month, user_id 필요" }, { status: 400 });
 
   // targetUserId가 실제 이 팀 소속인지 검증 (is_manual이면 team_members.id, 아니면 team_members.user_id)
-  const { data: targetMember } = is_manual
-    ? await supabaseAdmin.from("team_members").select("id").eq("id", targetUserId).eq("team_id", teamId).maybeSingle()
-    : await supabaseAdmin.from("team_members").select("id").eq("user_id", targetUserId).eq("team_id", teamId).maybeSingle();
-  if (!targetMember) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
+  // 중복 team_members 행 대비 .limit(1)로 조회 (.maybeSingle()은 2건 이상이면 에러를 던짐)
+  const { data: targetMembers } = is_manual
+    ? await supabaseAdmin.from("team_members").select("id").eq("id", targetUserId).eq("team_id", teamId).limit(1)
+    : await supabaseAdmin.from("team_members").select("id").eq("user_id", targetUserId).eq("team_id", teamId).limit(1);
+  if (!targetMembers?.length) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
 
   const { startDate, endDate, year, mon } = getMonthRange(month);
 
@@ -176,10 +177,10 @@ export async function DELETE(req: Request) {
   if (!month || !targetUserId) return NextResponse.json({ error: "month, user_id 필요" }, { status: 400 });
 
   // targetUserId가 실제 이 팀 소속인지 검증 (is_manual이면 team_members.id, 아니면 team_members.user_id)
-  const { data: targetMember } = is_manual
-    ? await supabaseAdmin.from("team_members").select("id").eq("id", targetUserId).eq("team_id", teamId).maybeSingle()
-    : await supabaseAdmin.from("team_members").select("id").eq("user_id", targetUserId).eq("team_id", teamId).maybeSingle();
-  if (!targetMember) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
+  const { data: targetMembers } = is_manual
+    ? await supabaseAdmin.from("team_members").select("id").eq("id", targetUserId).eq("team_id", teamId).limit(1)
+    : await supabaseAdmin.from("team_members").select("id").eq("user_id", targetUserId).eq("team_id", teamId).limit(1);
+  if (!targetMembers?.length) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
 
   const { startDate, endDate } = getMonthRange(month);
 

@@ -21,9 +21,9 @@ export async function POST(
   const { id: duesId } = await params;
   const { user_id: targetUserId } = await req.json();
 
-  const { data: targetMember } = await supabaseAdmin
-    .from("team_members").select("id").eq("user_id", targetUserId).eq("team_id", teamId).maybeSingle();
-  if (!targetMember) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
+  const { data: targetMembers } = await supabaseAdmin
+    .from("team_members").select("id").eq("user_id", targetUserId).eq("team_id", teamId).limit(1);
+  if (!targetMembers?.length) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
 
   // 실제 납부 금액 계산 (개인 설정 > 기본 금액)
   const [{ data: setting }, { data: due }] = await Promise.all([
@@ -73,9 +73,9 @@ export async function DELETE(
   const { data: due } = await supabaseAdmin.from("dues").select("id").eq("id", duesId).eq("team_id", teamId).maybeSingle();
   if (!due) return NextResponse.json({ error: "회비 항목을 찾을 수 없습니다" }, { status: 404 });
 
-  const { data: targetMember } = await supabaseAdmin
-    .from("team_members").select("id").eq("user_id", targetUserId).eq("team_id", teamId).maybeSingle();
-  if (!targetMember) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
+  const { data: targetMembers } = await supabaseAdmin
+    .from("team_members").select("id").eq("user_id", targetUserId).eq("team_id", teamId).limit(1);
+  if (!targetMembers?.length) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
 
   const { error } = await supabaseAdmin
     .from("dues_payments")

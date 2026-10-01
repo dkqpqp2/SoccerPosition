@@ -24,9 +24,9 @@ export async function PATCH(
   const { data: due } = await supabaseAdmin.from("dues").select("id").eq("id", duesId).eq("team_id", teamId).maybeSingle();
   if (!due) return NextResponse.json({ error: "회비 항목을 찾을 수 없습니다" }, { status: 404 });
 
-  const { data: targetMember } = await supabaseAdmin
-    .from("team_members").select("id").eq("user_id", targetUserId).eq("team_id", teamId).maybeSingle();
-  if (!targetMember) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
+  const { data: targetMembers } = await supabaseAdmin
+    .from("team_members").select("id").eq("user_id", targetUserId).eq("team_id", teamId).limit(1);
+  if (!targetMembers?.length) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
 
   // custom_amount도 null이고 status도 null이면 설정 전체 삭제 (기본값 복원)
   if (custom_amount === null && (status === null || status === undefined)) {

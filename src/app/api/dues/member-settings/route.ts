@@ -18,9 +18,9 @@ export async function PATCH(req: Request) {
   const { user_id: targetUserId, status, custom_amount } = await req.json();
   if (!targetUserId) return NextResponse.json({ error: "user_id 필요" }, { status: 400 });
 
-  const { data: targetMember } = await supabaseAdmin
-    .from("team_members").select("id").eq("user_id", targetUserId).eq("team_id", teamId).maybeSingle();
-  if (!targetMember) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
+  const { data: targetMembers } = await supabaseAdmin
+    .from("team_members").select("id").eq("user_id", targetUserId).eq("team_id", teamId).limit(1);
+  if (!targetMembers?.length) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
 
   // status, custom_amount 모두 null이면 설정 삭제 (기본값 복원)
   if ((status === null || status === undefined || status === "") && custom_amount === null) {
