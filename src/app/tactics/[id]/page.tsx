@@ -368,19 +368,23 @@ export default function TacticsBoardPage() {
             )}
           </svg>
 
-          {/* 화살표 순서 번호 */}
-          {arrows.map((a, i) => {
-            const pos = arrowLabelPos(a);
-            return (
-              <div
-                key={a.id}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-black text-white shadow pointer-events-none"
-                style={{ left: `${pos.x}%`, top: `${pos.y}%`, background: LINE_COLORS[a.type] }}
-              >
-                {i + 1}
-              </div>
-            );
-          })}
+          {/* 화살표 순서 번호 — 움직임/패스 각각 따로 1번부터 */}
+          {(() => {
+            const seqByType: Record<LineType, number> = { move: 0, pass: 0 };
+            return arrows.map(a => {
+              seqByType[a.type] += 1;
+              const pos = arrowLabelPos(a);
+              return (
+                <div
+                  key={a.id}
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-black text-white shadow pointer-events-none"
+                  style={{ left: `${pos.x}%`, top: `${pos.y}%`, background: LINE_COLORS[a.type] }}
+                >
+                  {seqByType[a.type]}
+                </div>
+              );
+            });
+          })()}
 
           {tokens.map(t => (
             <div
