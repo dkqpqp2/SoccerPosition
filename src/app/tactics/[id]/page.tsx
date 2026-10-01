@@ -54,6 +54,7 @@ export default function TacticsBoardPage() {
   const [arrows, setArrows] = useState<Arrow[]>([]);
   const [draft, setDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [arrowDrag, setArrowDrag] = useState<{ id: string; lastX: number; lastY: number } | null>(null);
   const [lineMode, setLineMode] = useState<LineMode>("curve");
   const [lineType, setLineType] = useState<LineType>("move");
 
@@ -82,7 +83,7 @@ export default function TacticsBoardPage() {
   }
 
   function handlePitchPointerDown(e: React.PointerEvent) {
-    if (!editable || draggingId) return;
+    if (!editable || draggingId || arrowDrag) return;
     const { x, y } = pointFromEvent(e);
     setDraft({ x1: x, y1: y, x2: x, y2: y });
   }
@@ -92,6 +93,14 @@ export default function TacticsBoardPage() {
     if (draggingId) {
       const { x, y } = pointFromEvent(e);
       setTokens(prev => prev.map(t => (t.id === draggingId ? { ...t, x, y } : t)));
+      return;
+    }
+    if (arrowDrag) {
+      const { x, y } = pointFromEvent(e);
+      const dx = x - arrowDrag.lastX;
+      const dy = y - arrowDrag.lastY;
+      setArrows(prev => prev.map(a => (a.id === arrowDrag.id ? { ...a, x1: a.x1 + dx, y1: a.y1 + dy, x2: a.x2 + dx, y2: a.y2 + dy } : a)));
+      setArrowDrag(d => (d ? { ...d, lastX: x, lastY: y } : d));
       return;
     }
     if (!draft) return;
@@ -106,6 +115,11 @@ export default function TacticsBoardPage() {
       setDirty(true);
       return;
     }
+    if (arrowDrag) {
+      setArrowDrag(null);
+      setDirty(true);
+      return;
+    }
     if (!draft) return;
     const dist = Math.hypot(draft.x2 - draft.x1, draft.y2 - draft.y1);
     if (dist > 3) {
@@ -113,6 +127,16 @@ export default function TacticsBoardPage() {
       setDirty(true);
     }
     setDraft(null);
+  }
+
+  function startArrowDrag(arrowId: string, e: React.PointerEvent) {
+    const { x, y } = pointFromEvent(e);
+    setArrowDrag({ id: arrowId, lastX: x, lastY: y });
+  }
+
+  function removeArrow(arrowId: string) {
+    setArrows(prev => prev.filter(a => a.id !== arrowId));
+    setDirty(true);
   }
 
   function controlPoint(a: { x1: number; y1: number; x2: number; y2: number }) {
@@ -368,7 +392,7 @@ export default function TacticsBoardPage() {
             )}
           </svg>
 
-          {/* 화살표 순서 번호 — 움직임/패스 각각 따로 1번부터 */}
+          {/* 화살표 순서 번호 — 움직임/패스 각각 따로 1번부터. 드래그로 전체 이동, X로 삭제 */}
           {(() => {
             const seqByType: Record<LineType, number> = { move: 0, pass: 0 };
             return arrows.map(a => {
@@ -377,10 +401,25 @@ export default function TacticsBoardPage() {
               return (
                 <div
                   key={a.id}
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-black text-white shadow pointer-events-none"
-                  style={{ left: `${pos.x}%`, top: `${pos.y}%`, background: LINE_COLORS[a.type] }}
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                  style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
                 >
-                  {seqByType[a.type]}
+                  <div
+                    onPointerDown={e => { if (editable) { e.stopPropagation(); startArrowDrag(a.id, e); } }}
+                    className={`flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-black text-white shadow ${editable ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
+                    style={{ background: LINE_COLORS[a.type] }}
+                  >
+                    {seqByType[a.type]}
+                  </div>
+                  {editable && (
+                    <button
+                      onPointerDown={e => e.stopPropagation()}
+                      onClick={() => removeArrow(a.id)}
+                      className="absolute -top-2 -right-2 w-3.5 h-3.5 rounded-full bg-gray-900 border border-white/20 text-gray-400 hover:text-red-400 flex items-center justify-center transition-colors"
+                    >
+                      <X size={8} />
+                    </button>
+                  )}
                 </div>
               );
             });
