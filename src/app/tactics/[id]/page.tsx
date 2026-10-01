@@ -29,6 +29,16 @@ interface Token {
   y: number;
   team: "us" | "opp";
   label?: string;
+  pos?: string; // 포지션 코드(GK/CB/CM/ST 등) — label이 선수 이름으로 바뀌어도 색상 구분용으로 유지
+}
+
+// assign 페이지와 동일한 포지션별 색상 규칙 (GK 주황 / 수비 파랑 / 공격 빨강 / 미드필드 초록)
+function positionColor(pos?: string) {
+  const p = (pos ?? "").toUpperCase();
+  if (p === "GK") return { bg: "#f59e0b", border: "#fbbf24", color: "#111827" };
+  if (/^(CB|LB|RB|LWB|RWB|SW|DC|DL|DR|WB|FB)/.test(p)) return { bg: "#3b82f6", border: "#60a5fa", color: "#ffffff" };
+  if (/^(ST|CF|SS|LW|RW|LF|RF|FW|ATT|WG|CW)/.test(p)) return { bg: "#ef4444", border: "#f87171", color: "#ffffff" };
+  return { bg: "#10b981", border: "#34d399", color: "#111827" };
 }
 
 interface AssignmentSummary {
@@ -183,7 +193,7 @@ export default function TacticsBoardPage() {
     setFormationName(name);
     const slots = FORMATIONS[name].slots;
     setTokens(prev => [
-      ...slots.map(s => ({ id: s.id, x: s.x, y: s.y, team: "us" as const, label: s.label })),
+      ...slots.map(s => ({ id: s.id, x: s.x, y: s.y, team: "us" as const, label: s.label, pos: s.label })),
       ...prev.filter(t => t.team === "opp"),
     ]);
     setDirty(true);
@@ -214,6 +224,7 @@ export default function TacticsBoardPage() {
           y: s.y,
           team: "us" as const,
           label: data.result?.[s.id]?.name ?? s.label,
+          pos: s.label,
         })),
         ...prev.filter(t => t.team === "opp"),
       ]);
@@ -480,14 +491,16 @@ export default function TacticsBoardPage() {
             });
           })()}
 
-          {tokens.map(t => (
+          {tokens.map(t => {
+            const pc = t.team === "us" ? positionColor(t.pos) : null;
+            return (
             <div
               key={t.id}
               onPointerDown={e => { if (editable) { e.stopPropagation(); setDraggingId(t.id); } }}
-              className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full border-2 shadow-lg text-[10px] font-black ${
-                t.team === "us" ? "bg-emerald-400 border-emerald-300 text-gray-900" : "bg-white border-gray-300 text-gray-900"
+              className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full border-2 shadow-lg text-[10px] font-black leading-none text-center px-0.5 ${
+                t.team === "opp" ? "bg-white border-gray-300 text-gray-900" : ""
               } ${editable ? "cursor-grab active:cursor-grabbing" : ""}`}
-              style={{ left: `${t.x}%`, top: `${t.y}%` }}
+              style={{ left: `${t.x}%`, top: `${t.y}%`, ...(pc ? { background: pc.bg, borderColor: pc.border, color: pc.color } : {}) }}
             >
               {t.label}
               {editable && t.team === "opp" && (
@@ -500,7 +513,8 @@ export default function TacticsBoardPage() {
                 </button>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {editable && (

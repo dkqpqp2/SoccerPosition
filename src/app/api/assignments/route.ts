@@ -32,6 +32,14 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (all) {
+    // "불러오기"용 전체 조회일 땐 이미 지난 경기의 배정은 제외 (독립 세션은 날짜 개념이 없어 그대로 둠)
+    const today = new Date().toISOString().slice(0, 10);
+    const filtered = (data ?? []).filter((item: any) => !item.matches || item.matches.match_date >= today);
+    return NextResponse.json(filtered);
+  }
+
   return NextResponse.json(data);
 }
 
