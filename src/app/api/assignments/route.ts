@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUserAndTeam, getUserRole, canManage } from "@/lib/team";
-import { sendPushToTeam } from "@/lib/push";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -78,56 +77,8 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // ── 배정된 팀원들에게 알림 전송 ──
-  try {
-    // result: Record<slotId, { id: memberId, name: string, ... } | null>
-    const assignedMemberIds: string[] = Object.values(result ?? {})
-      .filter(Boolean)
-      .map((m: any) => m.id);
-
-    if (assignedMemberIds.length > 0) {
-      // 경기 날짜 조회 (match_id 있을 때)
-      let matchLabel = session_name;
-      if (match_id) {
-        const { data: match } = await supabaseAdmin
-          .from("matches").select("match_date, title").eq("id", match_id).single();
-        if (match?.match_date) {
-          const d = new Date(match.match_date);
-          matchLabel = `${d.getMonth() + 1}월 ${d.getDate()}일 경기`;
-        }
-      }
-
-      // 해당 멤버들의 user_id 조회 (로그인 계정 있는 팀원만, 이 팀 소속만)
-      const { data: members } = await supabaseAdmin
-        .from("team_members")
-        .select("id, user_id, name")
-        .eq("team_id", teamId)
-        .in("id", assignedMemberIds)
-        .not("user_id", "is", null);
-
-      if (members && members.length > 0) {
-        const notifications = members.map((m: any) => ({
-          user_id: m.user_id,
-          team_id: teamId,
-          type: "position_assigned",
-          title: "포지션 배정 알림 ⚽",
-          body: `${matchLabel} [${session_name}]에 배정되셨습니다. 포지션을 확인해보세요!`,
-          link: `/share/${data.id}`,
-          is_read: false,
-        }));
-        await supabaseAdmin.from("notifications").insert(notifications);
-      }
-    }
-  } catch (e) {
-    console.error("notification error:", e);
-  }
-
-  // 푸시 알림 발송
-  sendPushToTeam(teamId, {
-    title: "포지션 배정이 완료됐어요 ⚽",
-    body: `[${session_name}] 포지션을 확인해보세요!`,
-    url: `/share/${data.id}`,
-  }, userId).catch(console.error);
+  // 배정 생성 시 자동으로 알리지 않음 — 관리자급이 "배정 알리기" 버튼을 눌러야 해당 쿼터만 알림 발송됨
+  // (POST /api/assignments/[id]/notify 참고)
 
   return NextResponse.json(data);
 }

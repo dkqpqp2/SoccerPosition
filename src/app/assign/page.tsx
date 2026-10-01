@@ -6,7 +6,7 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import {
   Calendar, AlertTriangle, ClipboardList, BarChart3, Pencil, Check, X,
   Zap, Coffee, Dices, Trophy, Save, Link2, Users, Footprints, Goal,
-  Wand2, Loader2,
+  Wand2, Loader2, Bell,
   type LucideIcon,
 } from "lucide-react";
 import { supabaseClient } from "@/lib/supabaseClient";
@@ -86,6 +86,8 @@ function AssignContent() {
   const [showAttendModal, setShowAttendModal] = useState(false);
   const [shareToast, setShareToast] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [notifying, setNotifying] = useState(false);
+  const [notifySent, setNotifySent] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
   const [saving, setSaving] = useState(false);
@@ -95,6 +97,7 @@ function AssignContent() {
   const [otherEditors, setOtherEditors] = useState<string[]>([]);
   const [conflictAlert, setConflictAlert] = useState<string[] | null>(null);
   const sessionIdRef = useRef(Math.random().toString(36).slice(2));
+  const notifyingRef = useRef(false);
   const prevOtherCountRef = useRef(0);
 
   const canManage = userRole === "owner" || userRole === "manager" || userRole === "coach" || userRole === "president";
@@ -180,6 +183,20 @@ function AssignContent() {
     if (!confirm("삭제할까요?")) return;
     await fetch(`/api/assignments/${id}`, { method: "DELETE" });
     fetchSavedAssignments();
+  }
+
+  async function notifyAssignment() {
+    if (!loadedAssignmentId || notifyingRef.current) return;
+    notifyingRef.current = true;
+    setNotifying(true);
+    try {
+      await fetch(`/api/assignments/${loadedAssignmentId}/notify`, { method: "POST" });
+    } finally {
+      notifyingRef.current = false;
+      setNotifying(false);
+    }
+    setNotifySent(true);
+    setTimeout(() => setNotifySent(false), 2500);
   }
 
   function loadAssignment(saved: SavedAssignment) {
@@ -855,6 +872,17 @@ function AssignContent() {
                       <span className="inline-flex items-center gap-1">{linkCopied ? <Check size={13} /> : <Link2 size={13} />} 링크</span>
                     </button>
                   </div>
+                )}
+                {canManage && loadedAssignmentId && (
+                  <button
+                    onClick={notifyAssignment}
+                    disabled={notifying}
+                    className={`w-full flex items-center justify-center gap-1.5 py-3 rounded-xl font-bold text-sm transition-colors border ${
+                      notifySent ? "bg-blue-500/20 border-blue-500/40 text-blue-400" : "bg-white/5 hover:bg-white/10 border-white/10 text-gray-300 disabled:opacity-50"
+                    }`}
+                  >
+                    <Bell size={14} /> {notifying ? "알리는 중..." : notifySent ? "알림 보냈어요" : "배정된 포지션 알리기"}
+                  </button>
                 )}
               </div>
             </div>
