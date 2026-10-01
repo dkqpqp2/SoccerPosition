@@ -388,10 +388,12 @@ export default function ScrimmageDetailPage() {
                 <Trophy size={14} /> 골/어시
               </button>
             )}
-            <button onClick={shareLink} className="flex items-center gap-1.5 text-xs bg-gray-900 border border-white/10 hover:border-white/20 text-gray-300 px-3 py-2 rounded-xl transition-colors">
-              {linkCopied ? <Check size={14} className="text-emerald-400" /> : <Link2 size={14} />}
-              {linkCopied ? "복사됨" : "공유"}
-            </button>
+            {canManage && (
+              <button onClick={shareLink} className="flex items-center gap-1.5 text-xs bg-gray-900 border border-white/10 hover:border-white/20 text-gray-300 px-3 py-2 rounded-xl transition-colors">
+                {linkCopied ? <Check size={14} className="text-emerald-400" /> : <Link2 size={14} />}
+                {linkCopied ? "복사됨" : "공유"}
+              </button>
+            )}
             {canManage && (
               <button onClick={shareEditLink} className="flex items-center gap-1.5 text-xs bg-gray-900 border border-white/10 hover:border-white/20 text-gray-300 px-3 py-2 rounded-xl transition-colors">
                 {editLinkCopied ? <Check size={14} className="text-emerald-400" /> : <Link2 size={14} />}

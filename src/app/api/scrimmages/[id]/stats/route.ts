@@ -29,10 +29,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const nonZero = stats.filter(s => s.goals > 0 || s.assists > 0);
   if (nonZero.length > 0) {
-    const { error } = await supabaseAdmin
-      .from("scrimmage_stats")
-      .insert(nonZero.map(s => ({ scrimmage_id: id, member_id: s.member_id, goals: s.goals, assists: s.assists })));
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    // 다른 팀 member_id가 섞여 들어오는 걸 막기 위해 실제로 이 팀 소속인 member_id만 허용
+    const { data: validMembers } = await supabaseAdmin
+      .from("team_members")
+      .select("id")
+      .eq("team_id", teamId)
+      .in("id", nonZero.map(s => s.member_id));
+    const validIds = new Set((validMembers ?? []).map(m => m.id));
+    const filtered = nonZero.filter(s => validIds.has(s.member_id));
+
+    if (filtered.length > 0) {
+      const { error } = await supabaseAdmin
+        .from("scrimmage_stats")
+        .insert(filtered.map(s => ({ scrimmage_id: id, member_id: s.member_id, goals: s.goals, assists: s.assists })));
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ success: true });
