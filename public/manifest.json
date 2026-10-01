@@ -1,6 +1,6 @@
 {
-  "name": "SPM - 축구 팀 매니저",
-  "short_name": "SPM",
+  "name": "스포츠팀매니저 - SPM",
+  "short_name": "스포츠팀매니저",
   "description": "축구/풋살 팀 관리 앱",
   "start_url": "/",
   "display": "standalone",
