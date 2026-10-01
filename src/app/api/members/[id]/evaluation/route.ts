@@ -66,6 +66,11 @@ export async function PUT(
   }
 
   const { id: memberId } = await params;
+
+  const { data: targetMember } = await supabaseAdmin
+    .from("team_members").select("id").eq("id", memberId).eq("team_id", teamId).maybeSingle();
+  if (!targetMember) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
+
   const { strengths, weaknesses, notes, ai_recommended_positions } = await req.json();
 
   const { error } = await supabaseAdmin

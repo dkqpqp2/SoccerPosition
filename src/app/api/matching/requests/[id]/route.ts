@@ -32,8 +32,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     .from("match_requests").select("*").eq("id", id).single();
   if (!request) return NextResponse.json({ error: "Request not found" }, { status: 404 });
 
-  // 권한 체크
+  // 권한 체크 — 허용된 상태값이 아니거나, 이 요청의 당사자 팀이 아니면 거부
   const isMyRequest = request.from_team_id === teamId || request.to_team_id === teamId;
+  if (status !== "cancelled" && status !== "accepted" && status !== "rejected") {
+    return NextResponse.json({ error: "잘못된 상태값이에요" }, { status: 400 });
+  }
   if (status === "cancelled" && !isMyRequest)
     return NextResponse.json({ error: "권한 없음" }, { status: 403 });
   if ((status === "accepted" || status === "rejected") && request.to_team_id !== teamId)

@@ -6,7 +6,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const { data, error } = await supabaseAdmin
     .from("position_assignments")
-    .select("*, matches(match_date, title)")
+    .select("id, session_name, formation_name, formation_slots, result, attending_members, matches(match_date, title)")
     .eq("id", id)
     .single();
 

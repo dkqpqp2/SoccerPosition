@@ -13,6 +13,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const { id: voteId } = await params;
   const { option_ids } = await req.json();
+  if (!Array.isArray(option_ids)) return NextResponse.json({ error: "option_ids가 필요해요" }, { status: 400 });
 
   const { data: vote } = await supabaseAdmin
     .from("votes")
@@ -30,6 +31,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   if (!vote.is_multiple && option_ids.length > 1) {
     return NextResponse.json({ error: "단일 선택만 가능합니다" }, { status: 400 });
+  }
+
+  // option_ids가 실제 이 투표의 선택지인지 검증
+  if (option_ids.length > 0) {
+    const { data: validOptions } = await supabaseAdmin
+      .from("vote_options")
+      .select("id")
+      .eq("vote_id", voteId)
+      .in("id", option_ids);
+    const validIds = new Set((validOptions ?? []).map(o => o.id));
+    if (option_ids.some((id: string) => !validIds.has(id))) {
+      return NextResponse.json({ error: "잘못된 선택지예요" }, { status: 400 });
+    }
   }
 
   // 기존 응답 삭제 후 새로 삽입

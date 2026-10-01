@@ -48,6 +48,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid data" }, { status: 400 });
   }
 
+  // match_id가 실제 이 팀 소속인지 검증
+  const { data: match } = await supabaseAdmin.from("matches").select("id").eq("id", match_id).eq("team_id", teamId).maybeSingle();
+  if (!match) return NextResponse.json({ error: "경기를 찾을 수 없어요" }, { status: 404 });
+
   // 기존 기록 삭제
   await supabaseAdmin
     .from("match_stats")
@@ -55,18 +59,28 @@ export async function POST(req: NextRequest) {
     .eq("match_id", match_id)
     .eq("team_id", teamId);
 
-  // 골 또는 어시가 1 이상인 것만 저장
+  // 골 또는 어시가 1 이상인 것만 저장 (member_id가 실제 이 팀 소속인 것만 허용)
   const nonZero = stats.filter(s => s.goals > 0 || s.assists > 0);
   if (nonZero.length > 0) {
-    const rows = nonZero.map(s => ({
-      team_id: teamId,
-      match_id,
-      member_id: s.member_id,
-      goals: s.goals,
-      assists: s.assists,
-    }));
-    const { error } = await supabaseAdmin.from("match_stats").insert(rows);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    const { data: validMembers } = await supabaseAdmin
+      .from("team_members")
+      .select("id")
+      .eq("team_id", teamId)
+      .in("id", nonZero.map(s => s.member_id));
+    const validIds = new Set((validMembers ?? []).map(m => m.id));
+    const rows = nonZero
+      .filter(s => validIds.has(s.member_id))
+      .map(s => ({
+        team_id: teamId,
+        match_id,
+        member_id: s.member_id,
+        goals: s.goals,
+        assists: s.assists,
+      }));
+    if (rows.length > 0) {
+      const { error } = await supabaseAdmin.from("match_stats").insert(rows);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ success: true });
