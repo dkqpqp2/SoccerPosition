@@ -242,22 +242,20 @@ export default function MyPage() {
     <AppLayout title="마이페이지">
       <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-4">
 
-        {/* 🔔 알림 섹션 */}
+        {/* 🔔 알림 섹션 (읽으면 목록에서 바로 사라짐) */}
         {notifications.length > 0 && (
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between px-1">
               <h2 className="text-sm font-bold text-white flex items-center gap-2">
                 <Bell size={15} strokeWidth={2} /> 알림
-                {notifications.filter(n => !n.is_read).length > 0 && (
-                  <span className="bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
-                    {notifications.filter(n => !n.is_read).length}
-                  </span>
-                )}
+                <span className="bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                  {notifications.length}
+                </span>
               </h2>
               <button
                 onClick={async () => {
                   await fetch("/api/notifications", { method: "PATCH" });
-                  setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+                  setNotifications([]);
                 }}
                 className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
               >
@@ -265,17 +263,15 @@ export default function MyPage() {
               </button>
             </div>
             {(showAllNotifs ? notifications : notifications.slice(0, 2)).map(n => (
-              <div key={n.id}
-                className={`rounded-lg border p-4 flex gap-3 transition-colors ${n.is_read ? "bg-gray-900 border-white/5 opacity-60" : "bg-emerald-500/5 border-emerald-500/20"}`}
-              >
-                <span className={`shrink-0 mt-0.5 ${n.is_read ? "text-gray-500" : "text-emerald-400"}`}>
+              <div key={n.id} className="rounded-lg border p-4 flex gap-3 transition-colors bg-emerald-500/5 border-emerald-500/20">
+                <span className="shrink-0 mt-0.5 text-emerald-400">
                   {n.type === "vote_created" ? <Vote size={18} strokeWidth={1.75} />
                     : n.type === "dues_request" ? <Wallet size={18} strokeWidth={1.75} />
                     : n.type === "match_created" ? <Calendar size={18} strokeWidth={1.75} />
                     : <Target size={18} strokeWidth={1.75} />}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-bold mb-0.5 ${n.is_read ? "text-gray-400" : "text-white"}`}>{n.title}</p>
+                  <p className="text-sm font-bold mb-0.5 text-white">{n.title}</p>
                   <p className="text-xs text-gray-400 leading-relaxed">{n.body}</p>
                   {n.type !== "dues_request" && (
                     <button
