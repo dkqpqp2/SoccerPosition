@@ -6,6 +6,26 @@ import { getUserAndTeam, getUserRole, canManage } from "@/lib/team";
 
 const PERMISSION_ERROR = "포지션 배정 권한이 없어요. 팀장 또는 부팀장만 가능해요.";
 
+// GET - 단일 배정 세션 조회 (전술판 "배정 불러오기" 등에서 사용)
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { teamId } = await getUserAndTeam(session.user.id);
+  if (!teamId) return NextResponse.json({ error: "No team" }, { status: 404 });
+
+  const { id } = await params;
+  const { data, error } = await supabaseAdmin
+    .from("position_assignments")
+    .select("*")
+    .eq("id", id)
+    .eq("team_id", teamId)
+    .single();
+
+  if (error || !data) return NextResponse.json({ error: "배정을 찾을 수 없어요" }, { status: 404 });
+  return NextResponse.json(data);
+}
+
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

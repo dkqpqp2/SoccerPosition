@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Plus, Undo2, Trash2, X, ChevronLeft, Check, Trash, Save } from "lucide-react";
+import { Plus, Undo2, Trash2, X, ChevronLeft, Check, Trash, Save, Download } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import ScrimmageSelect from "@/components/ScrimmageSelect";
-import { FORMATIONS } from "@/lib/formations";
+import { FORMATIONS, PositionSlot } from "@/lib/formations";
 
 type LineMode = "curve" | "straight";
 type LineType = "move" | "pass";
@@ -31,6 +31,20 @@ interface Token {
   label?: string;
 }
 
+interface AssignmentSummary {
+  id: string;
+  session_name: string;
+  formation_name: string;
+  created_at: string;
+  matches: { title: string | null; match_date: string } | null;
+}
+
+interface AssignmentDetail {
+  formation_name: string;
+  formation_slots: PositionSlot[];
+  result: Record<string, { name: string } | null>;
+}
+
 const SOCCER_FORMATION_NAMES = Object.keys(FORMATIONS).filter(k => FORMATIONS[k].type === "soccer");
 
 function uid() {
@@ -52,6 +66,9 @@ export default function TacticsBoardPage() {
   const [formationName, setFormationName] = useState("4-3-3");
   const [tokens, setTokens] = useState<Token[]>([]);
   const [arrows, setArrows] = useState<Arrow[]>([]);
+  const [showImport, setShowImport] = useState(false);
+  const [importList, setImportList] = useState<AssignmentSummary[] | null>(null);
+  const [importing, setImporting] = useState(false);
   const [draft, setDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [arrowDrag, setArrowDrag] = useState<{ id: string; lastX: number; lastY: number } | null>(null);
@@ -177,6 +194,35 @@ export default function TacticsBoardPage() {
     setDirty(true);
   }
 
+  async function openImport() {
+    setShowImport(true);
+    if (importList) return;
+    const res = await fetch("/api/assignments?all=true");
+    setImportList(res.ok ? await res.json() : []);
+  }
+
+  async function importAssignment(assignmentId: string) {
+    setImporting(true);
+    const res = await fetch(`/api/assignments/${assignmentId}`);
+    if (res.ok) {
+      const data: AssignmentDetail = await res.json();
+      setFormationName(FORMATIONS[data.formation_name] ? data.formation_name : formationName);
+      setTokens(prev => [
+        ...(data.formation_slots ?? []).map(s => ({
+          id: s.id,
+          x: s.x,
+          y: s.y,
+          team: "us" as const,
+          label: data.result?.[s.id]?.name ?? s.label,
+        })),
+        ...prev.filter(t => t.team === "opp"),
+      ]);
+      setDirty(true);
+    }
+    setImporting(false);
+    setShowImport(false);
+  }
+
   function removeToken(tokenId: string) {
     setTokens(prev => prev.filter(t => t.id !== tokenId));
     setDirty(true);
@@ -283,6 +329,15 @@ export default function TacticsBoardPage() {
               options={SOCCER_FORMATION_NAMES.map(name => ({ value: name, label: name }))}
             />
           </div>
+        )}
+
+        {editable && (
+          <button
+            onClick={openImport}
+            className="w-full flex items-center justify-center gap-1.5 text-xs font-bold bg-gray-900 border border-white/10 hover:border-white/20 text-gray-200 px-3 py-2.5 rounded-xl transition-colors"
+          >
+            <Download size={14} /> 포지션 배정에서 불러오기
+          </button>
         )}
 
         {editable && (
@@ -458,6 +513,42 @@ export default function TacticsBoardPage() {
           </button>
         )}
       </div>
+
+      {showImport && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setShowImport(false)}>
+          <div className="bg-gray-900 border border-white/10 rounded-2xl p-5 w-full max-w-sm max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <h2 className="text-base font-bold text-white mb-1">포지션 배정에서 불러오기</h2>
+            <p className="text-xs text-gray-500 mb-4">고르면 우리 팀 위치가 실제 배정된 선수 이름으로 바뀌어요.</p>
+            <div className="overflow-y-auto themed-scroll -mx-1 px-1">
+              {importList === null ? (
+                <div className="flex justify-center py-8">
+                  <div className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : importList.length === 0 ? (
+                <p className="text-sm text-gray-600 text-center py-8">불러올 배정이 없어요</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {importList.map(item => (
+                    <button
+                      key={item.id}
+                      onClick={() => importAssignment(item.id)}
+                      disabled={importing}
+                      className="w-full text-left bg-gray-800 hover:bg-gray-800/70 disabled:opacity-50 border border-white/5 rounded-xl px-3 py-2.5 transition-colors"
+                    >
+                      <p className="text-sm font-bold text-white">
+                        {item.matches?.title ?? "독립 세션"} · {item.session_name}
+                      </p>
+                      <p className="text-[11px] text-gray-500 mt-0.5">
+                        {item.formation_name}{item.matches?.match_date ? ` · ${item.matches.match_date}` : ""}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }
