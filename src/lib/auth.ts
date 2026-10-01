@@ -26,14 +26,16 @@ export const authOptions: NextAuthOptions = {
         ]);
 
         if (ownerTeam) {
-          const { data: memberExists } = await supabaseAdmin
+          // .single()은 중복 행이 이미 있으면 에러를 던지고 "없음"으로 처리돼서 로그인할 때마다 계속 또 추가되는 악순환이 생길 수 있음 — .limit(1)로 방어
+          const { data: existingMembers } = await supabaseAdmin
             .from("team_members")
             .select("id")
             .eq("team_id", ownerTeam.id)
             .eq("user_id", existing.id)
-            .single();
+            .is("left_at", null)
+            .limit(1);
 
-          if (!memberExists) {
+          if (!existingMembers?.length) {
             const displayName = userDetail?.display_name || user.name;
             await supabaseAdmin.from("team_members").insert({
               team_id: ownerTeam.id,

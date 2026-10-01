@@ -90,15 +90,16 @@ export async function POST(req: NextRequest) {
   const displayName = userData?.display_name || userData?.name || "이름 미설정";
 
   // 이미 이 team에 user_id로 등록된 멤버가 있는지 확인
-  const { data: existingMember } = await supabaseAdmin
+  // .maybeSingle()은 중복 행이 이미 있으면 에러를 던지고 "없음"으로 처리돼서 계속 또 추가되는 악순환이 생길 수 있음 — .limit(1)로 방어
+  const { data: existingMembers } = await supabaseAdmin
     .from("team_members")
     .select("id, user_id")
     .eq("team_id", team.id)
     .eq("user_id", userId)
     .is("left_at", null)
-    .maybeSingle();
+    .limit(1);
 
-  if (!existingMember) {
+  if (!existingMembers?.length) {
     // 같은 이름의 임의추가 멤버가 있으면 자동 연결 (동명이인으로 중복 등록된 경우 대비, .maybeSingle() 대신 가장 오래된 것 하나만 선택)
     const { data: manualMatches } = await supabaseAdmin
       .from("team_members")

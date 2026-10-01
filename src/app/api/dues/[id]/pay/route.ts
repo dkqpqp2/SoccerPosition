@@ -22,7 +22,7 @@ export async function POST(
   const { user_id: targetUserId } = await req.json();
 
   const { data: targetMembers } = await supabaseAdmin
-    .from("team_members").select("id").eq("user_id", targetUserId).eq("team_id", teamId).limit(1);
+    .from("team_members").select("id").eq("user_id", targetUserId).eq("team_id", teamId).is("left_at", null).limit(1);
   if (!targetMembers?.length) return NextResponse.json({ error: "팀원을 찾을 수 없어요" }, { status: 404 });
 
   // 실제 납부 금액 계산 (개인 설정 > 기본 금액)
