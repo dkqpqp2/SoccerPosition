@@ -12,6 +12,9 @@ export const metadata: Metadata = {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
+  appleWebApp: {
+    title: "스포츠팀매니저",
+  },
   keywords: ["SPM", "축구 포지션", "포지션 배정", "축구팀 관리", "Soccer Position Management", "풋살 팀 관리", "팀원 관리"],
   authors: [{ name: "SPM" }],
   openGraph: {
