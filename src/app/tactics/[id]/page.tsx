@@ -86,6 +86,40 @@ function uid() {
   return Math.random().toString(36).slice(2);
 }
 
+// 이모지는 기기마다 모양이 달라서 체크무늬(검은 오각형) 축구공을 SVG로 직접 그림
+const BALL_PENTAGON = (cx: number, cy: number, r: number, rotDeg: number) =>
+  Array.from({ length: 5 }, (_, k) => {
+    const a = ((rotDeg + k * 72) * Math.PI) / 180;
+    return `${(cx + r * Math.cos(a)).toFixed(2)},${(cy + r * Math.sin(a)).toFixed(2)}`;
+  }).join(" ");
+const BALL_CENTER = BALL_PENTAGON(50, 50, 17, -90);
+const BALL_SPOKES = Array.from({ length: 5 }, (_, k) => {
+  const a = ((-90 + k * 72) * Math.PI) / 180;
+  return { x1: 50 + 17 * Math.cos(a), y1: 50 + 17 * Math.sin(a), x2: 50 + 48 * Math.cos(a), y2: 50 + 48 * Math.sin(a) };
+});
+const BALL_RIM = Array.from({ length: 5 }, (_, k) => {
+  const deg = -54 + k * 72;
+  const a = (deg * Math.PI) / 180;
+  return BALL_PENTAGON(50 + 52 * Math.cos(a), 50 + 52 * Math.sin(a), 11, deg + 180);
+});
+
+function BallIcon({ size = 24 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} className="block">
+      <defs>
+        <clipPath id="ball-clip"><circle cx="50" cy="50" r="48" /></clipPath>
+      </defs>
+      <circle cx="50" cy="50" r="48" fill="#fff" />
+      <g clipPath="url(#ball-clip)" fill="#111827" stroke="#111827" strokeWidth="2.5" strokeLinejoin="round">
+        {BALL_SPOKES.map((l, i) => <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} fill="none" />)}
+        <polygon points={BALL_CENTER} />
+        {BALL_RIM.map((pts, i) => <polygon key={i} points={pts} />)}
+      </g>
+      <circle cx="50" cy="50" r="48" fill="none" stroke="#111827" strokeWidth="3" />
+    </svg>
+  );
+}
+
 const STEP_MS = 1200;
 const MOVER_MAX_DIST = 14; // 움직임 화살표 시작점에서 이 거리(피치 가로 % 기준) 안의 가장 가까운 선수가 그 화살표를 따라 움직임
 const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
@@ -705,7 +739,7 @@ export default function TacticsBoardPage() {
                 disabled={hasBall}
                 className="flex items-center gap-1.5 text-xs font-bold bg-gray-900 border border-white/10 hover:border-white/20 disabled:opacity-40 text-gray-200 px-3 py-2 rounded-xl transition-colors"
               >
-                ⚽ 공 추가
+                <BallIcon size={14} /> 공 추가
               </button>
               <button
                 onClick={undoLastArrow}
@@ -910,8 +944,8 @@ export default function TacticsBoardPage() {
             <div
               key={t.id}
               onPointerDown={e => { if (editable && !playing) { e.stopPropagation(); dragOriginRef.current = { id: t.id, x: t.x, y: t.y }; setDraggingId(t.id); } }}
-              className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center rounded-full border-2 shadow-lg font-black leading-none text-center ${
-                t.team === "ball" ? "w-6 h-6 text-sm bg-white border-gray-800" : "w-8 h-8 text-[10px] px-0.5"
+              className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center rounded-full shadow-lg font-black leading-none text-center ${
+                t.team === "ball" ? "w-6 h-6" : "w-8 h-8 border-2 text-[10px] px-0.5"
               } ${t.team === "opp" ? "bg-white border-gray-300 text-gray-900" : ""
               } ${editable && !playing ? "cursor-grab active:cursor-grabbing" : ""} ${selectedTokenId === t.id ? "ring-2 ring-yellow-300" : ""}`}
               style={{
@@ -921,7 +955,7 @@ export default function TacticsBoardPage() {
                 ...(pc ? { background: pc.bg, borderColor: pc.border, color: pc.color } : {}),
               }}
             >
-              {t.team === "ball" ? "⚽" : t.label}
+              {t.team === "ball" ? <BallIcon size={24} /> : t.label}
               {editable && !playing && (t.team === "opp" || t.team === "ball") && (
                 <button
                   onPointerDown={e => e.stopPropagation()}
