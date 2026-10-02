@@ -67,3 +67,33 @@ export function canManageDues(role: TeamRole | null): boolean {
 export function canManageScrimmage(role: TeamRole | null): boolean {
   return role === "owner" || role === "manager" || role === "president";
 }
+
+/**
+ * 포지션 배정 result(슬롯id -> {id: member_id, ...} | null)에 담긴 member_id가
+ * 실제 이 팀 소속인지 검증 — 아니면 미배정(null)으로 치환해서 다른 팀 id가 섞여 들어가는 것 방지
+ */
+export async function sanitizeResult(
+  result: Record<string, { id: string; [key: string]: unknown } | null> | null | undefined,
+  teamId: string
+): Promise<Record<string, { id: string; [key: string]: unknown } | null>> {
+  if (!result || typeof result !== "object") return {};
+
+  const candidateIds = Object.values(result)
+    .filter((m): m is { id: string } => !!m && typeof m.id === "string")
+    .map(m => m.id);
+
+  if (candidateIds.length === 0) return result as Record<string, { id: string; [key: string]: unknown } | null>;
+
+  const { data: validMembers } = await supabaseAdmin
+    .from("team_members")
+    .select("id")
+    .eq("team_id", teamId)
+    .in("id", candidateIds);
+  const validIds = new Set((validMembers ?? []).map(m => m.id));
+
+  const sanitized: Record<string, { id: string; [key: string]: unknown } | null> = {};
+  for (const [slotId, member] of Object.entries(result)) {
+    sanitized[slotId] = member && validIds.has(member.id) ? member : null;
+  }
+  return sanitized;
+}
