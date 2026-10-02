@@ -74,6 +74,16 @@ new Date(y, m - 1, d);
 7. **공개(비로그인) `/api/share/*` 류 라우트는 `select("*")` 금지**
    공유 링크는 세션 체크가 없는 게 의도된 설계지만, 그렇다고 테이블 전체 컬럼을 다 내려주면 안 됨 — 그 페이지가 실제로 쓰는 컬럼만 명시적으로 select할 것.
 
+8. **새 테이블/DB 함수(RPC)를 만들면 반드시 RLS를 켜고 anon 접근을 막을 것**
+   Supabase는 SQL 에디터로 만든 테이블에 RLS를 자동으로 켜주지 않음 — 공개 키(`NEXT_PUBLIC_SUPABASE_ANON_KEY`)는 브라우저에 노출돼 있어서, RLS가 꺼진 테이블은 누구나 전 팀 데이터를 읽고 쓸 수 있음 (`tactics_boards`, `tactics_ai_usage`, 기존의 `notifications`, `team_profiles`가 이 상태로 열려 있었음). 앱은 서버(`supabaseAdmin`)로만 접근하므로 정책 없이 RLS만 켜면 됨. 새 테이블을 만드는 SQL에 항상 아래를 같이 넣을 것:
+   ```sql
+   alter table 새테이블 enable row level security;
+   -- 함수(RPC)는 기본적으로 anon도 실행 가능 — 서버 전용이면 막기
+   revoke execute on function 함수명(인자타입...) from public, anon, authenticated;
+   grant execute on function 함수명(인자타입...) to service_role;
+   ```
+   테이블을 만든 직후 anon 키로 `select`가 막혀 있는지 직접 확인할 것 (RLS는 켜져 있어도 예전에 만든 "누구나 읽기" 정책이 남아있으면 계속 열려 있음 — `pg_policies`에서 확인).
+
 > 전체 API 보안 리뷰는 `/code-review` 스킬로 `src/app/api/**`를 대상으로 돌리면 재사용 가능.
 
 ---
