@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Plus, Undo2, Trash2, X, ChevronLeft, Check, Trash, Save, Download, Wand2, Loader2 } from "lucide-react";
+import { Plus, Undo2, Trash2, X, ChevronLeft, ChevronDown, Check, Trash, Save, Download, Wand2, Loader2 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import ScrimmageSelect from "@/components/ScrimmageSelect";
 import { FORMATIONS, PositionSlot, FUTSAL_FORMATIONS } from "@/lib/formations";
@@ -92,6 +92,7 @@ export default function TacticsBoardPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
   const [aiExplanation, setAiExplanation] = useState("");
+  const [aiExplanationOpen, setAiExplanationOpen] = useState(true);
   const [aiUndoSnapshot, setAiUndoSnapshot] = useState<Arrow[] | null>(null);
   const [draft, setDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -240,7 +241,7 @@ export default function TacticsBoardPage() {
       const res = await fetch(`/api/tactics/${id}/ai-suggest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: aiQuestion.trim(), tokens }),
+        body: JSON.stringify({ question: aiQuestion.trim(), tokens, arrows }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -251,6 +252,7 @@ export default function TacticsBoardPage() {
       setAiUndoSnapshot(arrows);
       setArrows(prev => [...prev, ...newArrows]);
       setAiExplanation(data.explanation ?? "");
+      setAiExplanationOpen(true);
       setDirty(true);
     } catch {
       setAiError("AI 추천에 실패했어요. 다시 시도해주세요.");
@@ -501,11 +503,22 @@ export default function TacticsBoardPage() {
               </div>
               {aiError && <p className="text-xs text-red-400">{aiError}</p>}
               {aiExplanation && (
-                <div className="text-xs text-gray-300 bg-gray-800/80 rounded-lg p-2.5 space-y-1.5">
-                  <p>{aiExplanation}</p>
-                  <button onClick={undoAiSuggestion} className="text-[11px] font-bold text-red-400 hover:text-red-300">
-                    AI 제안 취소
+                <div className="bg-gray-800/80 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setAiExplanationOpen(v => !v)}
+                    className="w-full flex items-center justify-between gap-2 px-2.5 py-2 text-[11px] font-bold text-gray-300"
+                  >
+                    AI는 왜 이렇게 추천했을까?
+                    <ChevronDown size={14} className={`transition-transform ${aiExplanationOpen ? "rotate-180" : ""}`} />
                   </button>
+                  {aiExplanationOpen && (
+                    <div className="px-2.5 pb-2.5 space-y-1.5">
+                      <p className="text-xs text-gray-300">{aiExplanation}</p>
+                      <button onClick={undoAiSuggestion} className="text-[11px] font-bold text-red-400 hover:text-red-300">
+                        AI 제안 취소
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
