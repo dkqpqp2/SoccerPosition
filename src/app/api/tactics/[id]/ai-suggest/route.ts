@@ -62,7 +62,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // 비용 폭주 방지: 팀당 하루 호출 횟수를 DB에서 원자적으로 증가시켜서
   // 동시 요청이 와도 제한을 넘기지 않도록 함 (읽고-나서-쓰기 방식은 경쟁 상태에 취약)
   const today = kstDateString();
-  const limit = teamId === UNLIMITED_TEAM_ID ? Number.MAX_SAFE_INTEGER : DAILY_LIMIT;
+  // DB 함수의 p_limit은 Postgres integer(최대 약 21억) 타입이라 Number.MAX_SAFE_INTEGER를
+  // 넘기면 "integer out of range" 에러가 남 — int 범위 안의 충분히 큰 값을 사용
+  const limit = teamId === UNLIMITED_TEAM_ID ? 999999999 : DAILY_LIMIT;
 
   const { data: newCount, error: usageError } = await supabaseAdmin.rpc("increment_ai_usage", {
     p_team_id: teamId,
