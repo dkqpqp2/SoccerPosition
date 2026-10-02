@@ -26,9 +26,13 @@ export default function TacticsListPage() {
   const [title, setTitle] = useState("");
   const [formationName, setFormationName] = useState("4-3-3");
   const [creating, setCreating] = useState(false);
+  const [customNames, setCustomNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     load();
+    fetch("/api/formations")
+      .then(res => (res.ok ? res.json() : []))
+      .then((list: { id: string; name: string }[]) => setCustomNames(Object.fromEntries((Array.isArray(list) ? list : []).map(f => [f.id, f.name]))));
   }, []);
 
   async function load() {
@@ -93,7 +97,7 @@ export default function TacticsListPage() {
                       </span>
                     )}
                   </p>
-                  <p className="text-[11px] text-gray-600 mt-0.5">{b.formation_name}</p>
+                  <p className="text-[11px] text-gray-600 mt-0.5">{customNames[b.formation_name] ?? b.formation_name}</p>
                 </div>
               </button>
             ))}

@@ -6,7 +6,7 @@ import { Plus, Undo2, Trash2, X, ChevronLeft, ChevronDown, Check, Trash, Save, D
 import AppLayout from "@/components/AppLayout";
 import ScrimmageSelect from "@/components/ScrimmageSelect";
 import PositionSelect from "@/components/PositionSelect";
-import { zonePosition, detectFormationName } from "@/lib/tacticsZones";
+import { zonePosition, detectFormationName, isGoalkeeper } from "@/lib/tacticsZones";
 import { FORMATIONS, PositionSlot } from "@/lib/formations";
 
 type LineMode = "curve" | "straight";
@@ -363,7 +363,7 @@ export default function TacticsBoardPage() {
     setTokens(prev => {
       if (prev.filter(t => t.team === "us").length !== 11) return prev;
       return prev.map(t => {
-        if (t.id !== tokenId || t.team !== "us" || t.posManual || t.pos === "GK") return t;
+        if (t.id !== tokenId || t.team !== "us" || t.posManual || isGoalkeeper(t)) return t;
         const next = zonePosition(t.x, t.y);
         if (next === t.pos) return t;
         const labelFollowsPos = !t.label || t.label === t.pos;
