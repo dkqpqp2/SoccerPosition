@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Plus, Undo2, Trash2, X, ChevronLeft, Check, Trash, Save, Download } from "lucide-react";
+import { Plus, Undo2, Trash2, X, ChevronLeft, Check, Trash, Save, Download, Wand2, Loader2 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import ScrimmageSelect from "@/components/ScrimmageSelect";
 import { FORMATIONS, PositionSlot, FUTSAL_FORMATIONS } from "@/lib/formations";
@@ -88,6 +88,11 @@ export default function TacticsBoardPage() {
   const [showImport, setShowImport] = useState(false);
   const [importList, setImportList] = useState<AssignmentSummary[] | null>(null);
   const [importing, setImporting] = useState(false);
+  const [aiQuestion, setAiQuestion] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiExplanation, setAiExplanation] = useState("");
+  const [aiUndoSnapshot, setAiUndoSnapshot] = useState<Arrow[] | null>(null);
   const [draft, setDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [arrowDrag, setArrowDrag] = useState<{ id: string; lastX: number; lastY: number } | null>(null);
@@ -225,6 +230,41 @@ export default function TacticsBoardPage() {
     ]);
     setDirty(true);
     setOppFormationPick("");
+  }
+
+  async function askAI() {
+    if (!aiQuestion.trim() || aiLoading) return;
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const res = await fetch(`/api/tactics/${id}/ai-suggest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: aiQuestion.trim(), tokens }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAiError(data.error ?? "AI 추천에 실패했어요.");
+        return;
+      }
+      const newArrows: Arrow[] = (data.arrows ?? []).map((a: Omit<Arrow, "id">) => ({ ...a, id: uid() }));
+      setAiUndoSnapshot(arrows);
+      setArrows(prev => [...prev, ...newArrows]);
+      setAiExplanation(data.explanation ?? "");
+      setDirty(true);
+    } catch {
+      setAiError("AI 추천에 실패했어요. 다시 시도해주세요.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  function undoAiSuggestion() {
+    if (aiUndoSnapshot === null) return;
+    setArrows(aiUndoSnapshot);
+    setAiUndoSnapshot(null);
+    setAiExplanation("");
+    setDirty(true);
   }
 
   async function openImport() {
@@ -440,6 +480,35 @@ export default function TacticsBoardPage() {
             </div>
 
             <p className="text-[11px] text-gray-600">피치 위를 드래그하면 화살표가 그려져요. 선수·상대 말 둘 다 드래그해서 옮길 수 있어요.</p>
+
+            <div className="space-y-2 bg-gray-900/60 border border-white/10 rounded-xl p-3">
+              <p className="text-xs text-gray-400 font-bold flex items-center gap-1.5"><Wand2 size={13} /> AI에게 전술 물어보기</p>
+              <div className="flex gap-2">
+                <input
+                  value={aiQuestion}
+                  onChange={e => setAiQuestion(e.target.value)}
+                  placeholder="예: 상대가 높은 라인을 쓸 때 어떻게 공략하지?"
+                  className="flex-1 bg-gray-800 border border-white/10 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <button
+                  onClick={askAI}
+                  disabled={!aiQuestion.trim() || aiLoading}
+                  className="flex items-center gap-1 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-black px-3 py-2 rounded-lg transition-colors shrink-0"
+                >
+                  {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                  추천
+                </button>
+              </div>
+              {aiError && <p className="text-xs text-red-400">{aiError}</p>}
+              {aiExplanation && (
+                <div className="text-xs text-gray-300 bg-gray-800/80 rounded-lg p-2.5 space-y-1.5">
+                  <p>{aiExplanation}</p>
+                  <button onClick={undoAiSuggestion} className="text-[11px] font-bold text-red-400 hover:text-red-300">
+                    AI 제안 취소
+                  </button>
+                </div>
+              )}
+            </div>
           </>
         )}
 
