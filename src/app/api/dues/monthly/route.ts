@@ -81,10 +81,24 @@ export async function GET(req: Request) {
   const userMap: Record<string, string> = {};
   (usersData ?? []).forEach((u) => { userMap[u.id] = u.name; });
 
+  // 같은 user_id로 가입·탈퇴를 반복한 이력이 team_members에 여러 행으로 남아있을 수 있음 —
+  // user_id당 1행만 남기고 나머지는 제거 (안 그러면 아래 "강퇴 멤버 중 납부기록 있으면 표시" 로직에서
+  // 과거 이력 행 전부가 같은 납부 1건을 중복으로 표시하게 됨). 활성 행이 있으면 그걸 우선 사용.
+  const dedupedTeamMembers = (() => {
+    const seen = new Set<string>();
+    const sorted = [...(teamMembers ?? [])].sort((a, b) => (a.left_at ? 1 : 0) - (b.left_at ? 1 : 0));
+    return sorted.filter((tm) => {
+      if (!tm.user_id) return true; // 계정 없는 수동 멤버는 id 자체가 고유 식별자
+      if (seen.has(tm.user_id)) return false;
+      seen.add(tm.user_id);
+      return true;
+    });
+  })();
+
   // 팀원별 상태 + 납부 현황 조합
   // - 활성 멤버(left_at IS NULL): 항상 표시
   // - 강퇴 멤버(left_at IS NOT NULL): 해당 월 납부 기록 있을 때만 표시
-  const members = (teamMembers ?? [])
+  const members = dedupedTeamMembers
     .filter((tm) => {
       if (!tm.left_at) return true; // 활성 멤버
       // 강퇴 멤버: 이달 납부 기록 있을 때만 표시
