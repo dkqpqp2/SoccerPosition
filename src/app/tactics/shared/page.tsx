@@ -16,8 +16,12 @@ export default function SharedTacticsPage() {
   const router = useRouter();
   const [boards, setBoards] = useState<SharedBoard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [customNames, setCustomNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    fetch("/api/formations")
+      .then(res => (res.ok ? res.json() : []))
+      .then((list: { id: string; name: string }[]) => setCustomNames(Object.fromEntries((Array.isArray(list) ? list : []).map(f => [f.id, f.name]))));
     fetch("/api/tactics/published")
       .then(res => res.json())
       .then(data => { setBoards(Array.isArray(data) ? data : []); setLoading(false); });
@@ -49,7 +53,7 @@ export default function SharedTacticsPage() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-white">{b.title}</p>
-                  <p className="text-[11px] text-gray-600 mt-0.5">{b.formation_name}</p>
+                  <p className="text-[11px] text-gray-600 mt-0.5">{customNames[b.formation_name] ?? b.formation_name}</p>
                 </div>
               </button>
             ))}

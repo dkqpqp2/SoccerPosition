@@ -6,6 +6,12 @@ interface ZoneToken {
   x: number;
   y: number;
   pos?: string;
+  label?: string;
+}
+
+// pos 필드가 생기기 전에 만든 예전 보드는 label만 "GK"라서 같이 인정
+export function isGoalkeeper(t: { pos?: string; label?: string }): boolean {
+  return t.pos === "GK" || (!t.pos && t.label === "GK");
 }
 
 const LINE_COUNT = 5;
@@ -39,9 +45,9 @@ export function zonePosition(x: number, y: number): string {
 // 우리팀 11명(GK 1 + 필드 10)일 때만 "4-3-3" 같은 이름을 만들고, 아니면 null
 export function detectFormationName(tokens: ZoneToken[]): string | null {
   const us = tokens.filter(t => t.team === "us");
-  const keepers = us.filter(t => t.pos === "GK");
+  const keepers = us.filter(isGoalkeeper);
   if (us.length !== 11 || keepers.length !== 1) return null;
   const counts = new Array(LINE_COUNT).fill(0);
-  us.filter(t => t.pos !== "GK").forEach(t => { counts[lineOf(t.y)] += 1; });
+  us.filter(t => !isGoalkeeper(t)).forEach(t => { counts[lineOf(t.y)] += 1; });
   return counts.filter(c => c > 0).join("-");
 }

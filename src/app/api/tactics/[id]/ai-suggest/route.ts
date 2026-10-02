@@ -79,7 +79,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const tokenLines = tokens.map(t => {
     if (t.team === "ball") return `- 공 | x:${Math.round(t.x)} y:${Math.round(t.y)}`;
     const side = t.team === "us" ? "우리팀" : "상대팀";
-    const label = t.label || t.pos || "(이름 없음)";
+    const label = String(t.label || t.pos || "(이름 없음)").slice(0, 30);
     return `- ${side} | ${label} | x:${Math.round(t.x)} y:${Math.round(t.y)}`;
   }).join("\n") || "(아직 아무도 배치되지 않음)";
 
