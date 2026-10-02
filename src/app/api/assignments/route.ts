@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getUserAndTeam, getUserRole, canManage } from "@/lib/team";
+import { getUserAndTeam, getUserRole, canManage, sanitizeResult } from "@/lib/team";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -69,9 +69,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `"${session_name}" 이름이 이미 있어요. 다른 이름을 사용해주세요.` }, { status: 409 });
   }
 
+  // result에 담긴 member id가 실제 이 팀 소속인지 검증 — 아니면 미배정(null) 처리
+  const safeResult = await sanitizeResult(result, teamId);
+
   const { data, error } = await supabaseAdmin
     .from("position_assignments")
-    .insert({ user_id: userId, team_id: teamId, session_name: session_name.trim(), formation_name, formation_id, formation_slots, result, match_id, attending_members: attending_members ?? null })
+    .insert({ user_id: userId, team_id: teamId, session_name: session_name.trim(), formation_name, formation_id, formation_slots, result: safeResult, match_id, attending_members: attending_members ?? null })
     .select()
     .single();
 

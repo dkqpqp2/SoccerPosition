@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getUserAndTeam, getUserRole, canManage } from "@/lib/team";
+import { getUserAndTeam, getUserRole, canManage, sanitizeResult } from "@/lib/team";
 
 const PERMISSION_ERROR = "포지션 배정 권한이 없어요. 팀장 또는 부팀장만 가능해요.";
 
@@ -41,7 +41,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const { result, formation_name, formation_id, formation_slots, attending_members } = await req.json();
 
-  const updatePayload: Record<string, unknown> = { result, formation_name, formation_id, formation_slots };
+  // result에 담긴 member id가 실제 이 팀 소속인지 검증 — 아니면 미배정(null) 처리
+  const safeResult = await sanitizeResult(result, teamId);
+
+  const updatePayload: Record<string, unknown> = { result: safeResult, formation_name, formation_id, formation_slots };
   if (attending_members !== undefined) updatePayload.attending_members = attending_members;
 
   const { data, error } = await supabaseAdmin
