@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Plus, Undo2, Trash2, X, ChevronLeft, ChevronDown, Check, Trash, Save, Download, Wand2, Loader2, LayoutGrid } from "lucide-react";
+import { Plus, Undo2, Trash2, X, ChevronLeft, ChevronDown, Check, Trash, Save, Download, Wand2, Loader2, LayoutGrid, Play, Square, RotateCcw, Repeat } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import ScrimmageSelect from "@/components/ScrimmageSelect";
 import { FORMATIONS, PositionSlot } from "@/lib/formations";
@@ -27,7 +27,7 @@ interface Token {
   id: string;
   x: number;
   y: number;
-  team: "us" | "opp";
+  team: "us" | "opp" | "ball";
   label?: string;
   pos?: string; // 포지션 코드(GK/CB/CM/ST 등) — label이 선수 이름으로 바뀌어도 색상 구분용으로 유지
 }
@@ -83,6 +83,28 @@ function uid() {
   return Math.random().toString(36).slice(2);
 }
 
+const STEP_MS = 1200;
+const MOVER_MAX_DIST = 14; // 움직임 화살표 시작점에서 이 거리(피치 가로 % 기준) 안의 가장 가까운 선수가 그 화살표를 따라 움직임
+const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+
+type PlaybackArrow = Pick<Arrow, "x1" | "y1" | "x2" | "y2" | "mode">;
+
+function pointOnArrow(a: PlaybackArrow, t: number) {
+  if (a.mode === "straight") return { x: a.x1 + (a.x2 - a.x1) * t, y: a.y1 + (a.y2 - a.y1) * t };
+  const dx = a.x2 - a.x1;
+  const dy = a.y2 - a.y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const cx = (a.x1 + a.x2) / 2 + (-dy / len) * len * 0.2;
+  const cy = (a.y1 + a.y2) / 2 + (dx / len) * len * 0.2;
+  const u = 1 - t;
+  return { x: u * u * a.x1 + 2 * u * t * cx + t * t * a.x2, y: u * u * a.y1 + 2 * u * t * cy + t * t * a.y2 };
+}
+
+interface PlaybackStep {
+  move?: { tokenId: string; arrow: Arrow };
+  pass?: { arrow: Arrow };
+}
+
 export default function TacticsBoardPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -118,7 +140,20 @@ export default function TacticsBoardPage() {
   const [lineMode, setLineMode] = useState<LineMode>("curve");
   const [lineType, setLineType] = useState<LineType>("move");
 
+  const [playing, setPlaying] = useState(false);
+  const [animPos, setAnimPos] = useState<Record<string, { x: number; y: number }> | null>(null);
+  const [loopPlay, setLoopPlay] = useState(false);
+  const loopRef = useRef(false);
+  const rafRef = useRef<number | null>(null);
+
   const pitchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
+
+  // 재생이 끝난 뒤 보드를 편집하면 재생용 임시 위치를 걷어내서 실제 위치가 바로 보이게 함
+  useEffect(() => {
+    if (!playing) setAnimPos(null);
+  }, [tokens, arrows]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetch(`/api/tactics/${id}`)
@@ -146,7 +181,7 @@ export default function TacticsBoardPage() {
   }
 
   function handlePitchPointerDown(e: React.PointerEvent) {
-    if (!editable || draggingId || arrowDrag) return;
+    if (!editable || playing || draggingId || arrowDrag) return;
     const { x, y } = pointFromEvent(e);
     setDraft({ x1: x, y1: y, x2: x, y2: y });
   }
@@ -225,14 +260,105 @@ export default function TacticsBoardPage() {
     return { x: 0.25 * a.x1 + 0.5 * cx + 0.25 * a.x2, y: 0.25 * a.y1 + 0.5 * cy + 0.25 * a.y2 };
   }
 
+  // 같은 번호의 움직임·패스를 한 단계로 묶음. 움직임은 시작점에서 가장 가까운 선수(이전 단계 이동 결과 기준)가 따라가고,
+  // 패스는 공 토큰이 있을 때만 재생됨
+  function buildPlaybackSteps(): PlaybackStep[] {
+    const moves = arrows.filter(a => a.type === "move");
+    const passes = arrows.filter(a => a.type === "pass");
+    const cur: Record<string, { x: number; y: number }> = {};
+    tokens.forEach(t => { cur[t.id] = { x: t.x, y: t.y }; });
+    const ballExists = tokens.some(t => t.team === "ball");
+    const steps: PlaybackStep[] = [];
+    for (let k = 0; k < Math.max(moves.length, passes.length); k++) {
+      const step: PlaybackStep = {};
+      const m = moves[k];
+      if (m) {
+        let best: { id: string; d: number } | null = null;
+        for (const t of tokens) {
+          if (t.team === "ball") continue;
+          const d = Math.hypot(cur[t.id].x - m.x1, (cur[t.id].y - m.y1) * 1.4);
+          if (d <= MOVER_MAX_DIST && (!best || d < best.d)) best = { id: t.id, d };
+        }
+        if (best) {
+          step.move = { tokenId: best.id, arrow: m };
+          cur[best.id] = { x: m.x2, y: m.y2 };
+        }
+      }
+      if (passes[k] && ballExists) step.pass = { arrow: passes[k] };
+      steps.push(step);
+    }
+    return steps;
+  }
+
+  function stopPlayback() {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    setPlaying(false);
+  }
+
+  function resetPlayback() {
+    stopPlayback();
+    setAnimPos(null);
+  }
+
+  function startPlayback() {
+    if (playing) return;
+    const steps = buildPlaybackSteps();
+    if (steps.length === 0) return;
+    const ballId = tokens.find(t => t.team === "ball")?.id;
+    const startPos: Record<string, { x: number; y: number }> = {};
+    tokens.forEach(t => { startPos[t.id] = { x: t.x, y: t.y }; });
+    const total = steps.length * STEP_MS;
+
+    setPlaying(true);
+    let t0 = performance.now();
+    let pauseUntil = 0;
+    const frame = (now: number) => {
+      if (pauseUntil) {
+        if (now < pauseUntil) { rafRef.current = requestAnimationFrame(frame); return; }
+        if (!loopRef.current) { setPlaying(false); rafRef.current = null; return; }
+        pauseUntil = 0;
+        t0 = now;
+      }
+      const elapsed = now - t0;
+      const done = elapsed >= total;
+      const stepIdx = done ? steps.length : Math.floor(elapsed / STEP_MS);
+      const p = done ? 1 : ease((elapsed % STEP_MS) / STEP_MS);
+      const pos = { ...startPos };
+      steps.forEach((s, i) => {
+        const prog = i < stepIdx ? 1 : i === stepIdx ? p : 0;
+        if (prog === 0) return;
+        if (s.move) pos[s.move.tokenId] = pointOnArrow(s.move.arrow, prog);
+        if (s.pass && ballId) pos[ballId] = pointOnArrow(s.pass.arrow, prog);
+      });
+      setAnimPos(pos);
+      if (done) {
+        if (loopRef.current) { pauseUntil = now + 700; rafRef.current = requestAnimationFrame(frame); return; }
+        setPlaying(false);
+        rafRef.current = null;
+        return;
+      }
+      rafRef.current = requestAnimationFrame(frame);
+    };
+    rafRef.current = requestAnimationFrame(frame);
+  }
+
   function changeFormation(name: string) {
     const slots = getFormationSlots(name, customFormations);
     if (!slots) return;
     setFormationName(name);
     setTokens(prev => [
       ...slots.map(s => ({ id: s.id, x: s.x, y: s.y, team: "us" as const, label: s.label, pos: s.label })),
-      ...prev.filter(t => t.team === "opp"),
+      ...prev.filter(t => t.team !== "us"),
     ]);
+    setDirty(true);
+  }
+
+  const hasBall = tokens.some(t => t.team === "ball");
+
+  function addBall() {
+    if (hasBall) return;
+    setTokens(prev => [...prev, { id: uid(), x: 50, y: 50, team: "ball" }]);
     setDirty(true);
   }
 
@@ -249,7 +375,7 @@ export default function TacticsBoardPage() {
     const slots = getFormationSlots(name, customFormations);
     if (!slots) return;
     setTokens(prev => [
-      ...prev.filter(t => t.team === "us"),
+      ...prev.filter(t => t.team !== "opp"),
       ...slots.map(s => ({ id: uid(), x: s.x, y: 100 - s.y, team: "opp" as const, label: s.label, pos: s.label })),
     ]);
     setDirty(true);
@@ -314,7 +440,7 @@ export default function TacticsBoardPage() {
           label: data.result?.[s.id]?.name ?? s.label,
           pos: s.label,
         })),
-        ...prev.filter(t => t.team === "opp"),
+        ...prev.filter(t => t.team !== "us"),
       ]);
       setDirty(true);
     }
@@ -519,6 +645,13 @@ export default function TacticsBoardPage() {
                 />
               </div>
               <button
+                onClick={addBall}
+                disabled={hasBall}
+                className="flex items-center gap-1.5 text-xs font-bold bg-gray-900 border border-white/10 hover:border-white/20 disabled:opacity-40 text-gray-200 px-3 py-2 rounded-xl transition-colors"
+              >
+                ⚽ 공 추가
+              </button>
+              <button
                 onClick={undoLastArrow}
                 disabled={arrows.length === 0}
                 className="flex items-center gap-1.5 text-xs font-bold bg-gray-900 border border-white/10 hover:border-white/20 disabled:opacity-40 text-gray-200 px-3 py-2 rounded-xl transition-colors"
@@ -576,6 +709,43 @@ export default function TacticsBoardPage() {
               )}
             </div>
           </>
+        )}
+
+        {arrows.length > 0 && (
+          <div className="flex items-center flex-wrap gap-2">
+            {playing ? (
+              <button
+                onClick={resetPlayback}
+                className="flex items-center gap-1.5 text-xs font-bold bg-red-500/15 border border-red-500/30 text-red-300 px-3 py-2 rounded-xl transition-colors"
+              >
+                <Square size={13} /> 정지
+              </button>
+            ) : (
+              <button
+                onClick={startPlayback}
+                className="flex items-center gap-1.5 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-black px-3 py-2 rounded-xl transition-colors"
+              >
+                <Play size={13} /> {animPos ? "다시 재생" : "재생"}
+              </button>
+            )}
+            {animPos && !playing && (
+              <button
+                onClick={resetPlayback}
+                className="flex items-center gap-1.5 text-xs font-bold bg-gray-900 border border-white/10 hover:border-white/20 text-gray-200 px-3 py-2 rounded-xl transition-colors"
+              >
+                <RotateCcw size={13} /> 처음으로
+              </button>
+            )}
+            <button
+              onClick={() => { const next = !loopPlay; setLoopPlay(next); loopRef.current = next; }}
+              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border transition-colors ${
+                loopPlay ? "bg-white/15 border-white/20 text-white" : "bg-gray-900 border-white/10 text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              <Repeat size={13} /> 반복
+            </button>
+            <p className="text-[11px] text-gray-600">같은 번호의 움직임·패스가 동시에 진행돼요{hasBall ? "" : " (패스는 공이 있어야 재생돼요)"}</p>
+          </div>
         )}
 
         <div
@@ -638,7 +808,7 @@ export default function TacticsBoardPage() {
                   style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
                 >
                   <div
-                    onPointerDown={e => { if (editable) { e.stopPropagation(); startArrowDrag(a.id, e); } }}
+                    onPointerDown={e => { if (editable && !playing) { e.stopPropagation(); startArrowDrag(a.id, e); } }}
                     className={`flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-black text-white shadow ${editable ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
                     style={{ background: LINE_COLORS[a.type] }}
                   >
@@ -663,14 +833,20 @@ export default function TacticsBoardPage() {
             return (
             <div
               key={t.id}
-              onPointerDown={e => { if (editable) { e.stopPropagation(); setDraggingId(t.id); } }}
-              className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full border-2 shadow-lg text-[10px] font-black leading-none text-center px-0.5 ${
-                t.team === "opp" ? "bg-white border-gray-300 text-gray-900" : ""
-              } ${editable ? "cursor-grab active:cursor-grabbing" : ""}`}
-              style={{ left: `${t.x}%`, top: `${t.y}%`, ...(pc ? { background: pc.bg, borderColor: pc.border, color: pc.color } : {}) }}
+              onPointerDown={e => { if (editable && !playing) { e.stopPropagation(); setDraggingId(t.id); } }}
+              className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center rounded-full border-2 shadow-lg font-black leading-none text-center ${
+                t.team === "ball" ? "w-6 h-6 text-sm bg-white border-gray-800" : "w-8 h-8 text-[10px] px-0.5"
+              } ${t.team === "opp" ? "bg-white border-gray-300 text-gray-900" : ""
+              } ${editable && !playing ? "cursor-grab active:cursor-grabbing" : ""}`}
+              style={{
+                left: `${(animPos?.[t.id] ?? t).x}%`,
+                top: `${(animPos?.[t.id] ?? t).y}%`,
+                ...(t.team === "ball" ? { zIndex: 5 } : {}),
+                ...(pc ? { background: pc.bg, borderColor: pc.border, color: pc.color } : {}),
+              }}
             >
-              {t.label}
-              {editable && t.team === "opp" && (
+              {t.team === "ball" ? "⚽" : t.label}
+              {editable && !playing && (t.team === "opp" || t.team === "ball") && (
                 <button
                   onPointerDown={e => e.stopPropagation()}
                   onClick={() => removeToken(t.id)}

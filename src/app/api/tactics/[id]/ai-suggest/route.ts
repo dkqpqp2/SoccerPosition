@@ -10,7 +10,7 @@ const UNLIMITED_TEAM_ID = "0216d6ae-fcd1-4c2a-b439-4e2aad003e47";
 const DAILY_LIMIT = 10;
 
 interface TokenInput {
-  team: "us" | "opp";
+  team: "us" | "opp" | "ball";
   label?: string;
   pos?: string;
   x: number;
@@ -77,6 +77,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const tokenLines = tokens.map(t => {
+    if (t.team === "ball") return `- 공 | x:${Math.round(t.x)} y:${Math.round(t.y)}`;
     const side = t.team === "us" ? "우리팀" : "상대팀";
     const label = t.label || t.pos || "(이름 없음)";
     return `- ${side} | ${label} | x:${Math.round(t.x)} y:${Math.round(t.y)}`;
