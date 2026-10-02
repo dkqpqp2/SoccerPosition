@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Plus, Undo2, Trash2, X, ChevronLeft, ChevronDown, Check, Trash, Save, Download, Wand2, Loader2 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import ScrimmageSelect from "@/components/ScrimmageSelect";
-import { FORMATIONS, PositionSlot, FUTSAL_FORMATIONS } from "@/lib/formations";
+import { FORMATIONS, PositionSlot } from "@/lib/formations";
 
 type LineMode = "curve" | "straight";
 type LineType = "move" | "pass";
@@ -55,14 +55,28 @@ interface AssignmentDetail {
   result: Record<string, { name: string } | null>;
 }
 
+interface CustomFormation {
+  id: string;
+  name: string;
+  slots: PositionSlot[];
+}
+
 const SOCCER_FORMATION_NAMES = Object.keys(FORMATIONS).filter(k => FORMATIONS[k].type === "soccer");
 
-// 우리팀 포메이션과 같은 종목·인원수의 포메이션만 상대 포메이션 후보로 제공
-function getMatchingFormationNames(name: string): string[] {
-  const f = FORMATIONS[name];
-  if (!f || f.type === "soccer") return SOCCER_FORMATION_NAMES;
-  const bucket = Object.values(FUTSAL_FORMATIONS).find(list => list.includes(name));
-  return bucket ?? Object.keys(FORMATIONS).filter(k => FORMATIONS[k].type === "futsal");
+// 기본 포메이션(FORMATIONS) 또는 팀이 직접 만든 커스텀 포메이션(custom_formations)에서 슬롯 배열을 찾음
+function getFormationSlots(name: string, customFormations: CustomFormation[]): PositionSlot[] | undefined {
+  return FORMATIONS[name]?.slots ?? customFormations.find(f => f.id === name)?.slots;
+}
+
+// 우리팀 포메이션과 인원수가 같은 포메이션만 상대 포메이션 후보로 제공 (기본 + 커스텀)
+// 인원수가 기본 포메이션의 종목·버킷을 그대로 구분해주므로(축구 11명, 풋살은 버킷마다 인원수가 다 다름) 인원수만 보면 충분
+function getMatchingFormationNames(name: string, customFormations: CustomFormation[]): string[] {
+  const count = getFormationSlots(name, customFormations)?.length;
+  if (!count) return SOCCER_FORMATION_NAMES;
+  return [
+    ...Object.keys(FORMATIONS).filter(k => FORMATIONS[k].slots.length === count),
+    ...customFormations.filter(f => f.slots.length === count).map(f => f.id),
+  ];
 }
 
 function uid() {
@@ -83,6 +97,7 @@ export default function TacticsBoardPage() {
 
   const [formationName, setFormationName] = useState("4-3-3");
   const [oppFormationPick, setOppFormationPick] = useState("");
+  const [customFormations, setCustomFormations] = useState<CustomFormation[]>([]);
   const [tokens, setTokens] = useState<Token[]>([]);
   const [arrows, setArrows] = useState<Arrow[]>([]);
   const [showImport, setShowImport] = useState(false);
@@ -115,6 +130,9 @@ export default function TacticsBoardPage() {
         setArrows(data.arrows ?? []);
         setLoading(false);
       });
+    fetch("/api/formations")
+      .then(res => (res.ok ? res.json() : []))
+      .then(data => setCustomFormations(Array.isArray(data) ? data : []));
   }, [id]);
 
   function pointFromEvent(e: { clientX: number; clientY: number }) {
@@ -205,8 +223,9 @@ export default function TacticsBoardPage() {
   }
 
   function changeFormation(name: string) {
+    const slots = getFormationSlots(name, customFormations);
+    if (!slots) return;
     setFormationName(name);
-    const slots = FORMATIONS[name].slots;
     setTokens(prev => [
       ...slots.map(s => ({ id: s.id, x: s.x, y: s.y, team: "us" as const, label: s.label, pos: s.label })),
       ...prev.filter(t => t.team === "opp"),
@@ -214,7 +233,7 @@ export default function TacticsBoardPage() {
     setDirty(true);
   }
 
-  const maxOpponents = FORMATIONS[formationName]?.slots.length ?? Infinity;
+  const maxOpponents = getFormationSlots(formationName, customFormations)?.length ?? Infinity;
   const opponentCount = tokens.filter(t => t.team === "opp").length;
 
   function addOpponent() {
@@ -224,7 +243,8 @@ export default function TacticsBoardPage() {
   }
 
   function setOpponentFormation(name: string) {
-    const slots = FORMATIONS[name].slots;
+    const slots = getFormationSlots(name, customFormations);
+    if (!slots) return;
     setTokens(prev => [
       ...prev.filter(t => t.team === "us"),
       ...slots.map(s => ({ id: uid(), x: s.x, y: 100 - s.y, team: "opp" as const, label: s.label, pos: s.label })),
@@ -403,6 +423,7 @@ export default function TacticsBoardPage() {
               onChange={changeFormation}
               placeholder="포메이션 선택"
               options={SOCCER_FORMATION_NAMES.map(name => ({ value: name, label: name }))}
+              groups={customFormations.length > 0 ? [{ label: "내 커스텀 포메이션", options: customFormations.map(f => ({ value: f.id, label: f.name })) }] : []}
             />
           </div>
         )}
@@ -462,7 +483,8 @@ export default function TacticsBoardPage() {
                   value={oppFormationPick}
                   onChange={setOpponentFormation}
                   placeholder="상대 포메이션 추가"
-                  options={getMatchingFormationNames(formationName).map(name => ({ value: name, label: name }))}
+                  options={getMatchingFormationNames(formationName, customFormations)
+                    .map(name => ({ value: name, label: customFormations.find(f => f.id === name)?.name ?? name }))}
                 />
               </div>
               <button
