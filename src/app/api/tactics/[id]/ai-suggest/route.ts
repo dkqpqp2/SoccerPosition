@@ -17,6 +17,14 @@ interface TokenInput {
   y: number;
 }
 
+interface ArrowInput {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  type: "move" | "pass";
+}
+
 function kstDateString(): string {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" }).format(new Date());
 }
@@ -44,6 +52,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const body = await req.json();
   const question = typeof body.question === "string" ? body.question.trim().slice(0, 500) : "";
   const tokens: TokenInput[] = Array.isArray(body.tokens) ? body.tokens.slice(0, 30) : [];
+  const existingArrows: ArrowInput[] = Array.isArray(body.arrows) ? body.arrows.slice(0, 30) : [];
 
   if (!question) return NextResponse.json({ error: "질문을 입력해주세요." }, { status: 400 });
 
@@ -71,6 +80,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return `- ${side} | ${label} | x:${Math.round(t.x)} y:${Math.round(t.y)}`;
   }).join("\n") || "(아직 아무도 배치되지 않음)";
 
+  const arrowLines = existingArrows.map((a, i) => {
+    const kind = a.type === "pass" ? "패스" : "움직임";
+    return `- ${kind} ${i + 1}: (${Math.round(a.x1)}, ${Math.round(a.y1)}) → (${Math.round(a.x2)}, ${Math.round(a.y2)})`;
+  }).join("\n") || "(아직 그려진 화살표 없음)";
+
   const prompt = `당신은 축구/풋살 팀의 전술 코치를 돕는 어시스턴트입니다. 전술판은 가로 0~100, 세로 0~100 좌표의 피치입니다.
 - 우리팀은 아래쪽(세로좌표가 클수록 우리 골대, 작을수록 상대 골대)에 있고, 세로좌표가 작아지는 방향(위쪽)으로 공격합니다.
 - 상대팀은 그 반대로, 위쪽이 상대 골대이고 아래쪽(세로좌표가 커지는 방향)으로 공격합니다.
@@ -78,9 +92,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 현재 피치 배치:
 ${tokenLines}
 
+코치가 이미 그려둔 화살표:
+${arrowLines}
+
 코치의 질문: ${question}
 
-이 상황에 대한 전술 제안을 화살표로 그려주세요. 화살표는 두 종류입니다:
+이미 그려둔 화살표가 있다면 그것과 자연스럽게 이어지거나 보완하는 제안을 해주세요 (이미 있는 동선을 그대로 중복해서 다시 그릴 필요는 없습니다). 이 상황에 대한 전술 제안을 화살표로 그려주세요. 화살표는 두 종류입니다:
 - move(움직임, 빨간색): 선수가 공 없이 이동하는 동선
 - pass(패스, 파란색): 공이 이동하는 경로
 
@@ -89,7 +106,7 @@ ${tokenLines}
   "arrows": [
     { "x1": 0~100 숫자, "y1": 0~100 숫자, "x2": 0~100 숫자, "y2": 0~100 숫자, "mode": "curve 또는 straight", "type": "move 또는 pass" }
   ],
-  "explanation": "이 전술을 추천하는 이유를 2~4문장의 한국어로 설명"
+  "explanation": "이미 그려둔 화살표가 있다면 그것까지 고려해서, 왜 이런 제안을 하는지 2~4문장의 한국어로 자세히 설명"
 }
 
 화살표는 최대 6개까지만, 꼭 필요한 것만 그려주세요.`;
