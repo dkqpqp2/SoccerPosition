@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Plus, Undo2, Trash2, X, ChevronLeft, Check, Trash, Save, Download } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import ScrimmageSelect from "@/components/ScrimmageSelect";
-import { FORMATIONS, PositionSlot } from "@/lib/formations";
+import { FORMATIONS, PositionSlot, FUTSAL_FORMATIONS } from "@/lib/formations";
 
 type LineMode = "curve" | "straight";
 type LineType = "move" | "pass";
@@ -57,6 +57,14 @@ interface AssignmentDetail {
 
 const SOCCER_FORMATION_NAMES = Object.keys(FORMATIONS).filter(k => FORMATIONS[k].type === "soccer");
 
+// 우리팀 포메이션과 같은 종목·인원수의 포메이션만 상대 포메이션 후보로 제공
+function getMatchingFormationNames(name: string): string[] {
+  const f = FORMATIONS[name];
+  if (!f || f.type === "soccer") return SOCCER_FORMATION_NAMES;
+  const bucket = Object.values(FUTSAL_FORMATIONS).find(list => list.includes(name));
+  return bucket ?? Object.keys(FORMATIONS).filter(k => FORMATIONS[k].type === "futsal");
+}
+
 function uid() {
   return Math.random().toString(36).slice(2);
 }
@@ -74,6 +82,7 @@ export default function TacticsBoardPage() {
   const [dirty, setDirty] = useState(false);
 
   const [formationName, setFormationName] = useState("4-3-3");
+  const [oppFormationPick, setOppFormationPick] = useState("");
   const [tokens, setTokens] = useState<Token[]>([]);
   const [arrows, setArrows] = useState<Arrow[]>([]);
   const [showImport, setShowImport] = useState(false);
@@ -199,9 +208,23 @@ export default function TacticsBoardPage() {
     setDirty(true);
   }
 
+  const maxOpponents = FORMATIONS[formationName]?.slots.length ?? Infinity;
+  const opponentCount = tokens.filter(t => t.team === "opp").length;
+
   function addOpponent() {
+    if (opponentCount >= maxOpponents) return;
     setTokens(prev => [...prev, { id: uid(), x: 50, y: 50, team: "opp" }]);
     setDirty(true);
+  }
+
+  function setOpponentFormation(name: string) {
+    const slots = FORMATIONS[name].slots;
+    setTokens(prev => [
+      ...prev.filter(t => t.team === "us"),
+      ...slots.map(s => ({ id: uid(), x: s.x, y: 100 - s.y, team: "opp" as const, label: s.label, pos: s.label })),
+    ]);
+    setDirty(true);
+    setOppFormationPick("");
   }
 
   async function openImport() {
@@ -384,13 +407,22 @@ export default function TacticsBoardPage() {
               ))}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center flex-wrap gap-2">
               <button
                 onClick={addOpponent}
-                className="flex items-center gap-1.5 text-xs font-bold bg-gray-900 border border-white/10 hover:border-white/20 text-gray-200 px-3 py-2 rounded-xl transition-colors"
+                disabled={opponentCount >= maxOpponents}
+                className="flex items-center gap-1.5 text-xs font-bold bg-gray-900 border border-white/10 hover:border-white/20 disabled:opacity-40 text-gray-200 px-3 py-2 rounded-xl transition-colors"
               >
                 <Plus size={14} /> 상대 추가
               </button>
+              <div className="w-40">
+                <ScrimmageSelect
+                  value={oppFormationPick}
+                  onChange={setOpponentFormation}
+                  placeholder="상대 포메이션 추가"
+                  options={getMatchingFormationNames(formationName).map(name => ({ value: name, label: name }))}
+                />
+              </div>
               <button
                 onClick={undoLastArrow}
                 disabled={arrows.length === 0}
