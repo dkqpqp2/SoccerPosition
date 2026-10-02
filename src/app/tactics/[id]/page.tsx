@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { Plus, Undo2, Trash2, X, ChevronLeft, ChevronDown, Check, Trash, Save, Download, Wand2, Loader2, LayoutGrid, Play, Square, RotateCcw, Repeat } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import ScrimmageSelect from "@/components/ScrimmageSelect";
+import PositionSelect from "@/components/PositionSelect";
+import { zonePosition, detectFormationName } from "@/lib/tacticsZones";
 import { FORMATIONS, PositionSlot } from "@/lib/formations";
 
 type LineMode = "curve" | "straight";
@@ -30,6 +32,7 @@ interface Token {
   team: "us" | "opp" | "ball";
   label?: string;
   pos?: string; // 포지션 코드(GK/CB/CM/ST 등) — label이 선수 이름으로 바뀌어도 색상 구분용으로 유지
+  posManual?: boolean; // 사용자가 직접 고른 포지션이면 true — 드래그해도 구역에 따라 자동으로 안 바뀜
 }
 
 // assign 페이지와 동일한 포지션별 색상 규칙 (GK 주황 / 수비 파랑 / 공격 빨강 / 미드필드 초록)
@@ -143,6 +146,8 @@ export default function TacticsBoardPage() {
   const [playing, setPlaying] = useState(false);
   const [animPos, setAnimPos] = useState<Record<string, { x: number; y: number }> | null>(null);
   const [loopPlay, setLoopPlay] = useState(false);
+  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
+  const dragOriginRef = useRef<{ id: string; x: number; y: number } | null>(null);
   const loopRef = useRef(false);
   const rafRef = useRef<number | null>(null);
 
@@ -182,6 +187,7 @@ export default function TacticsBoardPage() {
 
   function handlePitchPointerDown(e: React.PointerEvent) {
     if (!editable || playing || draggingId || arrowDrag) return;
+    setSelectedTokenId(null);
     const { x, y } = pointFromEvent(e);
     setDraft({ x1: x, y1: y, x2: x, y2: y });
   }
@@ -209,8 +215,17 @@ export default function TacticsBoardPage() {
   function handlePitchPointerUp() {
     if (!editable) return;
     if (draggingId) {
+      const origin = dragOriginRef.current;
+      const dragged = tokens.find(t => t.id === draggingId);
+      const moved = origin && dragged ? Math.hypot(dragged.x - origin.x, (dragged.y - origin.y) * 1.4) : 0;
+      if (dragged && moved < 1.5 && dragged.team === "us") {
+        setSelectedTokenId(dragged.id);
+      } else if (dragged && moved >= 1.5) {
+        applyZoneLabel(dragged.id);
+      }
+      dragOriginRef.current = null;
       setDraggingId(null);
-      setDirty(true);
+      if (moved >= 1.5) setDirty(true);
       return;
     }
     if (arrowDrag) {
@@ -343,6 +358,39 @@ export default function TacticsBoardPage() {
     rafRef.current = requestAnimationFrame(frame);
   }
 
+  // 놓은 구역에 맞춰 포지션 이름을 자동으로 바꿈 — 우리팀 11명일 때만, GK/직접 고른 포지션은 건드리지 않음
+  function applyZoneLabel(tokenId: string) {
+    setTokens(prev => {
+      if (prev.filter(t => t.team === "us").length !== 11) return prev;
+      return prev.map(t => {
+        if (t.id !== tokenId || t.team !== "us" || t.posManual || t.pos === "GK") return t;
+        const next = zonePosition(t.x, t.y);
+        if (next === t.pos) return t;
+        const labelFollowsPos = !t.label || t.label === t.pos;
+        return { ...t, pos: next, label: labelFollowsPos ? next : t.label };
+      });
+    });
+  }
+
+  function setTokenPosition(tokenId: string, pos: string) {
+    setTokens(prev => prev.map(t => {
+      if (t.id !== tokenId) return t;
+      const labelFollowsPos = !t.label || t.label === t.pos;
+      return { ...t, pos, posManual: true, label: labelFollowsPos ? pos : t.label };
+    }));
+    setDirty(true);
+  }
+
+  function resetTokenPositionToAuto(tokenId: string) {
+    setTokens(prev => prev.map(t => {
+      if (t.id !== tokenId) return t;
+      const next = zonePosition(t.x, t.y);
+      const labelFollowsPos = !t.label || t.label === t.pos;
+      return { ...t, pos: next, posManual: false, label: labelFollowsPos ? next : t.label };
+    }));
+    setDirty(true);
+  }
+
   function changeFormation(name: string) {
     const slots = getFormationSlots(name, customFormations);
     if (!slots) return;
@@ -355,6 +403,8 @@ export default function TacticsBoardPage() {
   }
 
   const hasBall = tokens.some(t => t.team === "ball");
+  const detectedFormation = detectFormationName(tokens);
+  const selectedToken = tokens.find(t => t.id === selectedTokenId && t.team === "us") ?? null;
 
   function addBall() {
     if (hasBall) return;
@@ -574,6 +624,12 @@ export default function TacticsBoardPage() {
               options={SOCCER_FORMATION_NAMES.map(name => ({ value: name, label: name }))}
               groups={customFormations.length > 0 ? [{ label: "내 커스텀 포메이션", options: customFormations.map(f => ({ value: f.id, label: f.name })) }] : []}
             />
+            {detectedFormation && (
+              <p className="text-[11px] text-gray-500 mt-1.5">
+                현재 배치: <span className="font-bold text-emerald-400">{detectedFormation}</span>
+                <span className="text-gray-600"> · 선수를 드래그하면 놓은 자리에 맞게 포지션이 바뀌어요</span>
+              </p>
+            )}
           </div>
         )}
 
@@ -586,7 +642,7 @@ export default function TacticsBoardPage() {
               <Download size={14} /> 포지션 배정에서 불러오기
             </button>
             <button
-              onClick={() => setShowSaveFormation(true)}
+              onClick={() => { if (!saveFormationName.trim() && detectedFormation) setSaveFormationName(detectedFormation); setShowSaveFormation(true); }}
               className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold bg-gray-900 border border-white/10 hover:border-white/20 text-gray-200 px-3 py-2.5 rounded-xl transition-colors"
             >
               <LayoutGrid size={14} /> 커스텀 포메이션으로 저장
@@ -711,6 +767,26 @@ export default function TacticsBoardPage() {
           </>
         )}
 
+        {editable && !playing && selectedToken && (
+          <div className="flex items-center gap-2 bg-gray-900/60 border border-yellow-400/30 rounded-xl p-3">
+            <div className="shrink-0 min-w-0">
+              <p className="text-[11px] text-gray-500">선택한 선수</p>
+              <p className="text-sm font-bold text-white truncate max-w-[6rem]">{selectedToken.label ?? selectedToken.pos}</p>
+            </div>
+            <div className="flex-1 min-w-0">
+              <PositionSelect value={selectedToken.pos ?? ""} onChange={v => setTokenPosition(selectedToken.id, v)} />
+            </div>
+            {selectedToken.posManual && selectedToken.pos !== "GK" && (
+              <button
+                onClick={() => resetTokenPositionToAuto(selectedToken.id)}
+                className="shrink-0 text-[11px] font-bold text-emerald-400 hover:text-emerald-300"
+              >
+                자동으로
+              </button>
+            )}
+          </div>
+        )}
+
         {arrows.length > 0 && (
           <div className="flex items-center flex-wrap gap-2">
             {playing ? (
@@ -833,11 +909,11 @@ export default function TacticsBoardPage() {
             return (
             <div
               key={t.id}
-              onPointerDown={e => { if (editable && !playing) { e.stopPropagation(); setDraggingId(t.id); } }}
+              onPointerDown={e => { if (editable && !playing) { e.stopPropagation(); dragOriginRef.current = { id: t.id, x: t.x, y: t.y }; setDraggingId(t.id); } }}
               className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center rounded-full border-2 shadow-lg font-black leading-none text-center ${
                 t.team === "ball" ? "w-6 h-6 text-sm bg-white border-gray-800" : "w-8 h-8 text-[10px] px-0.5"
               } ${t.team === "opp" ? "bg-white border-gray-300 text-gray-900" : ""
-              } ${editable && !playing ? "cursor-grab active:cursor-grabbing" : ""}`}
+              } ${editable && !playing ? "cursor-grab active:cursor-grabbing" : ""} ${selectedTokenId === t.id ? "ring-2 ring-yellow-300" : ""}`}
               style={{
                 left: `${(animPos?.[t.id] ?? t).x}%`,
                 top: `${(animPos?.[t.id] ?? t).y}%`,
