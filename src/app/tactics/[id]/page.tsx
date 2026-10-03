@@ -73,8 +73,7 @@ function getFormationSlots(name: string, customFormations: CustomFormation[]): P
 
 // 우리팀 포메이션과 인원수가 같은 포메이션만 상대 포메이션 후보로 제공 (기본 + 커스텀)
 // 인원수가 기본 포메이션의 종목·버킷을 그대로 구분해주므로(축구 11명, 풋살은 버킷마다 인원수가 다 다름) 인원수만 보면 충분
-function getMatchingFormationNames(name: string, customFormations: CustomFormation[]): string[] {
-  const count = getFormationSlots(name, customFormations)?.length;
+function getMatchingFormationNames(count: number, customFormations: CustomFormation[]): string[] {
   if (!count) return SOCCER_FORMATION_NAMES;
   return [
     ...Object.keys(FORMATIONS).filter(k => FORMATIONS[k].slots.length === count),
@@ -446,7 +445,13 @@ export default function TacticsBoardPage() {
     setDirty(true);
   }
 
-  const maxOpponents = getFormationSlots(formationName, customFormations)?.length ?? Infinity;
+  // 우리팀 인원수 기준 — 직접 배치한 이름(예: 4-3-1-2)처럼 목록에 없는 이름으로 저장된 보드에서도 똑같이 동작
+  const usCount = tokens.filter(t => t.team === "us").length;
+  const maxOpponents = usCount > 0 ? usCount : Infinity;
+
+  // 드래그로 배치를 바꿨으면 고른 포메이션 이름과 달라짐 — 선택칸엔 바뀐 이름을 보여주고 저장도 바뀐 이름으로
+  const selectedFormationLabel = FORMATIONS[formationName] ? formationName : customFormations.find(f => f.id === formationName)?.name;
+  const layoutChanged = !!detectedFormation && detectedFormation !== selectedFormationLabel;
   const opponentCount = tokens.filter(t => t.team === "opp").length;
 
   function addOpponent() {
@@ -572,7 +577,7 @@ export default function TacticsBoardPage() {
     const res = await fetch(`/api/tactics/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, formation_name: formationName, tokens, arrows }),
+      body: JSON.stringify({ title, formation_name: detectedFormation ?? formationName, tokens, arrows }),
     });
     setSaving(false);
     if (res.ok) setDirty(false);
@@ -652,9 +657,9 @@ export default function TacticsBoardPage() {
           <div>
             <p className="text-xs text-gray-500 mb-1.5">포메이션</p>
             <ScrimmageSelect
-              value={formationName}
+              value={layoutChanged ? "" : formationName}
               onChange={changeFormation}
-              placeholder="포메이션 선택"
+              placeholder={layoutChanged ? `${detectedFormation} (직접 배치)` : "포메이션 선택"}
               options={SOCCER_FORMATION_NAMES.map(name => ({ value: name, label: name }))}
               groups={customFormations.length > 0 ? [{ label: "내 커스텀 포메이션", options: customFormations.map(f => ({ value: f.id, label: f.name })) }] : []}
             />
@@ -730,7 +735,7 @@ export default function TacticsBoardPage() {
                   value={oppFormationPick}
                   onChange={setOpponentFormation}
                   placeholder="상대 포메이션 추가"
-                  options={getMatchingFormationNames(formationName, customFormations)
+                  options={getMatchingFormationNames(usCount, customFormations)
                     .map(name => ({ value: name, label: customFormations.find(f => f.id === name)?.name ?? name }))}
                 />
               </div>
