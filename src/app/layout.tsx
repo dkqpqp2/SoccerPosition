@@ -9,7 +9,10 @@ export const metadata: Metadata = {
   description: "SPM은 축구팀 포지션 배정, 경기 관리, 팀원 관리를 스마트하게 도와주는 서비스입니다. 쉽고 빠른 포지션 배정으로 팀 운영을 더 효율적으로.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
     apple: "/apple-touch-icon.png",
   },
   appleWebApp: {
