@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "SPM - Sports Position Management",
     description: "스포츠팀 포지션 배정과 경기 관리를 스마트하게. SPM으로 팀 운영을 더 쉽게.",
-    url: "https://soccerpositionmanagement.com",
+    url: "https://www.soccerpositionmanagement.com",
     siteName: "SPM",
     locale: "ko_KR",
     type: "website",
