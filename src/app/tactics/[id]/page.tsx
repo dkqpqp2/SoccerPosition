@@ -148,7 +148,7 @@ function pointOnArrow(a: PlaybackArrow, t: number) {
 }
 
 interface PlaybackStep {
-  move?: { tokenId: string; arrow: Arrow };
+  moves: { tokenId: string; arrow: Arrow }[];
   pass?: { arrow: Arrow };
   durationMs: number;
 }
@@ -322,17 +322,36 @@ export default function TacticsBoardPage() {
 
   // 같은 번호의 움직임·패스를 한 단계로 묶음. 움직임은 시작점에서 가장 가까운 선수(이전 단계 이동 결과 기준)가 따라가고,
   // 패스는 공 토큰이 있을 때만 재생됨
+  // 단계는 공이 가는 패스 순서대로 만들고, 도착 지점이 그 패스 끝점 근처인 움직임을 같은 단계에 묶어서
+  // 공과 선수가 같은 시간에 같은 지점으로 도착하게 함. 어떤 패스와도 안 맞는 움직임은 번호 순서대로
+  // 같은 번호의 단계에 붙이고(없으면 새 단계), 움직임은 시작점에서 가장 가까운 선수(이전 단계 이동 결과 기준)가 따라감
   function buildPlaybackSteps(): PlaybackStep[] {
     const moves = arrows.filter(a => a.type === "move");
-    const passes = arrows.filter(a => a.type === "pass");
+    const ballExists = tokens.some(t => t.team === "ball");
+    const passes = ballExists ? arrows.filter(a => a.type === "pass") : [];
     const cur: Record<string, { x: number; y: number }> = {};
     tokens.forEach(t => { cur[t.id] = { x: t.x, y: t.y }; });
-    const ballExists = tokens.some(t => t.team === "ball");
-    const steps: PlaybackStep[] = [];
-    for (let k = 0; k < Math.max(moves.length, passes.length); k++) {
-      const step: PlaybackStep = { durationMs: EMPTY_STEP_MS };
-      const m = moves[k];
-      if (m) {
+
+    const steps: PlaybackStep[] = passes.map(p => ({ moves: [], pass: { arrow: p }, durationMs: EMPTY_STEP_MS }));
+    const stepMoves: Arrow[][] = steps.map(() => []);
+    const unpaired: Arrow[] = [];
+    for (const m of moves) {
+      let bestJ = -1;
+      let bestD = Infinity;
+      passes.forEach((p, j) => {
+        const d = Math.hypot(p.x2 - m.x2, (p.y2 - m.y2) * 1.4);
+        if (d <= MOVER_MAX_DIST && d < bestD) { bestD = d; bestJ = j; }
+      });
+      if (bestJ >= 0) stepMoves[bestJ].push(m);
+      else unpaired.push(m);
+    }
+    unpaired.forEach((m, u) => {
+      while (steps.length <= u) { steps.push({ moves: [], durationMs: EMPTY_STEP_MS }); stepMoves.push([]); }
+      stepMoves[u].push(m);
+    });
+
+    steps.forEach((step, i) => {
+      for (const m of stepMoves[i]) {
         let best: { id: string; d: number } | null = null;
         for (const t of tokens) {
           if (t.team === "ball") continue;
@@ -340,23 +359,27 @@ export default function TacticsBoardPage() {
           if (d <= MOVER_MAX_DIST && (!best || d < best.d)) best = { id: t.id, d };
         }
         if (best) {
-          step.move = { tokenId: best.id, arrow: m };
+          step.moves.push({ tokenId: best.id, arrow: m });
           cur[best.id] = { x: m.x2, y: m.y2 };
         }
       }
-      if (passes[k] && ballExists) step.pass = { arrow: passes[k] };
-      // 패스 끝점이 이 단계에서 움직이는 선수의 도착점 근처면 그 선수에게 가는 패스로 보고, 공이 선수 도착점에 정확히 도착하게 맞춤
-      if (step.move && step.pass) {
-        const gap = Math.hypot(step.pass.arrow.x2 - step.move.arrow.x2, (step.pass.arrow.y2 - step.move.arrow.y2) * 1.4);
-        if (gap <= MOVER_MAX_DIST) step.pass = { arrow: { ...step.pass.arrow, x2: step.move.arrow.x2, y2: step.move.arrow.y2 } };
+      // 공이 그 단계에서 움직이는 선수 중 가장 가까운 도착점에 정확히 도착하게 맞춤
+      if (step.pass) {
+        const pa = step.pass.arrow;
+        let target: Arrow | null = null;
+        let targetD = Infinity;
+        for (const mv of step.moves) {
+          const d = Math.hypot(pa.x2 - mv.arrow.x2, (pa.y2 - mv.arrow.y2) * 1.4);
+          if (d <= MOVER_MAX_DIST && d < targetD) { targetD = d; target = mv.arrow; }
+        }
+        if (target) step.pass = { arrow: { ...pa, x2: target.x2, y2: target.y2 } };
       }
       const needMs = Math.max(
         step.pass ? (arrowLength(step.pass.arrow) / BALL_SPEED) * 1000 : 0,
-        step.move ? (arrowLength(step.move.arrow) / PLAYER_SPEED) * 1000 : 0,
+        ...step.moves.map(mv => (arrowLength(mv.arrow) / PLAYER_SPEED) * 1000),
       );
       if (needMs > 0) step.durationMs = Math.min(MAX_STEP_MS, Math.max(MIN_STEP_MS, needMs));
-      steps.push(step);
-    }
+    });
     return steps;
   }
 
@@ -399,7 +422,7 @@ export default function TacticsBoardPage() {
         const local = elapsed - starts[i];
         const prog = done || local >= s.durationMs ? 1 : local <= 0 ? 0 : ease(local / s.durationMs);
         if (prog === 0) return;
-        if (s.move) pos[s.move.tokenId] = pointOnArrow(s.move.arrow, prog);
+        s.moves.forEach(mv => { pos[mv.tokenId] = pointOnArrow(mv.arrow, prog); });
         if (s.pass && ballId) pos[ballId] = pointOnArrow(s.pass.arrow, prog);
       });
       setAnimPos(pos);
@@ -882,7 +905,7 @@ export default function TacticsBoardPage() {
             >
               <Repeat size={13} /> 반복
             </button>
-            <p className="text-[11px] text-gray-600">같은 번호의 움직임·패스가 동시에 진행돼요{hasBall ? "" : " (패스는 공이 있어야 재생돼요)"}</p>
+            <p className="text-[11px] text-gray-600">도착 지점이 같은 움직임·패스가 같이 도착해요{hasBall ? "" : " (패스는 공이 있어야 재생돼요)"}</p>
           </div>
         )}
 
