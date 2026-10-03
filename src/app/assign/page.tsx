@@ -6,7 +6,7 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import {
   Calendar, AlertTriangle, ClipboardList, BarChart3, Pencil, Check, X,
   Zap, Coffee, Dices, Trophy, Save, Link2, Users, Footprints, Goal,
-  Wand2, Loader2, Bell,
+  Wand2, Loader2, Bell, PenTool,
   type LucideIcon,
 } from "lucide-react";
 import { supabaseClient } from "@/lib/supabaseClient";
@@ -46,6 +46,13 @@ interface CustomFormation {
   slots: PositionSlot[];
 }
 
+interface TacticsBoardSummary {
+  id: string;
+  title: string;
+  formation_name: string;
+  updated_at: string;
+}
+
 interface SavedAssignment {
   id: string;
   session_name: string;
@@ -82,6 +89,9 @@ function AssignContent() {
   const [showHistoryMobile, setShowHistoryMobile] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showFormationChange, setShowFormationChange] = useState(false);
+  const [showTacticsImport, setShowTacticsImport] = useState(false);
+  const [tacticsList, setTacticsList] = useState<TacticsBoardSummary[] | null>(null);
+  const [importingTactics, setImportingTactics] = useState(false);
   const [attendingIds, setAttendingIds] = useState<Set<string>>(new Set());
   const [showAttendModal, setShowAttendModal] = useState(false);
   const [shareToast, setShareToast] = useState(false);
@@ -200,6 +210,10 @@ function AssignContent() {
   }
 
   function loadAssignment(saved: SavedAssignment) {
+    if (saved.formation_id?.startsWith("tactics:") && saved.formation_slots) {
+      const imported = { id: saved.formation_id, name: saved.formation_name, slots: saved.formation_slots };
+      setCustomFormations(prev => (prev.some(f => f.id === imported.id) ? prev : [...prev, imported]));
+    }
     if (saved.formation_id) setSelectedFormation(saved.formation_id);
     if (saved.formation_slots) setLoadedFormationSlots(saved.formation_slots);
     setAssigned(saved.result);
@@ -249,6 +263,36 @@ function AssignContent() {
     });
     return () => { supabaseClient.removeChannel(channel); };
   }, [matchId, userName]);
+
+  async function openTacticsImport() {
+    setShowTacticsImport(true);
+    if (tacticsList) return;
+    const res = await fetch("/api/tactics");
+    setTacticsList(res.ok ? await res.json() : []);
+  }
+
+  // 전술판의 우리팀 배치를 이 화면에서만 쓰는 임시 포메이션으로 올림 (DB에 커스텀 포메이션을 새로 만들지 않음)
+  async function importTacticsFormation(board: TacticsBoardSummary) {
+    setImportingTactics(true);
+    const res = await fetch(`/api/tactics/${board.id}`);
+    if (res.ok) {
+      const data = await res.json();
+      const seen = new Set<string>();
+      const slots: PositionSlot[] = (Array.isArray(data.tokens) ? data.tokens : [])
+        .filter((t: { team?: string }) => t.team === "us")
+        .map((t: { id: string; x: number; y: number; pos?: string; label?: string }) => ({ id: t.id, x: t.x, y: t.y, label: t.pos ?? t.label ?? "" }))
+        .filter((sl: PositionSlot) => sl.label && !seen.has(sl.id) && seen.add(sl.id));
+      if (slots.length > 0) {
+        const id = `tactics:${board.id}`;
+        const name = `${board.title} · ${board.formation_name}`;
+        setCustomFormations(prev => [...prev.filter(f => f.id !== id), { id, name, slots }]);
+        setSelectedFormation(id);
+        setLoadedFormationSlots(null);
+        setShowTacticsImport(false);
+      }
+    }
+    setImportingTactics(false);
+  }
 
   async function fetchCustomFormations() {
     const res = await fetch("/api/formations");
@@ -565,7 +609,12 @@ function AssignContent() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">포메이션 선택</p>
-                  {canManage && <button onClick={() => router.push("/formations")} className="text-xs text-emerald-400 hover:text-emerald-300">+ 포메이션 만들기</button>}
+                  {canManage && (
+                    <div className="flex items-center gap-3">
+                      <button onClick={openTacticsImport} className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300"><PenTool size={12} /> 전술판에서 가져오기</button>
+                      <button onClick={() => router.push("/formations")} className="text-xs text-emerald-400 hover:text-emerald-300">+ 포메이션 만들기</button>
+                    </div>
+                  )}
                 </div>
                 <FormationSelect value={selectedFormation} onChange={setSelectedFormation} customFormations={customFormations} />
                 <FieldView formation={formation} assigned={{}} preview teamColor={teamColor} mercenaryIds={new Set()} />
@@ -958,6 +1007,41 @@ function AssignContent() {
           </div>
         );
       })()}
+
+      {/* 전술판에서 포메이션 가져오기 모달 */}
+      {showTacticsImport && (
+        <div className="fixed inset-0 bg-black/70 z-50 overflow-y-auto" onClick={() => setShowTacticsImport(false)}>
+          <div className="flex min-h-full items-center justify-center px-4 py-6">
+            <div className="bg-gray-900 border border-white/10 rounded-lg shadow-2xl w-full max-w-sm max-h-[70vh] flex flex-col p-5" onClick={e => e.stopPropagation()}>
+              <h3 className="font-bold text-white text-base mb-1">전술판에서 가져오기</h3>
+              <p className="text-xs text-gray-500 mb-4">고르면 그 전술판의 우리팀 배치가 포메이션으로 선택돼요. (공·상대 위치는 가져오지 않아요)</p>
+              <div className="overflow-y-auto -mx-1 px-1">
+                {tacticsList === null ? (
+                  <div className="flex justify-center py-8">
+                    <div className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : tacticsList.length === 0 ? (
+                  <p className="text-sm text-gray-600 text-center py-8">가져올 전술판이 없어요</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {tacticsList.map(b => (
+                      <button
+                        key={b.id}
+                        onClick={() => importTacticsFormation(b)}
+                        disabled={importingTactics}
+                        className="w-full text-left bg-gray-800 hover:bg-gray-800/70 disabled:opacity-50 border border-white/5 rounded-xl px-3 py-2.5 transition-colors"
+                      >
+                        <p className="text-sm font-bold text-white">{b.title}</p>
+                        <p className="text-[11px] text-gray-500 mt-0.5">{b.formation_name}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 참가 인원 선택 모달 */}
       {showAttendModal && (
