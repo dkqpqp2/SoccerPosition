@@ -404,7 +404,7 @@ export default function Home() {
           <SpmLogo size="sm" showText={false} />
           <span className="ml-2 text-sm font-bold text-gray-600">SPM</span>
         </div>
-        <p className="text-xs text-gray-700">Soccer Position Management · 풋살·축구팀을 위한 포지션 관리 플랫폼</p>
+        <p className="text-xs text-gray-700">Sports Position Management · 풋살·축구 등 스포츠팀을 위한 포지션 관리 플랫폼</p>
       </footer>
     </div>
   );

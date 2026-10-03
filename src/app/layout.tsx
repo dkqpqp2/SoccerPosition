@@ -6,7 +6,7 @@ import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "SPM - Sports Position Management",
-  description: "SPM은 축구팀 포지션 배정, 경기 관리, 팀원 관리를 스마트하게 도와주는 서비스입니다. 쉽고 빠른 포지션 배정으로 팀 운영을 더 효율적으로.",
+  description: "SPM은 풋살·축구 등 스포츠팀의 포지션 배정, 경기 관리, 팀원 관리를 스마트하게 도와주는 서비스입니다. 쉽고 빠른 포지션 배정으로 팀 운영을 더 효율적으로.",
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -18,11 +18,11 @@ export const metadata: Metadata = {
   appleWebApp: {
     title: "스포츠팀매니저",
   },
-  keywords: ["SPM", "축구 포지션", "포지션 배정", "축구팀 관리", "Soccer Position Management", "풋살 팀 관리", "팀원 관리"],
+  keywords: ["SPM", "스포츠팀 관리", "축구 포지션", "포지션 배정", "축구팀 관리", "풋살 팀 관리", "Sports Position Management", "Soccer Position Management", "팀원 관리"],
   authors: [{ name: "SPM" }],
   openGraph: {
     title: "SPM - Sports Position Management",
-    description: "축구팀 포지션 배정과 경기 관리를 스마트하게. SPM으로 팀 운영을 더 쉽게.",
+    description: "스포츠팀 포지션 배정과 경기 관리를 스마트하게. SPM으로 팀 운영을 더 쉽게.",
     url: "https://soccerpositionmanagement.com",
     siteName: "SPM",
     locale: "ko_KR",
