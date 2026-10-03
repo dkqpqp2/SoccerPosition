@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     title: "스포츠팀매니저",
   },
-  keywords: ["SPM", "스포츠팀 관리", "축구 포지션", "포지션 배정", "축구팀 관리", "풋살 팀 관리", "Sports Position Management", "Soccer Position Management", "팀원 관리"],
+  keywords: ["SPM", "스포츠팀 관리", "축구 포지션", "포지션 배정", "축구팀 관리", "풋살 팀 관리", "Sports Position Management", "팀원 관리"],
   authors: [{ name: "SPM" }],
   openGraph: {
     title: "SPM - Sports Position Management",
