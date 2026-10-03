@@ -135,7 +135,7 @@ export default function ScrimmageSharePage() {
         </div>
 
         <p className="flex items-center justify-center gap-1 text-gray-700 text-xs mt-6 pb-2">
-          <Swords size={12} /> Soccer Position Management
+          <Swords size={12} /> Sports Position Management
         </p>
       </div>
     </div>

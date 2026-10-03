@@ -333,7 +333,7 @@ export default function SharePage() {
             </div>
           </div>
 
-          <p className="flex items-center justify-center gap-1 text-gray-700 text-xs mt-4 pb-2"><Target size={12} /> Soccer Position Management</p>
+          <p className="flex items-center justify-center gap-1 text-gray-700 text-xs mt-4 pb-2"><Target size={12} /> Sports Position Management</p>
         </div>
         {/* ── 캡쳐 영역 끝 ── */}
 

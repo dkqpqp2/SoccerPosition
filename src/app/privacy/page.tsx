@@ -9,7 +9,7 @@ export default function PrivacyPage() {
           <span className="text-2xl">⚽</span>
           <div>
             <p className="font-black text-white text-sm">SPM</p>
-            <p className="text-gray-500 text-xs">Soccer Position Management</p>
+            <p className="text-gray-500 text-xs">Sports Position Management</p>
           </div>
         </div>
       </header>
@@ -17,12 +17,12 @@ export default function PrivacyPage() {
       <main className="max-w-3xl mx-auto px-6 py-10 space-y-8">
         <div>
           <h1 className="text-2xl font-black text-white">개인정보처리방침</h1>
-          <p className="text-gray-500 text-sm mt-2">최종 수정일: 2026년 6월 6일</p>
+          <p className="text-gray-500 text-sm mt-2">최종 수정일: 2026년 10월 3일</p>
         </div>
 
         <Section title="1. 개요">
           <p>
-            SPM(Soccer Position Management, 이하 &quot;서비스&quot;)은 사용자의 개인정보를 소중히 여기며,
+            SPM(Sports Position Management, 이하 &quot;서비스&quot;)은 사용자의 개인정보를 소중히 여기며,
             「개인정보 보호법」 및 관련 법령을 준수합니다.
             본 방침은 서비스가 수집하는 개인정보의 항목, 수집 목적, 보유 기간, 제3자 제공 여부 등을 안내합니다.
           </p>
@@ -114,7 +114,7 @@ export default function PrivacyPage() {
 
         <Section title="9. 개인정보 보호책임자">
           <div className="space-y-1">
-            <p><span className="text-gray-400">서비스명:</span> SPM (Soccer Position Management)</p>
+            <p><span className="text-gray-400">서비스명:</span> SPM (Sports Position Management)</p>
             <p><span className="text-gray-400">이메일:</span> dkqpqp2@gmail.com</p>
           </div>
         </Section>
@@ -127,7 +127,7 @@ export default function PrivacyPage() {
         </Section>
 
         <div className="pt-4 border-t border-white/5 text-center">
-          <p className="text-gray-600 text-xs">본 방침은 2026년 6월 6일부터 적용됩니다.</p>
+          <p className="text-gray-600 text-xs">본 방침은 2026년 10월 3일부터 적용됩니다.</p>
         </div>
       </main>
     </div>
