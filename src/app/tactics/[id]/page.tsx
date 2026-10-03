@@ -119,11 +119,22 @@ function BallIcon({ size = 24 }: { size?: number }) {
   );
 }
 
-const STEP_MS = 1200;
+// 단계 길이는 거리에 비례: 공은 BALL_SPEED, 선수는 PLAYER_SPEED로 가는 시간 중 더 오래 걸리는 쪽에 맞춰
+// 같은 번호의 움직임·패스가 동시에 도착함 (속도 단위: 피치 가로 % / 초)
+const BALL_SPEED = 45;
+const PLAYER_SPEED = 25;
+const MIN_STEP_MS = 800;
+const MAX_STEP_MS = 3500;
+const EMPTY_STEP_MS = 300;
 const MOVER_MAX_DIST = 14; // 움직임 화살표 시작점에서 이 거리(피치 가로 % 기준) 안의 가장 가까운 선수가 그 화살표를 따라 움직임
 const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 
 type PlaybackArrow = Pick<Arrow, "x1" | "y1" | "x2" | "y2" | "mode">;
+
+// 피치가 세로로 1.4배 길어서 세로 거리에 1.4를 곱하고, 곡선은 직선보다 조금 더 길게 침
+function arrowLength(a: PlaybackArrow) {
+  return Math.hypot(a.x2 - a.x1, (a.y2 - a.y1) * 1.4) * (a.mode === "curve" ? 1.1 : 1);
+}
 
 function pointOnArrow(a: PlaybackArrow, t: number) {
   if (a.mode === "straight") return { x: a.x1 + (a.x2 - a.x1) * t, y: a.y1 + (a.y2 - a.y1) * t };
@@ -139,6 +150,7 @@ function pointOnArrow(a: PlaybackArrow, t: number) {
 interface PlaybackStep {
   move?: { tokenId: string; arrow: Arrow };
   pass?: { arrow: Arrow };
+  durationMs: number;
 }
 
 export default function TacticsBoardPage() {
@@ -318,7 +330,7 @@ export default function TacticsBoardPage() {
     const ballExists = tokens.some(t => t.team === "ball");
     const steps: PlaybackStep[] = [];
     for (let k = 0; k < Math.max(moves.length, passes.length); k++) {
-      const step: PlaybackStep = {};
+      const step: PlaybackStep = { durationMs: EMPTY_STEP_MS };
       const m = moves[k];
       if (m) {
         let best: { id: string; d: number } | null = null;
@@ -333,6 +345,11 @@ export default function TacticsBoardPage() {
         }
       }
       if (passes[k] && ballExists) step.pass = { arrow: passes[k] };
+      const needMs = Math.max(
+        step.pass ? (arrowLength(step.pass.arrow) / BALL_SPEED) * 1000 : 0,
+        step.move ? (arrowLength(step.move.arrow) / PLAYER_SPEED) * 1000 : 0,
+      );
+      if (needMs > 0) step.durationMs = Math.min(MAX_STEP_MS, Math.max(MIN_STEP_MS, needMs));
       steps.push(step);
     }
     return steps;
@@ -356,7 +373,9 @@ export default function TacticsBoardPage() {
     const ballId = tokens.find(t => t.team === "ball")?.id;
     const startPos: Record<string, { x: number; y: number }> = {};
     tokens.forEach(t => { startPos[t.id] = { x: t.x, y: t.y }; });
-    const total = steps.length * STEP_MS;
+    const starts: number[] = [];
+    let total = 0;
+    steps.forEach(st => { starts.push(total); total += st.durationMs; });
 
     setPlaying(true);
     let t0 = performance.now();
@@ -370,11 +389,10 @@ export default function TacticsBoardPage() {
       }
       const elapsed = now - t0;
       const done = elapsed >= total;
-      const stepIdx = done ? steps.length : Math.floor(elapsed / STEP_MS);
-      const p = done ? 1 : ease((elapsed % STEP_MS) / STEP_MS);
       const pos = { ...startPos };
       steps.forEach((s, i) => {
-        const prog = i < stepIdx ? 1 : i === stepIdx ? p : 0;
+        const local = elapsed - starts[i];
+        const prog = done || local >= s.durationMs ? 1 : local <= 0 ? 0 : ease(local / s.durationMs);
         if (prog === 0) return;
         if (s.move) pos[s.move.tokenId] = pointOnArrow(s.move.arrow, prog);
         if (s.pass && ballId) pos[ballId] = pointOnArrow(s.pass.arrow, prog);
