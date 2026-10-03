@@ -345,6 +345,11 @@ export default function TacticsBoardPage() {
         }
       }
       if (passes[k] && ballExists) step.pass = { arrow: passes[k] };
+      // 패스 끝점이 이 단계에서 움직이는 선수의 도착점 근처면 그 선수에게 가는 패스로 보고, 공이 선수 도착점에 정확히 도착하게 맞춤
+      if (step.move && step.pass) {
+        const gap = Math.hypot(step.pass.arrow.x2 - step.move.arrow.x2, (step.pass.arrow.y2 - step.move.arrow.y2) * 1.4);
+        if (gap <= MOVER_MAX_DIST) step.pass = { arrow: { ...step.pass.arrow, x2: step.move.arrow.x2, y2: step.move.arrow.y2 } };
+      }
       const needMs = Math.max(
         step.pass ? (arrowLength(step.pass.arrow) / BALL_SPEED) * 1000 : 0,
         step.move ? (arrowLength(step.move.arrow) / PLAYER_SPEED) * 1000 : 0,
