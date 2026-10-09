@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SPM — Sports Position Management (스포츠팀매니저)
 
-## Getting Started
+풋살·축구 팀 운영을 한 곳에서 하는 웹/앱 서비스입니다. 카톡과 엑셀로 하던 **회비 정산, 포지션 배정, 전술 설명, 경기 관리**를 팀원이 함께 쓰는 하나의 서비스로 옮겼습니다.
 
-First, run the development server:
+- 웹: https://www.soccerpositionmanagement.com
+- 안드로이드: [Google Play](https://play.google.com/store/apps/details?id=com.soccerpositionmanagement.app)
+
+## 프로젝트 소개
+
+제가 활동하는 아마추어 축구팀의 불편(수기 회비 정산, 매 경기 포지션 짜기, 전술을 말로만 설명)에서 출발해 직접 기획했습니다.
+
+- **개발 방식**: 구현은 Claude Code로 진행했습니다. 무엇을 만들지 정하는 것(기획), 결과를 직접 써보며 확인하는 것(검증), 배포와 운영은 제가 맡았습니다.
+- **사용 현황**: 2026년 6월부터 저희 팀원 28명이 가입해 사용 중이며, 경기 7개 등록, 포지션 배정 12건, 회비 납부 기록 121건을 이 서비스로 관리했습니다. 일부 지인이 테스트에 참여했습니다. 규모는 작지만 회비처럼 돈이 오가는 데이터를 실제 팀원이 맡기고 있어 정확성과 접근 제한을 중요하게 다뤘습니다.
+
+## 주요 기능
+
+| 기능 | 설명 |
+|---|---|
+| 팀·팀원 관리 | 팀 생성/참여, 역할(관리자·감독·코치·회장·총무·팀원) 기반 권한, 용병 관리 |
+| 경기 관리 | 경기 등록, 참석 여부(RSVP), 경기 기록(골/어시스트), 피드백, 선수 평가 |
+| 포지션 배정 | 포메이션 선택/커스텀 포메이션, 자동 배정, AI 배정, 쿼터별 저장, 배정 알림 |
+| 전술판 | 우리·상대 포메이션 배치, 곡선/직선 화살표(움직임·패스), 공 추가와 **재생 애니메이션**, 배치에 따라 포지션·포메이션 이름 자동 인식, AI 전술 추천 |
+| 회비 | 월별 회비, 납부 현황, 수입·지출, 잔액 |
+| 통계·투표·영상 | 팀 통계, 투표, 내전(스크리미지), 영상 추천 |
+| 알림 | 푸시 알림 |
+
+## 기술 스택
+
+- **프런트/서버**: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4
+- **DB**: Supabase (PostgreSQL) — 서버(API Route)에서만 접근, RLS로 공개 키 접근 차단
+- **인증**: NextAuth.js + 카카오 OAuth
+- **AI**: Anthropic API(Claude) — 포지션 배정·선수 평가·전술 추천
+- **앱**: Capacitor로 웹을 안드로이드 앱으로 감싸 배포 (iOS 프로젝트 준비됨)
+- **배포**: Vercel (GitHub `main` 브랜치 자동 배포)
+
+## 설계에서 신경 쓴 점
+
+- **멀티 팀 구조**: 모든 데이터는 `team_id`로 격리됩니다. 부모 리소스뿐 아니라 요청 바디의 자식 id(`member_id` 등)도 같은 팀 소속인지 따로 검증합니다.
+- **권한 체계**: 관리자급 / 일반 팀원 권한을 서버에서 검사하고, 화면 메뉴 노출과 API 권한을 둘 다 맞췄습니다.
+- **비용 제어**: AI 호출은 팀당 하루 10회로 제한하고, DB 함수로 원자적으로 증가시켜 동시 요청에서도 한도를 넘지 않게 했습니다.
+
+## 검증하며 찾아 고친 문제들
+
+AI가 만든 코드를 그대로 믿지 않고 직접 써보며 확인한 사례입니다.
+
+| 문제 | 원인 | 해결 |
+|---|---|---|
+| 한 명이 낸 회비가 3명으로 표시 | 같은 사용자의 과거 가입·탈퇴 이력이 중복 행으로 남아, 납부 기록이 여러 행에 연결됨 | 사용자 기준으로 1행으로 합친 뒤 집계 |
+| 로그인할 때마다 팀원 행이 계속 중복 생성 | `.single()`이 중복 행에서 에러를 내면 "없음"으로 오판해 다시 추가 | `.limit(1)` + 길이 체크로 변경 |
+| AI 호출 제한이 동시 요청에서 깨질 수 있음 | "읽고 나서 쓰기" 방식의 경쟁 상태 | DB 함수로 원자적 증가, 동시 요청 20개 테스트로 한도 확인 |
+| 공개 키만으로 다른 팀 데이터가 읽힘 | 새 테이블에 RLS 미설정 | RLS 활성화, 함수 실행 권한 제한, 전 테이블 재점검 |
+| 다른 팀 id를 섞어 넣어 데이터를 오염시킬 수 있음 | 자식 id의 팀 소속 검증 누락 | API마다 소속 검증 추가 |
+
+이런 사례는 [`CLAUDE.md`](./CLAUDE.md)의 "API 작성/수정 시 체크리스트"로 정리해 같은 실수가 반복되지 않도록 했습니다.
+
+## 개발 프로세스
+
+- 기능/수정마다 브랜치를 만들고, `tsc`와 `build` 통과를 확인한 뒤 배포합니다. `main`에 직접 커밋하지 않습니다.
+- 로직 변경은 실제 소스에서 함수를 뽑아 시나리오 테스트로 검증한 뒤 배포합니다.
+
+## 로컬 실행
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev   # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`.env.local`에 아래 환경변수가 필요합니다. (값은 저장소에 포함되어 있지 않습니다.)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+NEXTAUTH_URL
+NEXTAUTH_SECRET
+KAKAO_CLIENT_ID
+KAKAO_CLIENT_SECRET
+ANTHROPIC_API_KEY
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 디렉터리
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+├── app/          # 페이지(App Router)와 API Route (assign, dues, matches, tactics 등)
+├── components/   # 공통 레이아웃, 선택 컴포넌트 등
+└── lib/          # 인증, 팀/권한 헬퍼, 포메이션, 전술판 구역 계산
+android/ ios/     # Capacitor 네이티브 프로젝트
+```
