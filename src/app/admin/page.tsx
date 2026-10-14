@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Users, Trophy, UserCheck, Calendar, AlertTriangle, Store, CheckCircle2,
   Circle, BarChart3, Eye, Timer, TrendingUp, User as UserIcon, Landmark, IdCard,
@@ -8,8 +8,6 @@ import {
   FlaskConical, FileText, Rocket, type LucideIcon,
 } from "lucide-react";
 import SpmLogo from "@/components/SpmLogo";
-
-const ADMIN_SECRET = "1234";
 
 interface User {
   id: string;
@@ -269,22 +267,28 @@ export default function AdminPage() {
   const [loading,  setLoading]    = useState(false);
   const [error,    setError]      = useState("");
 
-  const handleLogin = () => {
-    if (password === ADMIN_SECRET) {
+  // 비밀번호는 코드에 두지 않고, 입력한 값을 서버가 직접 검사 (주소창이 아니라 헤더로 전달)
+  const handleLogin = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/stats", { headers: { "x-admin-secret": password } });
+      if (res.status === 401) {
+        setError("비밀번호가 틀렸습니다");
+        return;
+      }
+      if (!res.ok) {
+        setError("관리자 기능이 설정되지 않았어요");
+        return;
+      }
+      setStats(await res.json());
       setAuthed(true);
-    } else {
-      setError("비밀번호가 틀렸습니다");
+    } catch {
+      setError("요청에 실패했어요");
+    } finally {
+      setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (!authed) return;
-    setLoading(true);
-    fetch(`/api/admin/stats?secret=${ADMIN_SECRET}`)
-      .then((r) => r.json())
-      .then((data) => setStats(data))
-      .finally(() => setLoading(false));
-  }, [authed]);
 
   if (!authed) {
     return (
