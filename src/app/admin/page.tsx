@@ -5,7 +5,7 @@ import {
   Users, Trophy, UserCheck, Calendar, AlertTriangle, Store, CheckCircle2,
   Circle, BarChart3, Eye, Timer, TrendingUp, User as UserIcon, Landmark, IdCard,
   Smartphone, Bot, Zap, Hammer, KeyRound, ClipboardList, Image as ImageIcon,
-  FlaskConical, FileText, Rocket, BookOpen, type LucideIcon,
+  FlaskConical, FileText, Rocket, BookOpen, Apple, Bell, ShieldCheck, Palette, Plug, Send, Settings, Camera, Lock, type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import SpmLogo from "@/components/SpmLogo";
@@ -53,7 +53,7 @@ function StatCard({
 }
 
 // ────────────────────────────────────────────────────────────
-//  Play Store 출시 로드맵
+//  앱 출시 로드맵 (Google Play · Apple App Store)
 // ────────────────────────────────────────────────────────────
 type StepStatus = "done" | "progress" | "wait";
 
@@ -65,7 +65,7 @@ interface RoadmapStep {
   detail?: string;
 }
 
-const ROADMAP_STEPS: RoadmapStep[] = [
+const PLAY_STEPS: RoadmapStep[] = [
   {
     icon: Landmark,
     title: "Google Play 개발자 계정 생성",
@@ -76,15 +76,15 @@ const ROADMAP_STEPS: RoadmapStep[] = [
   {
     icon: IdCard,
     title: "Google 신원 인증 (D-ID)",
-    desc: "Google이 신원 서류 검토 중 (수일 소요)",
-    status: "progress",
-    detail: "승인되면 이메일로 알림 옴 · 완료 후 전화번호 인증 가능",
+    desc: "Google 신원 인증 완료",
+    status: "done",
+    detail: "개발자 계정 인증 통과",
   },
   {
     icon: Smartphone,
     title: "전화번호 인증",
-    desc: "신원 인증 완료 후 진행",
-    status: "wait",
+    desc: "연락처 인증 완료",
+    status: "done",
     detail: "Play Console 계정 설정 → 연락처 인증",
   },
   {
@@ -104,51 +104,167 @@ const ROADMAP_STEPS: RoadmapStep[] = [
   {
     icon: Hammer,
     title: "AAB(앱 번들) 빌드",
-    desc: "Android Studio에서 Release 빌드 생성",
-    status: "wait",
+    desc: "Android Studio에서 Release 빌드 생성 완료",
+    status: "done",
     detail: "Build → Generate Signed Bundle → AAB 선택 → keystore 생성",
   },
   {
     icon: KeyRound,
     title: "앱 서명 키(Keystore) 생성",
-    desc: "릴리즈 서명용 키 생성 및 안전한 곳에 백업",
-    status: "wait",
-    detail: "⚠️ keystore 분실 시 앱 업데이트 불가 — 반드시 백업!",
+    desc: "릴리즈 서명용 키 생성 · 백업 완료",
+    status: "done",
+    detail: "keystore(spm-release-key.jks) 분실 시 업데이트 불가 — 백업 유지, git에는 올리지 말 것",
   },
   {
     icon: ClipboardList,
     title: "Play Console 앱 등록",
     desc: "새 앱 만들기 → 앱 이름·카테고리·언어 설정",
-    status: "wait",
+    status: "done",
     detail: "앱 이름: SPM - 팀 포지션 관리 / 카테고리: 스포츠",
   },
   {
     icon: ImageIcon,
     title: "스토어 등록 정보 작성",
     desc: "설명·스크린샷·아이콘·피처드 이미지 업로드",
-    status: "wait",
+    status: "done",
     detail: "스크린샷 2장 이상 필수 · 아이콘 512×512px · 피처드 1024×500px",
   },
   {
     icon: FlaskConical,
     title: "내부 테스트 트랙 출시",
-    desc: "본인 계정으로 먼저 테스트",
-    status: "wait",
+    desc: "내부 테스트 후 진행 완료",
+    status: "done",
     detail: "내부 테스터 추가 → 링크로 설치 → 기능 확인",
   },
   {
     icon: FileText,
     title: "개인정보처리방침 등록",
-    desc: "URL 형태로 제출 필수 (없으면 출시 불가)",
-    status: "wait",
-    detail: "Vercel에 /privacy 페이지 만들거나 notion 페이지로 대체 가능",
+    desc: "URL 제출 완료",
+    status: "done",
+    detail: "https://www.soccerpositionmanagement.com/privacy",
   },
   {
     icon: Rocket,
     title: "프로덕션 출시 신청",
-    desc: "Google 심사 → 승인 → Play Store 공개",
+    desc: "Google Play 출시 완료",
+    status: "done",
+    detail: "이후 앱 껍데기(아이콘·이름) 변경 시에만 새 .aab 업로드 필요 — 웹 화면 변경은 자동 반영",
+  },
+];
+
+// Apple App Store 출시 로드맵 — 이 프로젝트의 실제 상태(ios/App, codemagic.yaml, Info.plist 등)를 기준으로 작성
+const APPLE_STEPS: RoadmapStep[] = [
+  {
+    icon: Landmark,
+    title: "Apple Developer Program 가입",
+    desc: "연 $99 결제 · 개인 신원 확인",
     status: "wait",
-    detail: "심사 기간: 보통 1~3일 · 첫 출시는 최대 7일 소요",
+    detail: "가입 후 승인까지 수일 걸릴 수 있어요 · 앱 출시와 TestFlight 모두 이 계정이 필요",
+  },
+  {
+    icon: Zap,
+    title: "Capacitor iOS 프로젝트",
+    desc: "ios/App 생성 완료 (Swift Package Manager 방식)",
+    status: "done",
+    detail: "번들 ID: com.soccerpositionmanagement.app · 버전 1.0 (빌드 1) · Podfile 없음",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Sign in with Apple 추가",
+    desc: "카카오 같은 소셜 로그인만 있으면 심사에서 반려될 수 있어요 (가이드라인 4.8)",
+    status: "wait",
+    detail: "NextAuth에 Apple provider 추가 + Apple Developer에서 Sign in with Apple 설정 · 기존 users 연결 방식 설계 필요",
+  },
+  {
+    icon: Lock,
+    title: "앱 안에서 계정 삭제",
+    desc: "마이페이지 탈퇴 기능 있음 (가이드라인 5.1.1)",
+    status: "done",
+    detail: "심사 노트에 '마이페이지 > 탈퇴' 위치를 적어두기",
+  },
+  {
+    icon: FileText,
+    title: "개인정보처리방침 URL",
+    desc: "/privacy 페이지 있음 · 2026년 10월 3일 갱신",
+    status: "done",
+    detail: "App Store Connect에 이 URL을 입력",
+  },
+  {
+    icon: Palette,
+    title: "앱 아이콘 교체",
+    desc: "iOS 1024×1024 아이콘이 아직 예전 로고",
+    status: "wait",
+    detail: "투명 배경·모서리 둥글림 없는 정사각형 PNG · ios/App/App/Assets.xcassets/AppIcon.appiconset 교체",
+  },
+  {
+    icon: Settings,
+    title: "Info.plist 점검",
+    desc: "사용하는 권한만 설명 문구 추가 (현재 권한 문구 없음)",
+    status: "wait",
+    detail: "사진·카메라·알림 등 실제로 쓰는 기능만 · 쓰지 않는 권한 문구는 넣지 않기",
+  },
+  {
+    icon: Bell,
+    title: "푸시 알림 (APNs) — 선택",
+    desc: "지금은 웹 푸시(web-push)만 있어서 iOS 앱에서는 별도 작업 필요",
+    status: "wait",
+    detail: "첫 출시에서는 빼고 나중에 추가해도 됨 · 넣으려면 APNs 키 + Capacitor Push Notifications 플러그인",
+  },
+  {
+    icon: Hammer,
+    title: "Codemagic 빌드 설정 수정",
+    desc: "SPM 방식에 맞게 codemagic.yaml 수정 완료 (pod install·workspace 제거, Node 22, 빌드 번호 자동 증가)",
+    status: "done",
+    detail: "실제 빌드는 Apple 계정·API 키 연동 후 처음 돌려볼 수 있어요 · 실패하면 Codemagic 로그를 보고 한 번 더 조정",
+  },
+  {
+    icon: Plug,
+    title: "App Store Connect API 키 연동",
+    desc: "키 발급 → Codemagic 통합(Integrations)에 등록",
+    status: "wait",
+    detail: "사용자 및 액세스 > 통합 > API 키 · 등록 이름은 codemagic.yaml의 appstore_connect_api_key와 맞추기",
+  },
+  {
+    icon: ClipboardList,
+    title: "App Store Connect 앱 등록",
+    desc: "새 앱 만들기 → 이름 · 번들 ID · SKU · 기본 언어",
+    status: "wait",
+    detail: "카테고리: 스포츠 · 번들 ID는 com.soccerpositionmanagement.app와 동일해야 해요",
+  },
+  {
+    icon: FlaskConical,
+    title: "TestFlight 내부 테스트",
+    desc: "Codemagic으로 빌드 → TestFlight 업로드 → 내 아이폰에 설치",
+    status: "wait",
+    detail: "로그인(카카오·Apple) · 알림 · 화면 비율을 실제 기기에서 확인",
+  },
+  {
+    icon: Camera,
+    title: "스토어 등록 정보",
+    desc: "스크린샷 · 설명 · 키워드 · 지원 URL",
+    status: "wait",
+    detail: "iPhone 6.9인치(1320×2868) 스크린샷 필수 · 앱 개인정보 라벨 · 연령 등급 · 수출 규정 답변",
+  },
+  {
+    icon: KeyRound,
+    title: "심사용 로그인 정보 준비",
+    desc: "심사관은 카카오 계정이 없어서 로그인을 못 해요",
+    status: "wait",
+    detail: "리뷰 노트에 테스트용 카카오 계정(또는 데모 로그인 방법)을 적기 · 로그인 없이는 기능 확인이 안 돼 반려돼요",
+  },
+  {
+    icon: Smartphone,
+    title: "'웹사이트 포장' 반려 대비 (4.2)",
+    desc: "단순 웹뷰 앱은 최소 기능 미달로 반려될 수 있어요",
+    status: "wait",
+    detail: "리뷰 노트에 앱다운 기능을 설명 (로그인 연동, 포지션 배정, 전술판 재생, 알림, 공유, 팀 데이터 관리)",
+  },
+  {
+    icon: Send,
+    title: "심사 제출 → 출시",
+    desc: "Apple 심사 (보통 1~2일) → 승인 → App Store 공개",
+    status: "wait",
+    detail: "반려되면 사유를 고쳐 재제출 · 승인 후 '수동 출시'와 '자동 출시' 중 선택",
   },
 ];
 
@@ -158,10 +274,12 @@ const statusConfig: Record<StepStatus, { badge: string; badgeClass: string; bord
   wait:     { badge: "대기",      badgeClass: "bg-gray-700/60 text-gray-500",        borderClass: "border-white/5",        iconBg: "bg-white/5"        },
 };
 
-function PlayStoreRoadmap() {
-  const [open, setOpen] = useState(true);
-  const done     = ROADMAP_STEPS.filter(s => s.status === "done").length;
-  const total    = ROADMAP_STEPS.length;
+function Roadmap({ title, steps, defaultOpen, icon: HeaderIcon }: {
+  title: string; steps: RoadmapStep[]; defaultOpen: boolean; icon: LucideIcon;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const done     = steps.filter(s => s.status === "done").length;
+  const total    = steps.length;
   const progress = Math.round((done / total) * 100);
 
   return (
@@ -172,9 +290,9 @@ function PlayStoreRoadmap() {
         className="w-full flex items-center justify-between px-6 py-5 hover:bg-white/3 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <Store size={22} strokeWidth={1.75} className="text-emerald-400" />
+          <HeaderIcon size={22} strokeWidth={1.75} className="text-emerald-400" />
           <div className="text-left">
-            <h3 className="font-bold text-white text-base">Google Play Store 출시 로드맵</h3>
+            <h3 className="font-bold text-white text-base">{title}</h3>
             <p className="text-gray-500 text-xs mt-0.5">{done} / {total} 완료</p>
           </div>
         </div>
@@ -204,7 +322,7 @@ function PlayStoreRoadmap() {
             <span className="text-xs text-emerald-400 font-bold">{progress}%</span>
           </div>
 
-          {ROADMAP_STEPS.map((step, i) => {
+          {steps.map((step, i) => {
             const cfg = statusConfig[step.status];
             return (
               <div
@@ -384,8 +502,9 @@ export default function AdminPage() {
           <span className="text-gray-500 text-sm shrink-0">열기 →</span>
         </Link>
 
-        {/* ── Play Store 출시 로드맵 ── */}
-        <PlayStoreRoadmap />
+        {/* ── 앱 출시 로드맵 ── */}
+        <Roadmap title="Apple App Store 출시 로드맵" steps={APPLE_STEPS} defaultOpen icon={Apple} />
+        <Roadmap title="Google Play Store 출시 로드맵" steps={PLAY_STEPS} defaultOpen={false} icon={Store} />
 
         {/* Vercel Analytics 안내 */}
         <div className="bg-gray-900 border border-white/5 rounded-lg p-5">
