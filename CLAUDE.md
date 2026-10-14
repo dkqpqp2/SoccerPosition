@@ -88,6 +88,16 @@ new Date(y, m - 1, d);
 
 ---
 
+## 마케팅·디자인 스킬
+
+외부 저장소(coreyhaines31/marketingskills, anthropics/skills)에서 가져와 내용을 읽고 검증한 뒤 `.claude/skills/`에 넣은 스킬들. 업데이트할 때도 다시 내용을 읽고 확인할 것.
+
+- `seo-audit`: 검색 노출·메타·사이트맵 점검. 제품 정보는 `.claude/product-marketing.md`를 먼저 읽음 (사용자 수 등 숫자는 확인된 값만 적을 것).
+- `copywriting`: 랜딩·스토어 설명 문구. 근거 없는 수치·후기를 쓰지 말 것.
+- `frontend-design`: **새 화면**을 만들 때만 사용. 기존 화면은 어두운 테마(gray-950) + 연두색(emerald) 포인트로 통일돼 있으니, 기존 화면을 고칠 때는 이 스타일을 그대로 따를 것.
+
+---
+
 ## 배포 워크플로우
 
 > 절차 전체는 프로젝트 스킬로 정리돼 있음: 배포는 `.claude/skills/release`, 새 테이블·DB 함수(RLS)는 `.claude/skills/db-migration`.
