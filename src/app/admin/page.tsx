@@ -212,9 +212,9 @@ const APPLE_STEPS: RoadmapStep[] = [
   {
     icon: Hammer,
     title: "Codemagic 빌드 설정 수정",
-    desc: "codemagic.yaml에 pod install · App.xcworkspace가 있는데 이 프로젝트에는 없음",
-    status: "progress",
-    detail: "pod install 단계 삭제 · XCODE_WORKSPACE 대신 ios/App/App.xcodeproj 사용 · GitHub 저장소 연결은 완료",
+    desc: "SPM 방식에 맞게 codemagic.yaml 수정 완료 (pod install·workspace 제거, Node 22, 빌드 번호 자동 증가)",
+    status: "done",
+    detail: "실제 빌드는 Apple 계정·API 키 연동 후 처음 돌려볼 수 있어요 · 실패하면 Codemagic 로그를 보고 한 번 더 조정",
   },
   {
     icon: Plug,
