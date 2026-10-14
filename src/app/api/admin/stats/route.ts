@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase";
+
+function secretMatches(given: string | null, expected: string): boolean {
+  if (!given) return false;
+  const a = Buffer.from(given);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 export async function GET(req: Request) {
   const ADMIN_SECRET = process.env.ADMIN_SECRET;
@@ -7,10 +15,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Not configured" }, { status: 500 });
   }
 
-  const { searchParams } = new URL(req.url);
-  const secret = searchParams.get("secret");
-
-  if (secret !== ADMIN_SECRET) {
+  // 주소창(쿼리스트링)은 로그·히스토리에 남으므로 헤더로만 받음
+  if (!secretMatches(req.headers.get("x-admin-secret"), ADMIN_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
