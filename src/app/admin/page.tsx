@@ -5,8 +5,9 @@ import {
   Users, Trophy, UserCheck, Calendar, AlertTriangle, Store, CheckCircle2,
   Circle, BarChart3, Eye, Timer, TrendingUp, User as UserIcon, Landmark, IdCard,
   Smartphone, Bot, Zap, Hammer, KeyRound, ClipboardList, Image as ImageIcon,
-  FlaskConical, FileText, Rocket, type LucideIcon,
+  FlaskConical, FileText, Rocket, BookOpen, type LucideIcon,
 } from "lucide-react";
+import Link from "next/link";
 import SpmLogo from "@/components/SpmLogo";
 
 interface User {
@@ -367,6 +368,21 @@ export default function AdminPage() {
             </span>
           </div>
         )}
+
+        {/* 코드 설명서 */}
+        <Link
+          href="/admin/code-guide"
+          className="flex items-center justify-between gap-3 bg-gray-900 border border-white/5 hover:border-emerald-500/40 rounded-lg px-6 py-5 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <BookOpen size={22} strokeWidth={1.75} className="text-emerald-400" />
+            <div>
+              <h3 className="font-bold text-white text-base">SPM 코드 설명서</h3>
+              <p className="text-gray-500 text-xs mt-0.5">그림과 직접 해 보는 데모로 SPM이 어떻게 동작하는지 설명해요</p>
+            </div>
+          </div>
+          <span className="text-gray-500 text-sm shrink-0">열기 →</span>
+        </Link>
 
         {/* ── Play Store 출시 로드맵 ── */}
         <PlayStoreRoadmap />
