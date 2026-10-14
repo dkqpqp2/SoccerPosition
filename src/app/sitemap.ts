@@ -10,11 +10,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 1,
     },
-    {
-      url: `${baseUrl}/join`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
+    // /join 은 초대 코드 입력 화면이라 noindex 처리했고, noindex 페이지는 사이트맵에 넣지 않는다
   ];
 }

@@ -4,9 +4,14 @@ import "./globals.css";
 import { SessionProvider } from "@/components/SessionProvider";
 import { Analytics } from "@vercel/analytics/next";
 
+const SITE_TITLE = "SPM - 축구·풋살 팀 관리 | Sports Position Management";
+const SITE_DESCRIPTION = "풋살·축구 등 스포츠팀의 포지션 배정, 전술판, 경기 기록, 회비 관리를 한곳에서 해결하는 무료 팀 관리 서비스. 카카오 계정으로 바로 시작하세요.";
+
 export const metadata: Metadata = {
-  title: "SPM - Sports Position Management",
-  description: "SPM은 풋살·축구 등 스포츠팀의 포지션 배정, 경기 관리, 팀원 관리를 스마트하게 도와주는 서비스입니다. 쉽고 빠른 포지션 배정으로 팀 운영을 더 효율적으로.",
+  // og:image 같은 상대 경로를 실제 도메인으로 바꾸는 기준 (없으면 빌드 주소로 잘못 나옴)
+  metadataBase: new URL("https://www.soccerpositionmanagement.com"),
+  title: { default: SITE_TITLE, template: "%s | SPM" },
+  description: SITE_DESCRIPTION,
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -20,13 +25,19 @@ export const metadata: Metadata = {
   },
   keywords: ["SPM", "스포츠팀 관리", "축구 포지션", "포지션 배정", "축구팀 관리", "풋살 팀 관리", "Sports Position Management", "팀원 관리"],
   authors: [{ name: "SPM" }],
+  // og:image / twitter:image 는 같은 폴더의 opengraph-image.png, twitter-image.png 파일에서 자동으로 붙음
   openGraph: {
-    title: "SPM - Sports Position Management",
-    description: "스포츠팀 포지션 배정과 경기 관리를 스마트하게. SPM으로 팀 운영을 더 쉽게.",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     url: "https://www.soccerpositionmanagement.com",
     siteName: "SPM",
     locale: "ko_KR",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
   },
   robots: {
     index: true,

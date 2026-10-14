@@ -256,13 +256,10 @@ export default function Home() {
     signIn("kakao", undefined, { prompt: "login" });
   }
 
-  if (status === "loading") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
-        <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  // 로그인 확인 중이거나 로그인된 사람(대시보드로 이동 중)에게는 랜딩 위를 스피너로 덮는다.
+  // 랜딩 내용은 서버가 보내는 HTML에 그대로 들어 있어야 검색엔진·미리보기 봇이 읽을 수 있으므로,
+  // 예전처럼 로딩 중에 스피너만 반환하지 않는다.
+  const showLoading = status !== "unauthenticated";
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -406,6 +403,12 @@ export default function Home() {
         </div>
         <p className="text-xs text-gray-700">Sports Position Management · 풋살·축구 등 스포츠팀을 위한 포지션 관리 플랫폼</p>
       </footer>
+
+      {showLoading && (
+        <div role="status" aria-label="불러오는 중" className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-950">
+          <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
     </div>
   );
 }
