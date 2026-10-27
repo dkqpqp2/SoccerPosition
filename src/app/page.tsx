@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession, signIn } from "next-auth/react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
@@ -254,6 +255,42 @@ const STEPS = [
   { num: "03", title: "경기하고 기록하기", desc: "피드백과 회비, 통계까지 앱 안에서 이어져요." },
 ];
 
+// 실제 앱 화면 스크린샷. 휴대폰 세로 화면 캡처(9:19.5 비율 권장, 가로 1080px 정도)를 public/screens/ 에 넣고 아래에 추가한다.
+// 팀원 실명·연락처가 보이면 안 됨(테스트 팀 데이터 사용). 비어 있으면 섹션 자체를 그리지 않는다.
+const SCREENSHOTS: { src: string; alt: string; title: string; desc: string }[] = [];
+
+function AppScreens() {
+  if (SCREENSHOTS.length === 0) return null;
+  return (
+    <section className="py-16 sm:py-24 px-5 border-t border-white/5">
+      <div className="max-w-5xl mx-auto">
+        <Reveal className="text-center mb-10 sm:mb-12">
+          <p className="text-xs text-emerald-400 font-bold tracking-widest mb-2">Screenshots</p>
+          <h2 className="text-2xl sm:text-3xl font-black">실제 앱 화면이에요</h2>
+        </Reveal>
+        {/* 모바일은 옆으로 넘겨 보고, 넓은 화면은 한 줄에 나란히 */}
+        <ul className="flex gap-4 sm:gap-6 overflow-x-auto snap-x snap-mandatory pb-4 -mx-5 px-5 lg:mx-0 lg:px-0 lg:justify-center">
+          {SCREENSHOTS.map((shot) => (
+            <li key={shot.src} className="snap-center shrink-0 w-[62%] sm:w-[240px] lg:w-[220px]">
+              <div className="relative aspect-[9/19.5] rounded-[28px] overflow-hidden border border-white/10 bg-gray-900 shadow-lg shadow-black/40">
+                <Image
+                  src={shot.src}
+                  alt={shot.alt}
+                  fill
+                  sizes="(min-width: 1024px) 220px, (min-width: 640px) 240px, 62vw"
+                  className="object-cover object-top"
+                />
+              </div>
+              <p className="mt-3 text-sm font-bold text-white text-center">{shot.title}</p>
+              <p className="mt-1 text-xs text-gray-500 text-center leading-relaxed">{shot.desc}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -376,6 +413,8 @@ export default function Home() {
           </Reveal>
         </div>
       </section>
+
+      <AppScreens />
 
       <section className="py-16 sm:py-24 px-5 border-t border-white/5">
         <div className="max-w-4xl mx-auto">
