@@ -255,9 +255,34 @@ const STEPS = [
   { num: "03", title: "경기하고 기록하기", desc: "피드백과 회비, 통계까지 앱 안에서 이어져요." },
 ];
 
-// 실제 앱 화면 스크린샷. 휴대폰 세로 화면 캡처(9:19.5 비율 권장, 가로 1080px 정도)를 public/screens/ 에 넣고 아래에 추가한다.
+// 실제 앱 화면 스크린샷(public/screens/, 720x1395 webp: 폰 상태표시줄 제외, 이름·프로필 사진은 가림 처리).
 // 팀원 실명·연락처가 보이면 안 됨(테스트 팀 데이터 사용). 비어 있으면 섹션 자체를 그리지 않는다.
-const SCREENSHOTS: { src: string; alt: string; title: string; desc: string }[] = [];
+const SCREENSHOTS: { src: string; alt: string; title: string; desc: string }[] = [
+  {
+    src: "/screens/1-assign.webp",
+    alt: "SPM 포지션 배정 화면: 4-3-3 포메이션 구장에 선수를 배치한 모습",
+    title: "포지션 배정",
+    desc: "포메이션을 고르고 선수를 자리에 배치해요. 경기마다 라인업을 저장할 수 있어요.",
+  },
+  {
+    src: "/screens/3-team-record.webp",
+    alt: "SPM 팀 전적 화면: 승무패, 득점과 실점, 상대 팀별 전적",
+    title: "팀 전적",
+    desc: "승·무·패와 득실점, 상대 팀별 전적이 자동으로 쌓여요.",
+  },
+  {
+    src: "/screens/2-stats.webp",
+    alt: "SPM 개인 통계 화면: 내 기록과 득점 TOP 3",
+    title: "개인 통계",
+    desc: "골, 어시스트, 참석률을 팀 안 순위와 함께 한눈에 볼 수 있어요.",
+  },
+  {
+    src: "/screens/4-dues.webp",
+    alt: "SPM 회비 관리 화면: 월별 납부 현황과 납부율",
+    title: "회비 관리",
+    desc: "월별 납부 현황과 수입·지출을 한곳에서 관리해요.",
+  },
+];
 
 function AppScreens() {
   if (SCREENSHOTS.length === 0) return null;
@@ -272,7 +297,7 @@ function AppScreens() {
         <ul className="flex gap-4 sm:gap-6 overflow-x-auto snap-x snap-mandatory pb-4 -mx-5 px-5 lg:mx-0 lg:px-0 lg:justify-center">
           {SCREENSHOTS.map((shot) => (
             <li key={shot.src} className="snap-center shrink-0 w-[62%] sm:w-[240px] lg:w-[220px]">
-              <div className="relative aspect-[9/19.5] rounded-[28px] overflow-hidden border border-white/10 bg-gray-900 shadow-lg shadow-black/40">
+              <div className="relative aspect-[720/1395] rounded-[28px] overflow-hidden border border-white/10 bg-gray-900 shadow-lg shadow-black/40">
                 <Image
                   src={shot.src}
                   alt={shot.alt}
