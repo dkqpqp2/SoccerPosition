@@ -1,13 +1,31 @@
 "use client";
 
 import { useSession, signIn } from "next-auth/react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Target, LayoutGrid, Calendar, Vote, Handshake, Clapperboard, Share2,
-  Check, Wand2, Sparkles, ArrowRight,
+  Check, Wand2, Sparkles, ArrowRight, Download,
 } from "lucide-react";
 import SpmLogo from "@/components/SpmLogo";
+
+// Google Play 출시 앱 (applicationId = capacitor.config.ts의 appId). referrer는 Play Console에서 웹 랜딩 유입 설치를 구분하는 용도
+const PLAY_STORE_URL =
+  "https://play.google.com/store/apps/details?id=com.soccerpositionmanagement.app&referrer=utm_source%3Dspm_web%26utm_medium%3Dlanding";
+
+function PlayStoreButton({ className = "" }: { className?: string }) {
+  return (
+    <a
+      href={PLAY_STORE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`inline-flex items-center justify-center gap-2 border border-white/15 hover:border-white/35 hover:bg-white/5 text-gray-200 font-bold py-4 px-6 rounded-xl transition-colors text-base ${className}`}
+    >
+      <Download size={16} aria-hidden="true" /> Google Play에서 받기
+    </a>
+  );
+}
 
 function Reveal({ children, delay = 0, className = "" }: { children: ReactNode; delay?: number; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -237,6 +255,67 @@ const STEPS = [
   { num: "03", title: "경기하고 기록하기", desc: "피드백과 회비, 통계까지 앱 안에서 이어져요." },
 ];
 
+// 실제 앱 화면 스크린샷(public/screens/, 720x1395 webp: 폰 상태표시줄 제외, 이름·프로필 사진은 가림 처리).
+// 팀원 실명·연락처가 보이면 안 됨(테스트 팀 데이터 사용). 비어 있으면 섹션 자체를 그리지 않는다.
+const SCREENSHOTS: { src: string; alt: string; title: string; desc: string }[] = [
+  {
+    src: "/screens/1-assign.webp",
+    alt: "SPM 포지션 배정 화면: 4-3-3 포메이션 구장에 선수를 배치한 모습",
+    title: "포지션 배정",
+    desc: "포메이션을 고르고 선수를 자리에 배치해요. 경기마다 라인업을 저장할 수 있어요.",
+  },
+  {
+    src: "/screens/3-team-record.webp",
+    alt: "SPM 팀 전적 화면: 승무패, 득점과 실점, 상대 팀별 전적",
+    title: "팀 전적",
+    desc: "승·무·패와 득실점, 상대 팀별 전적이 자동으로 쌓여요.",
+  },
+  {
+    src: "/screens/2-stats.webp",
+    alt: "SPM 개인 통계 화면: 내 기록과 득점 TOP 3",
+    title: "개인 통계",
+    desc: "골, 어시스트, 참석률을 팀 안 순위와 함께 한눈에 볼 수 있어요.",
+  },
+  {
+    src: "/screens/4-dues.webp",
+    alt: "SPM 회비 관리 화면: 월별 납부 현황과 납부율",
+    title: "회비 관리",
+    desc: "월별 납부 현황과 수입·지출을 한곳에서 관리해요.",
+  },
+];
+
+function AppScreens() {
+  if (SCREENSHOTS.length === 0) return null;
+  return (
+    <section className="py-16 sm:py-24 px-5 border-t border-white/5">
+      <div className="max-w-5xl mx-auto">
+        <Reveal className="text-center mb-10 sm:mb-12">
+          <p className="text-xs text-emerald-400 font-bold tracking-widest mb-2">Screenshots</p>
+          <h2 className="text-2xl sm:text-3xl font-black">실제 앱 화면이에요</h2>
+        </Reveal>
+        {/* 모바일은 옆으로 넘겨 보고, 넓은 화면은 한 줄에 나란히 */}
+        <ul className="flex gap-4 sm:gap-6 overflow-x-auto snap-x snap-mandatory pb-4 -mx-5 px-5 lg:mx-0 lg:px-0 lg:justify-center">
+          {SCREENSHOTS.map((shot) => (
+            <li key={shot.src} className="snap-center shrink-0 w-[62%] sm:w-[240px] lg:w-[220px]">
+              <div className="relative aspect-[720/1395] rounded-[28px] overflow-hidden border border-white/10 bg-gray-900 shadow-lg shadow-black/40">
+                <Image
+                  src={shot.src}
+                  alt={shot.alt}
+                  fill
+                  sizes="(min-width: 1024px) 220px, (min-width: 640px) 240px, 62vw"
+                  className="object-cover object-top"
+                />
+              </div>
+              <p className="mt-3 text-sm font-bold text-white text-center">{shot.title}</p>
+              <p className="mt-1 text-xs text-gray-500 text-center leading-relaxed">{shot.desc}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -289,14 +368,17 @@ export default function Home() {
               포지션 배정부터 회비, 통계까지.<br className="hidden sm:block" />
               카톡방에서 하던 팀 운영을 한 곳으로 모아보세요.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
-              <button
-                onClick={handleKakaoLogin}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold py-4 px-8 rounded-xl transition-colors text-base"
-              >
-                카카오로 무료 시작 <ArrowRight size={16} />
-              </button>
-              <p className="text-xs text-gray-600">회원가입 없이 카카오 계정으로 바로 시작</p>
+            <div className="flex flex-col items-center lg:items-start gap-3">
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 w-full sm:w-auto">
+                <button
+                  onClick={handleKakaoLogin}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold py-4 px-8 rounded-xl transition-colors text-base"
+                >
+                  카카오로 무료 시작 <ArrowRight size={16} />
+                </button>
+                <PlayStoreButton className="w-full sm:w-auto" />
+              </div>
+              <p className="text-xs text-gray-600">회원가입 없이 카카오 계정으로 바로 시작 · Android 앱도 있어요</p>
             </div>
           </div>
 
@@ -357,6 +439,8 @@ export default function Home() {
         </div>
       </section>
 
+      <AppScreens />
+
       <section className="py-16 sm:py-24 px-5 border-t border-white/5">
         <div className="max-w-4xl mx-auto">
           <Reveal className="text-center mb-12">
@@ -386,12 +470,15 @@ export default function Home() {
           <p className="text-gray-500 mb-8 text-base leading-relaxed">
             카카오 계정으로 바로 시작하고, 팀 생성은 1분이면 끝나요.
           </p>
-          <button
-            onClick={handleKakaoLogin}
-            className="inline-flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-black py-4 px-10 rounded-xl transition-colors text-base"
-          >
-            카카오로 무료 시작 <ArrowRight size={16} />
-          </button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={handleKakaoLogin}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-black py-4 px-10 rounded-xl transition-colors text-base"
+            >
+              카카오로 무료 시작 <ArrowRight size={16} />
+            </button>
+            <PlayStoreButton className="w-full sm:w-auto" />
+          </div>
           <p className="text-xs text-gray-700 mt-4">무료 · 광고 없음 · 가입 즉시 이용</p>
         </Reveal>
       </section>
@@ -402,6 +489,7 @@ export default function Home() {
           <span className="ml-2 text-sm font-bold text-gray-600">SPM</span>
         </div>
         <p className="text-xs text-gray-700">Sports Position Management · 풋살·축구 등 스포츠팀을 위한 포지션 관리 플랫폼</p>
+        <p className="text-[11px] text-gray-800 mt-2">Google Play는 Google LLC의 상표입니다.</p>
       </footer>
 
       {showLoading && (
