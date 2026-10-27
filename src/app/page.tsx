@@ -5,9 +5,26 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Target, LayoutGrid, Calendar, Vote, Handshake, Clapperboard, Share2,
-  Check, Wand2, Sparkles, ArrowRight,
+  Check, Wand2, Sparkles, ArrowRight, Download,
 } from "lucide-react";
 import SpmLogo from "@/components/SpmLogo";
+
+// Google Play 출시 앱 (applicationId = capacitor.config.ts의 appId). referrer는 Play Console에서 웹 랜딩 유입 설치를 구분하는 용도
+const PLAY_STORE_URL =
+  "https://play.google.com/store/apps/details?id=com.soccerpositionmanagement.app&referrer=utm_source%3Dspm_web%26utm_medium%3Dlanding";
+
+function PlayStoreButton({ className = "" }: { className?: string }) {
+  return (
+    <a
+      href={PLAY_STORE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`inline-flex items-center justify-center gap-2 border border-white/15 hover:border-white/35 hover:bg-white/5 text-gray-200 font-bold py-4 px-6 rounded-xl transition-colors text-base ${className}`}
+    >
+      <Download size={16} aria-hidden="true" /> Google Play에서 받기
+    </a>
+  );
+}
 
 function Reveal({ children, delay = 0, className = "" }: { children: ReactNode; delay?: number; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -289,14 +306,17 @@ export default function Home() {
               포지션 배정부터 회비, 통계까지.<br className="hidden sm:block" />
               카톡방에서 하던 팀 운영을 한 곳으로 모아보세요.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
-              <button
-                onClick={handleKakaoLogin}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold py-4 px-8 rounded-xl transition-colors text-base"
-              >
-                카카오로 무료 시작 <ArrowRight size={16} />
-              </button>
-              <p className="text-xs text-gray-600">회원가입 없이 카카오 계정으로 바로 시작</p>
+            <div className="flex flex-col items-center lg:items-start gap-3">
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 w-full sm:w-auto">
+                <button
+                  onClick={handleKakaoLogin}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold py-4 px-8 rounded-xl transition-colors text-base"
+                >
+                  카카오로 무료 시작 <ArrowRight size={16} />
+                </button>
+                <PlayStoreButton className="w-full sm:w-auto" />
+              </div>
+              <p className="text-xs text-gray-600">회원가입 없이 카카오 계정으로 바로 시작 · Android 앱도 있어요</p>
             </div>
           </div>
 
@@ -386,12 +406,15 @@ export default function Home() {
           <p className="text-gray-500 mb-8 text-base leading-relaxed">
             카카오 계정으로 바로 시작하고, 팀 생성은 1분이면 끝나요.
           </p>
-          <button
-            onClick={handleKakaoLogin}
-            className="inline-flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-black py-4 px-10 rounded-xl transition-colors text-base"
-          >
-            카카오로 무료 시작 <ArrowRight size={16} />
-          </button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={handleKakaoLogin}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-black py-4 px-10 rounded-xl transition-colors text-base"
+            >
+              카카오로 무료 시작 <ArrowRight size={16} />
+            </button>
+            <PlayStoreButton className="w-full sm:w-auto" />
+          </div>
           <p className="text-xs text-gray-700 mt-4">무료 · 광고 없음 · 가입 즉시 이용</p>
         </Reveal>
       </section>
@@ -402,6 +425,7 @@ export default function Home() {
           <span className="ml-2 text-sm font-bold text-gray-600">SPM</span>
         </div>
         <p className="text-xs text-gray-700">Sports Position Management · 풋살·축구 등 스포츠팀을 위한 포지션 관리 플랫폼</p>
+        <p className="text-[11px] text-gray-800 mt-2">Google Play는 Google LLC의 상표입니다.</p>
       </footer>
 
       {showLoading && (
