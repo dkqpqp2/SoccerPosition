@@ -1,4 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
+import type { Metadata } from "next";
+import { buildShareMetadata, formatKoDate, getSharedListPreview, joinDescription } from "@/lib/sharePreview";
 import { notFound } from "next/navigation";
 import { Target, MapPin, Users, Zap, Coffee, ClipboardList } from "lucide-react";
 import CaptureButton from "@/components/CaptureButton";
@@ -49,6 +51,20 @@ function formatDate(dateStr: string) {
 function formatTime(time: string) {
   const [h, m] = time.split(":").map(Number);
   return `${h}시${m > 0 ? ` ${String(m).padStart(2, "0")}분` : ""}`;
+}
+
+// 카톡·SNS 미리보기: 팀 이름·경기명·날짜·인원수만 사용 (팀원 이름은 넣지 않음)
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const s = await getSharedListPreview(id);
+  if (!s) return { title: "공유된 참가 명단" };
+
+  const count = s.memberCount != null ? `참가 ${s.memberCount}명` : null;
+  return buildShareMetadata(
+    `${s.teamName} 참가 명단`,
+    joinDescription([formatKoDate(s.matchInfo?.match_date), s.matchInfo?.title, s.matchInfo?.location, count], "SPM에서 공유한 경기 참가 명단이에요."),
+    `/share/attendees/${id}`,
+  );
 }
 
 export default async function ShareAttendeesPage({ params }: { params: Promise<{ id: string }> }) {
