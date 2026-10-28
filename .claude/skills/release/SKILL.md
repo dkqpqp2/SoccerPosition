@@ -37,6 +37,9 @@ git branch -d <브랜치>
 ## 3. 배포 후 확인
 - 몇 분 뒤 운영 사이트에서 확인한다. 예: `curl -s https://www.soccerpositionmanagement.com/...` 로 바뀐 내용(제목, 사이트맵, 아이콘 등)이 반영됐는지.
 - Vercel 캐시로 바로 안 바뀔 수 있으니 안 보이면 잠시 후 다시 확인한다.
+- **배포가 끝났는지**는 GitHub 커밋 상태로 확인한다 (`gh` CLI는 없음): `curl -s https://api.github.com/repos/dkqpqp2/SoccerPosition/commits/<커밋sha>/status` 의 `description`이 "Vercel is deploying your app"이면 진행 중, "Deployment has completed"이면 완료. 빌드 실패와 단순 지연을 이걸로 구분한다.
+- 진행 중이면 **반복 대기 루프를 돌리지 말고** 한 번만 확인한 뒤 사용자에게 "몇 분 뒤 확인해줘라고 말해 달라"고 안내한다.
+- 상태 확인 주소로 사이트·DB 생존을 본다: `curl -s https://www.soccerpositionmanagement.com/api/health` → `{"status":"ok","db":"up"}` 이어야 한다 (DB가 안 닿으면 503).
 - 사용자에게 알린다: 커밋 범위(`이전..이후`), 반영까지 걸리는 시간, 사용자가 직접 확인할 것.
 
 ## 하지 말 것

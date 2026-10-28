@@ -93,6 +93,7 @@ export default function MyPage() {
   const [showAllNotifs, setShowAllNotifs] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [myEval, setMyEval] = useState<MyEvaluation | null | "loading">("loading");
@@ -934,7 +935,7 @@ export default function MyPage() {
               <AlertTriangle size={36} strokeWidth={1.5} className="text-red-400 mx-auto" />
               <h3 className="font-black text-white text-lg mt-2">정말 탈퇴할까요?</h3>
               <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                탈퇴 시 계정 및 모든 개인 데이터가 삭제되며<br />복구할 수 없어요.
+                탈퇴 시 이름·이메일·프로필 사진 등 개인정보가 삭제되며<br />복구할 수 없어요. 팀 기록(경기·통계)에는 &quot;탈퇴한 회원&quot;으로 남아요.
               </p>
             </div>
             <div className="mb-4">
@@ -947,9 +948,10 @@ export default function MyPage() {
                 className="w-full bg-gray-800 border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-600"
               />
             </div>
+            {deleteError && <p className="text-xs text-red-400 mb-3 text-center leading-relaxed" role="alert">{deleteError}</p>}
             <div className="flex gap-2">
               <button
-                onClick={() => { setShowDeleteConfirm(false); setDeleteInput(""); }}
+                onClick={() => { setShowDeleteConfirm(false); setDeleteInput(""); setDeleteError(""); }}
                 className="flex-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2.5 rounded-xl text-sm font-semibold transition-colors"
               >
                 취소
@@ -958,7 +960,16 @@ export default function MyPage() {
                 disabled={deleteInput !== "탈퇴" || deleting}
                 onClick={async () => {
                   setDeleting(true);
-                  await fetch("/api/user/delete", { method: "DELETE" });
+                  setDeleteError("");
+                  try {
+                    const res = await fetch("/api/user/delete", { method: "DELETE" });
+                    if (!res.ok) throw new Error("delete failed");
+                  } catch {
+                    // 실패했는데 로그아웃시키면 탈퇴된 줄 알게 되므로, 오류를 보여주고 다시 시도할 수 있게 둔다
+                    setDeleteError("탈퇴 처리에 실패했어요. 잠시 후 다시 시도해 주세요. 계속되면 문의해 주세요.");
+                    setDeleting(false);
+                    return;
+                  }
                   await signOut({ callbackUrl: "/" });
                 }}
                 className="flex-1 bg-red-500 hover:bg-red-400 disabled:opacity-30 disabled:cursor-not-allowed text-white py-2.5 rounded-xl text-sm font-bold transition-colors"
