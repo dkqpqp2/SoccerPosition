@@ -91,6 +91,7 @@ new Date(y, m - 1, d);
 ## 배포 워크플로우
 
 > 절차 전체는 프로젝트 스킬로 정리돼 있음: 배포는 `.claude/skills/release`, 새 테이블·DB 함수(RLS)는 `.claude/skills/db-migration`.
+> 운영 데이터 백업·검증은 `.claude/skills/db-backup`, 사이트·DB 생존 확인은 `GET /api/health` (외부 모니터링용, 200/503).
 
 - `main`에 바로 커밋하지 말 것. 기능/수정마다 브랜치를 새로 만들고, 로컬에서 `npx tsc --noEmit` + `npm run build` 통과 확인 후, **사용자가 명시적으로 "배포해줘"라고 할 때만** `main`에 merge하고 push할 것.
 - Android 네이티브 변경(아이콘, 앱 이름 등)은 웹 배포와 별개로 `android/app/build.gradle`의 `versionCode`/`versionName`을 올리고 `npx cap sync android` → `cd android && ./gradlew bundleRelease`로 새 `.aab`를 만들어 Play Console에 직접 업로드해야 함 — git push만으로는 반영되지 않음.
