@@ -1,4 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase";
+import type { Metadata } from "next";
+import { buildShareMetadata, formatKoDate, getSharedListPreview, joinDescription } from "@/lib/sharePreview";
 import { notFound } from "next/navigation";
 import { Target, MapPin, FileText, Trophy, Coffee, Clapperboard, MessageCircle } from "lucide-react";
 import { ytThumb, ytEmbed, VIDEO_CATEGORIES } from "@/lib/youtube";
@@ -55,6 +57,19 @@ function formatDate(dateStr: string) {
 function formatTime(time: string) {
   const [h, m] = time.split(":").map(Number);
   return `${h}시${m > 0 ? ` ${m}분` : ""}`;
+}
+
+// 카톡·SNS 미리보기: 피드백 내용은 넣지 않고 팀 이름·경기명·날짜만 사용
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const s = await getSharedListPreview(id);
+  if (!s) return { title: "공유된 경기 피드백" };
+
+  return buildShareMetadata(
+    `${s.teamName} 경기 피드백`,
+    joinDescription([formatKoDate(s.matchInfo?.match_date), s.matchInfo?.title], "SPM에서 공유한 경기 피드백이에요."),
+    `/share/feedback/${id}`,
+  );
 }
 
 export default async function ShareFeedbackPage({ params }: { params: Promise<{ id: string }> }) {
