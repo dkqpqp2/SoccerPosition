@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import {
   Rocket, Wallet, Home, Handshake, Users, Link2, Calendar, Check,
-  X, HelpCircle, Target, FileText, MessageCircle, User,
+  X, HelpCircle, Target, FileText, MessageCircle, User, Zap,
+  type LucideIcon,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 
@@ -38,6 +39,8 @@ interface MyTeamItem {
   is_active: boolean;
 }
 
+type RsvpStatus = "attending" | "absent" | "maybe";
+
 interface Match {
   id: string;
   title: string;
@@ -46,6 +49,9 @@ interface Match {
   match_end_time: string | null;
   location: string | null;
   rsvp_counts?: { attending: number; absent: number; maybe: number };
+  mercenary_count?: number;
+  regular_member_count?: number;
+  my_rsvp?: RsvpStatus | null;
 }
 
 interface Assignment {
@@ -103,6 +109,8 @@ export default function Dashboard() {
   const [switching, setSwitching] = useState(false);
 
   const [upcomingMatch, setUpcomingMatch] = useState<Match | null>(null);
+  const [rsvpSaving, setRsvpSaving] = useState(false);
+  const [rsvpError, setRsvpError] = useState<string | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [activeQuarter, setActiveQuarter] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
@@ -268,6 +276,56 @@ export default function Dashboard() {
       }
     }
     setFeedbackLoaded(true);
+  }
+
+  // 홈에서 바로 참석 여부 등록. 화면은 먼저 바꾸고(내 선택 + 인원수), 서버 저장이 실패하면 원래대로 되돌린다.
+  async function handleRsvp(status: RsvpStatus) {
+    const before = upcomingMatch;
+    if (!before || rsvpSaving) return;
+    const prev = before.my_rsvp ?? null;
+    if (prev === status) return;
+
+    const counts = { attending: 0, absent: 0, maybe: 0, ...before.rsvp_counts };
+    if (prev) counts[prev] = Math.max(0, counts[prev] - 1);
+    counts[status] += 1;
+
+    setRsvpError(null);
+    setRsvpSaving(true);
+    setUpcomingMatch({ ...before, my_rsvp: status, rsvp_counts: counts });
+
+    let ok = false;
+    try {
+      const res = await fetch("/api/matches/rsvp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ match_id: before.id, status }),
+      });
+      ok = res.ok;
+    } catch {
+      ok = false;
+    }
+
+    if (!ok) {
+      setUpcomingMatch(cur => (cur && cur.id === before.id ? before : cur));
+      setRsvpError("저장하지 못했어요. 잠시 후 다시 눌러 주세요.");
+    } else {
+      // 감독이 참가 인원에 직접 넣은 사람 등은 서버가 합산하므로, 저장 후 서버 기준 인원수로 맞춘다.
+      try {
+        const res = await fetch("/api/matches");
+        if (res.ok) {
+          const list: Match[] = await res.json();
+          const fresh = list.find(m => m.id === before.id);
+          if (fresh) {
+            setUpcomingMatch(cur => (cur && cur.id === before.id
+              ? { ...cur, rsvp_counts: fresh.rsvp_counts, mercenary_count: fresh.mercenary_count, regular_member_count: fresh.regular_member_count }
+              : cur));
+          }
+        }
+      } catch {
+        // 인원수 새로고침만 실패한 것 — 이미 저장은 됐으니 화면의 임시 숫자를 그대로 둔다.
+      }
+    }
+    setRsvpSaving(false);
   }
 
   async function switchTeam(teamId: string) {
@@ -626,10 +684,62 @@ export default function Dashboard() {
                   </span>
                   <span className="text-gray-700">·</span>
                   <span className="flex items-center gap-1 text-xs font-semibold text-gray-500">
-                    <HelpCircle size={13} /> 미정 {upcomingMatch.rsvp_counts.maybe}명
+                    <HelpCircle size={13} /> 미정 {Math.max(
+                      upcomingMatch.rsvp_counts.maybe,
+                      (upcomingMatch.regular_member_count ?? 0) - upcomingMatch.rsvp_counts.attending - upcomingMatch.rsvp_counts.absent,
+                    )}명
                   </span>
+                  {(upcomingMatch.mercenary_count ?? 0) > 0 && (
+                    <>
+                      <span className="text-gray-700">·</span>
+                      <span className="flex items-center gap-1 text-xs font-semibold text-amber-400">
+                        <Zap size={13} /> 용병 {upcomingMatch.mercenary_count}명
+                      </span>
+                    </>
+                  )}
                 </div>
               )}
+
+              {/* 내 참석 여부 — 홈에서 바로 선택 */}
+              {isUpcoming && (() => {
+                const [y, mo, d] = upcomingMatch.match_date.split("-").map(Number);
+                const endsAt = upcomingMatch.match_end_time
+                  ? new Date(y, mo - 1, d, ...(upcomingMatch.match_end_time.split(":").map(Number) as [number, number]))
+                  : new Date(y, mo - 1, d, 23, 59, 59);
+                if (new Date() >= endsAt) return null;
+
+                const mine = upcomingMatch.my_rsvp ?? null;
+                const BTNS: { key: RsvpStatus; label: string; icon: LucideIcon; active: string }[] = [
+                  { key: "attending", label: "참석", icon: Check,      active: "bg-emerald-500 text-white border-emerald-500" },
+                  { key: "absent",    label: "불참", icon: X,          active: "bg-red-500 text-white border-red-500" },
+                  { key: "maybe",     label: "미정", icon: HelpCircle, active: "bg-gray-600 text-white border-gray-500" },
+                ];
+                return (
+                  <div className="px-4 pb-3">
+                    <p className="text-[10px] text-gray-600 mb-1.5">
+                      {mine ? "내 참석 여부 (눌러서 바꿀 수 있어요)" : "참석 여부를 알려 주세요"}
+                    </p>
+                    <div className="flex gap-1.5">
+                      {BTNS.map(({ key, label, icon: Icon, active }) => (
+                        <button
+                          key={key}
+                          onClick={() => handleRsvp(key)}
+                          disabled={rsvpSaving}
+                          aria-pressed={mine === key}
+                          className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors inline-flex items-center justify-center gap-1 disabled:opacity-60 ${
+                            mine === key
+                              ? active
+                              : "bg-white/5 text-gray-500 border-white/10 hover:border-white/20 hover:text-gray-300"
+                          }`}
+                        >
+                          <Icon size={13} strokeWidth={2} /> {label}
+                        </button>
+                      ))}
+                    </div>
+                    {rsvpError && <p className="text-[11px] text-red-400 mt-1.5">{rsvpError}</p>}
+                  </div>
+                );
+              })()}
 
               {assignments.length > 0 ? (
                 <>
