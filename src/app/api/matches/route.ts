@@ -43,6 +43,8 @@ export async function GET() {
     supabaseAdmin.from("team_members").select("id, name, user_id, is_mercenary").eq("team_id", teamId).is("left_at", null),
   ]);
   const memberMap = new Map((teamMembers ?? []).map(m => [m.id, m]));
+  // 아직 응답하지 않은 사람도 "미정"으로 보여주기 위한 기준 인원 (현재 정규 팀원, 용병 제외)
+  const regularMemberCount = (teamMembers ?? []).filter(m => !m.is_mercenary).length;
 
   const matches = matchesRaw.map(match => {
     const matchRsvps = (rsvps ?? []).filter(r => r.match_id === match.id);
@@ -73,7 +75,7 @@ export async function GET() {
     });
     const myRsvp = matchRsvps.find(r => r.user_id === userId);
     const rsvpList = [...people.entries()].map(([key, p]) => ({ user_id: key, name: p.name, status: p.status }));
-    return { ...match, rsvp_counts: counts, mercenary_count: mercenaryIds.size, my_rsvp: myRsvp?.status ?? null, rsvp_list: rsvpList };
+    return { ...match, rsvp_counts: counts, regular_member_count: regularMemberCount, mercenary_count: mercenaryIds.size, my_rsvp: myRsvp?.status ?? null, rsvp_list: rsvpList };
   });
 
   return NextResponse.json(matches);

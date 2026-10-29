@@ -50,6 +50,7 @@ interface Match {
   location: string | null;
   rsvp_counts?: { attending: number; absent: number; maybe: number };
   mercenary_count?: number;
+  regular_member_count?: number;
   my_rsvp?: RsvpStatus | null;
 }
 
@@ -316,7 +317,7 @@ export default function Dashboard() {
           const fresh = list.find(m => m.id === before.id);
           if (fresh) {
             setUpcomingMatch(cur => (cur && cur.id === before.id
-              ? { ...cur, rsvp_counts: fresh.rsvp_counts, mercenary_count: fresh.mercenary_count }
+              ? { ...cur, rsvp_counts: fresh.rsvp_counts, mercenary_count: fresh.mercenary_count, regular_member_count: fresh.regular_member_count }
               : cur));
           }
         }
@@ -683,7 +684,10 @@ export default function Dashboard() {
                   </span>
                   <span className="text-gray-700">·</span>
                   <span className="flex items-center gap-1 text-xs font-semibold text-gray-500">
-                    <HelpCircle size={13} /> 미정 {upcomingMatch.rsvp_counts.maybe}명
+                    <HelpCircle size={13} /> 미정 {Math.max(
+                      upcomingMatch.rsvp_counts.maybe,
+                      (upcomingMatch.regular_member_count ?? 0) - upcomingMatch.rsvp_counts.attending - upcomingMatch.rsvp_counts.absent,
+                    )}명
                   </span>
                   {(upcomingMatch.mercenary_count ?? 0) > 0 && (
                     <>

@@ -39,6 +39,7 @@ interface Match {
   position_assignments: { id: string; session_name: string; created_at: string }[];
   rsvp_counts: { attending: number; absent: number; maybe: number };
   mercenary_count?: number;
+  regular_member_count?: number;
   my_rsvp: RsvpStatus | null;
   rsvp_list: { user_id: string; name: string; status: string }[];
 }
@@ -628,7 +629,11 @@ export default function MatchesPage() {
                     {(() => {
                       const ended = isMatchEnded(match);
                       const myRsvp = rsvpState[match.id] !== undefined ? rsvpState[match.id] : match.my_rsvp;
-                      const counts = match.rsvp_counts ?? { attending: 0, absent: 0, maybe: 0 };
+                      const rawCounts = match.rsvp_counts ?? { attending: 0, absent: 0, maybe: 0 };
+                      // 아직 응답 안 한 팀원도 미정으로 센다 (끝난 경기는 기록된 값 그대로)
+                      const counts = ended || match.regular_member_count == null
+                        ? rawCounts
+                        : { ...rawCounts, maybe: Math.max(rawCounts.maybe, match.regular_member_count - rawCounts.attending - rawCounts.absent) };
                       const isExpanded = expandedRsvp.has(match.id);
 
                       const BTNS: { key: RsvpStatus; label: string; icon: LucideIcon; active: string; count: string }[] = [
