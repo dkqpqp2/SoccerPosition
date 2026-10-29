@@ -51,6 +51,7 @@ interface Match {
   rsvp_counts?: { attending: number; absent: number; maybe: number };
   mercenary_count?: number;
   regular_member_count?: number;
+  rsvp_locked?: boolean;
   my_rsvp?: RsvpStatus | null;
 }
 
@@ -317,7 +318,7 @@ export default function Dashboard() {
           const fresh = list.find(m => m.id === before.id);
           if (fresh) {
             setUpcomingMatch(cur => (cur && cur.id === before.id
-              ? { ...cur, rsvp_counts: fresh.rsvp_counts, mercenary_count: fresh.mercenary_count, regular_member_count: fresh.regular_member_count }
+              ? { ...cur, rsvp_counts: fresh.rsvp_counts, mercenary_count: fresh.mercenary_count, regular_member_count: fresh.regular_member_count, rsvp_locked: fresh.rsvp_locked }
               : cur));
           }
         }
@@ -709,6 +710,7 @@ export default function Dashboard() {
                 if (new Date() >= endsAt) return null;
 
                 const mine = upcomingMatch.my_rsvp ?? null;
+                const locked = upcomingMatch.rsvp_locked === true;
                 const BTNS: { key: RsvpStatus; label: string; icon: LucideIcon; active: string }[] = [
                   { key: "attending", label: "참석", icon: Check,      active: "bg-emerald-500 text-white border-emerald-500" },
                   { key: "absent",    label: "불참", icon: X,          active: "bg-red-500 text-white border-red-500" },
@@ -717,14 +719,16 @@ export default function Dashboard() {
                 return (
                   <div className="px-4 pb-3">
                     <p className="text-[10px] text-gray-600 mb-1.5">
-                      {mine ? "내 참석 여부 (눌러서 바꿀 수 있어요)" : "참석 여부를 알려 주세요"}
+                      {locked
+                        ? "참가 인원에 등록돼 있어서 참석으로 처리돼요. 못 오면 회장·감독에게 말해 주세요"
+                        : mine ? "내 참석 여부 (눌러서 바꿀 수 있어요)" : "참석 여부를 알려 주세요"}
                     </p>
                     <div className="flex gap-1.5">
                       {BTNS.map(({ key, label, icon: Icon, active }) => (
                         <button
                           key={key}
                           onClick={() => handleRsvp(key)}
-                          disabled={rsvpSaving}
+                          disabled={rsvpSaving || locked}
                           aria-pressed={mine === key}
                           className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors inline-flex items-center justify-center gap-1 disabled:opacity-60 ${
                             mine === key
