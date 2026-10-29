@@ -54,9 +54,9 @@ export async function GET() {
     matchRsvps.forEach(r => {
       people.set(r.user_id, { name: userNameMap[r.user_id] ?? "알 수 없음", status: r.status });
     });
-    // 관리자급이 참가 인원에 넣은 사람은 본인이 불참·미정을 눌렀어도 참석으로 본다 (관리자 결정이 우선). 용병은 따로 센다.
+    // 참석 응답과 참가 인원은 저장할 때 서로 맞춰 주지만(rsvp / attendees 라우트), 동기화 도입 전에 쌓인 기록은 어긋나 있을 수 있어
+    // 참가 인원에 들어 있는 사람은 참석으로 본다. 용병은 따로 센다.
     const mercenaryIds = new Set<string>();
-    let lockedByManager = false; // 내가 참가 인원에 넣어져 있는지
     (attendeeRows ?? []).filter(a => a.match_id === match.id).forEach(a => {
       const m = memberMap.get(a.member_id);
       if (!m) return;
@@ -65,7 +65,6 @@ export async function GET() {
         if (m.user_id) people.delete(m.user_id);
         return;
       }
-      if (m.user_id && m.user_id === userId) lockedByManager = true;
       people.set(m.user_id ?? `m:${m.id}`, { name: m.name, status: "attending" });
     });
 
@@ -75,10 +74,10 @@ export async function GET() {
       else if (p.status === "absent") counts.absent++;
       else if (p.status === "maybe") counts.maybe++;
     });
-    // 내 상태: 참가 인원에 들어가 있으면 참석, 아니면 내가 누른 값
+    // 내 상태: 참가 인원에 들어가 있으면 참석, 아니면 내가 누른 값 (둘은 저장할 때 서로 맞춰진다)
     const myStatus = userId ? people.get(userId)?.status ?? null : null;
     const rsvpList = [...people.entries()].map(([key, p]) => ({ user_id: key, name: p.name, status: p.status }));
-    return { ...match, rsvp_counts: counts, regular_member_count: regularMemberCount, mercenary_count: mercenaryIds.size, my_rsvp: myStatus, rsvp_locked: lockedByManager, rsvp_list: rsvpList };
+    return { ...match, rsvp_counts: counts, regular_member_count: regularMemberCount, mercenary_count: mercenaryIds.size, my_rsvp: myStatus, rsvp_list: rsvpList };
   });
 
   return NextResponse.json(matches);

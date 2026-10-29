@@ -40,7 +40,6 @@ interface Match {
   rsvp_counts: { attending: number; absent: number; maybe: number };
   mercenary_count?: number;
   regular_member_count?: number;
-  rsvp_locked?: boolean;
   my_rsvp: RsvpStatus | null;
   rsvp_list: { user_id: string; name: string; status: string }[];
 }
@@ -629,7 +628,7 @@ export default function MatchesPage() {
                     {/* ── 출석 체크 섹션 ── */}
                     {(() => {
                       const ended = isMatchEnded(match);
-                      const myRsvp = match.rsvp_locked ? "attending" : rsvpState[match.id] !== undefined ? rsvpState[match.id] : match.my_rsvp;
+                      const myRsvp = rsvpState[match.id] !== undefined ? rsvpState[match.id] : match.my_rsvp;
                       const rawCounts = match.rsvp_counts ?? { attending: 0, absent: 0, maybe: 0 };
                       // 아직 응답 안 한 팀원도 미정으로 센다 (끝난 경기는 기록된 값 그대로)
                       const counts = ended || match.regular_member_count == null
@@ -675,17 +674,13 @@ export default function MatchesPage() {
                           </div>
 
                           {/* 버튼 3개 */}
-                          {!ended && match.rsvp_locked && (
-                            <p className="text-[10px] text-gray-500 mb-1.5">참가 인원에 등록돼 있어서 참석으로 처리돼요. 못 오면 회장·감독에게 말해 주세요</p>
-                          )}
                           {!ended && (
                             <div className="flex gap-1.5">
                               {BTNS.map(({ key, label, icon: Icon, active }) => (
                                 <button
                                   key={key}
                                   onClick={() => handleRsvp(match.id, key)}
-                                  disabled={match.rsvp_locked}
-                                  className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors inline-flex items-center justify-center gap-1 disabled:opacity-60 ${
+                                  className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-colors inline-flex items-center justify-center gap-1 ${
                                     myRsvp === key
                                       ? active
                                       : "bg-white/5 text-gray-500 border-white/10 hover:border-white/20 hover:text-gray-300"
