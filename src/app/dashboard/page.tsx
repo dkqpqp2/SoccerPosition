@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import {
   Rocket, Wallet, Home, Handshake, Users, Link2, Calendar, Check,
-  X, HelpCircle, Target, FileText, MessageCircle, User,
+  X, HelpCircle, Target, FileText, MessageCircle, User, Zap,
   type LucideIcon,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
@@ -49,6 +49,7 @@ interface Match {
   match_end_time: string | null;
   location: string | null;
   rsvp_counts?: { attending: number; absent: number; maybe: number };
+  mercenary_count?: number;
   my_rsvp?: RsvpStatus | null;
 }
 
@@ -306,6 +307,22 @@ export default function Dashboard() {
     if (!ok) {
       setUpcomingMatch(cur => (cur && cur.id === before.id ? before : cur));
       setRsvpError("저장하지 못했어요. 잠시 후 다시 눌러 주세요.");
+    } else {
+      // 감독이 참가 인원에 직접 넣은 사람 등은 서버가 합산하므로, 저장 후 서버 기준 인원수로 맞춘다.
+      try {
+        const res = await fetch("/api/matches");
+        if (res.ok) {
+          const list: Match[] = await res.json();
+          const fresh = list.find(m => m.id === before.id);
+          if (fresh) {
+            setUpcomingMatch(cur => (cur && cur.id === before.id
+              ? { ...cur, rsvp_counts: fresh.rsvp_counts, mercenary_count: fresh.mercenary_count }
+              : cur));
+          }
+        }
+      } catch {
+        // 인원수 새로고침만 실패한 것 — 이미 저장은 됐으니 화면의 임시 숫자를 그대로 둔다.
+      }
     }
     setRsvpSaving(false);
   }
@@ -668,6 +685,14 @@ export default function Dashboard() {
                   <span className="flex items-center gap-1 text-xs font-semibold text-gray-500">
                     <HelpCircle size={13} /> 미정 {upcomingMatch.rsvp_counts.maybe}명
                   </span>
+                  {(upcomingMatch.mercenary_count ?? 0) > 0 && (
+                    <>
+                      <span className="text-gray-700">·</span>
+                      <span className="flex items-center gap-1 text-xs font-semibold text-amber-400">
+                        <Zap size={13} /> 용병 {upcomingMatch.mercenary_count}명
+                      </span>
+                    </>
+                  )}
                 </div>
               )}
 

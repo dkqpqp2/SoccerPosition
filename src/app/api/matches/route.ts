@@ -36,21 +36,44 @@ export async function GET() {
   const userNameMap: Record<string, string> = {};
   (rsvpUsers ?? []).forEach(u => { userNameMap[u.id] = u.name; });
 
+  // 포지션 배정 화면에서 감독이 "참가 인원"에 직접 넣은 사람(match_attendees)도 참석으로 센다.
+  // team_members는 이 팀의 현재 팀원만 조회 (다른 팀 id가 섞여 들어와도, 나간 팀원도 걸러짐).
+  const [{ data: attendeeRows }, { data: teamMembers }] = await Promise.all([
+    supabaseAdmin.from("match_attendees").select("match_id, member_id").eq("team_id", teamId).in("match_id", matchIds),
+    supabaseAdmin.from("team_members").select("id, name, user_id, is_mercenary").eq("team_id", teamId).is("left_at", null),
+  ]);
+  const memberMap = new Map((teamMembers ?? []).map(m => [m.id, m]));
+
   const matches = matchesRaw.map(match => {
     const matchRsvps = (rsvps ?? []).filter(r => r.match_id === match.id);
-    const counts = { attending: 0, absent: 0, maybe: 0 };
+
+    // 사람 한 명당 한 번만 센다. 키는 user_id (계정이 없는 팀원은 팀원 id).
+    const people = new Map<string, { name: string; status: string }>();
     matchRsvps.forEach(r => {
-      if (r.status === "attending") counts.attending++;
-      else if (r.status === "absent") counts.absent++;
-      else if (r.status === "maybe") counts.maybe++;
+      people.set(r.user_id, { name: userNameMap[r.user_id] ?? "알 수 없음", status: r.status });
+    });
+    // 감독이 참가 인원에 넣은 사람은 RSVP가 불참·미정이어도 참석으로 본다. 용병은 따로 센다.
+    const mercenaryIds = new Set<string>();
+    (attendeeRows ?? []).filter(a => a.match_id === match.id).forEach(a => {
+      const m = memberMap.get(a.member_id);
+      if (!m) return;
+      if (m.is_mercenary) {
+        mercenaryIds.add(m.id);
+        if (m.user_id) people.delete(m.user_id);
+        return;
+      }
+      people.set(m.user_id ?? `m:${m.id}`, { name: m.name, status: "attending" });
+    });
+
+    const counts = { attending: 0, absent: 0, maybe: 0 };
+    people.forEach(p => {
+      if (p.status === "attending") counts.attending++;
+      else if (p.status === "absent") counts.absent++;
+      else if (p.status === "maybe") counts.maybe++;
     });
     const myRsvp = matchRsvps.find(r => r.user_id === userId);
-    const rsvpList = matchRsvps.map(r => ({
-      user_id: r.user_id,
-      name: userNameMap[r.user_id] ?? "알 수 없음",
-      status: r.status,
-    }));
-    return { ...match, rsvp_counts: counts, my_rsvp: myRsvp?.status ?? null, rsvp_list: rsvpList };
+    const rsvpList = [...people.entries()].map(([key, p]) => ({ user_id: key, name: p.name, status: p.status }));
+    return { ...match, rsvp_counts: counts, mercenary_count: mercenaryIds.size, my_rsvp: myRsvp?.status ?? null, rsvp_list: rsvpList };
   });
 
   return NextResponse.json(matches);

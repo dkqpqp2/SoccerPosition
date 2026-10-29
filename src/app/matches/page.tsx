@@ -38,6 +38,7 @@ interface Match {
   score_them: number | null;
   position_assignments: { id: string; session_name: string; created_at: string }[];
   rsvp_counts: { attending: number; absent: number; maybe: number };
+  mercenary_count?: number;
   my_rsvp: RsvpStatus | null;
   rsvp_list: { user_id: string; name: string; status: string }[];
 }
@@ -648,6 +649,9 @@ export default function MatchesPage() {
                                 <span className="mx-0.5">·</span>
                                 <span className="text-gray-500 font-bold">{counts.maybe}</span>
                                 <span className="ml-1 text-gray-700">명</span>
+                                {(match.mercenary_count ?? 0) > 0 && (
+                                  <span className="ml-1.5 text-amber-400 font-bold">용병 {match.mercenary_count}명</span>
+                                )}
                               </span>
                               {canManage && match.rsvp_list?.length > 0 && (
                                 <button
