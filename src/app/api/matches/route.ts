@@ -54,7 +54,8 @@ export async function GET() {
     matchRsvps.forEach(r => {
       people.set(r.user_id, { name: userNameMap[r.user_id] ?? "알 수 없음", status: r.status });
     });
-    // 감독이 참가 인원에 넣은 사람은 RSVP가 불참·미정이어도 참석으로 본다. 용병은 따로 센다.
+    // 참석 응답과 참가 인원은 저장할 때 서로 맞춰 주지만(rsvp / attendees 라우트), 동기화 도입 전에 쌓인 기록은 어긋나 있을 수 있어
+    // 참가 인원에 들어 있는 사람은 참석으로 본다. 용병은 따로 센다.
     const mercenaryIds = new Set<string>();
     (attendeeRows ?? []).filter(a => a.match_id === match.id).forEach(a => {
       const m = memberMap.get(a.member_id);
@@ -73,9 +74,10 @@ export async function GET() {
       else if (p.status === "absent") counts.absent++;
       else if (p.status === "maybe") counts.maybe++;
     });
-    const myRsvp = matchRsvps.find(r => r.user_id === userId);
+    // 내 상태: 참가 인원에 들어가 있으면 참석, 아니면 내가 누른 값 (둘은 저장할 때 서로 맞춰진다)
+    const myStatus = userId ? people.get(userId)?.status ?? null : null;
     const rsvpList = [...people.entries()].map(([key, p]) => ({ user_id: key, name: p.name, status: p.status }));
-    return { ...match, rsvp_counts: counts, regular_member_count: regularMemberCount, mercenary_count: mercenaryIds.size, my_rsvp: myRsvp?.status ?? null, rsvp_list: rsvpList };
+    return { ...match, rsvp_counts: counts, regular_member_count: regularMemberCount, mercenary_count: mercenaryIds.size, my_rsvp: myStatus, rsvp_list: rsvpList };
   });
 
   return NextResponse.json(matches);

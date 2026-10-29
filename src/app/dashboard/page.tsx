@@ -317,7 +317,7 @@ export default function Dashboard() {
           const fresh = list.find(m => m.id === before.id);
           if (fresh) {
             setUpcomingMatch(cur => (cur && cur.id === before.id
-              ? { ...cur, rsvp_counts: fresh.rsvp_counts, mercenary_count: fresh.mercenary_count, regular_member_count: fresh.regular_member_count }
+              ? { ...cur, rsvp_counts: fresh.rsvp_counts, mercenary_count: fresh.mercenary_count, regular_member_count: fresh.regular_member_count, my_rsvp: fresh.my_rsvp }
               : cur));
           }
         }
