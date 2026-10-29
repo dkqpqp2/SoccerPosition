@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   // 정규 팀원 목록
   const { data: members } = await supabaseAdmin
     .from("team_members")
-    .select("id, name, jersey_number")
+    .select("id, name, jersey_number, left_at")
     .eq("team_id", teamId)
     .eq("is_mercenary", false)
     .order("name");
@@ -102,28 +102,34 @@ export async function GET(req: NextRequest) {
     };
   });
 
+  const rows = members.map(m => {
+    const autoGames   = autoCountMap[m.id]    ?? 0;
+    const extraGames  = statsMap[m.id]?.extra_games ?? 0;
+    const totalGames  = autoGames + extraGames;
+    const autoGoals   = autoGoalsMap[m.id]    ?? 0;
+    const autoAssists = autoAssistsMap[m.id]  ?? 0;
+    const extraGoals   = statsMap[m.id]?.goals   ?? 0;
+    const extraAssists = statsMap[m.id]?.assists  ?? 0;
+    return {
+      id:              m.id,
+      name:            m.name,
+      jersey_number:   m.jersey_number ?? null,
+      is_me:           m.id === myMemberId,
+      goals:           autoGoals + extraGoals,
+      assists:         autoAssists + extraAssists,
+      games_played:    totalGames,
+      auto_games:      autoGames,
+      extra_games:     extraGames,
+      total_matches:   totalMatchCount,
+      attendance_rate: totalMatchCount > 0 ? Math.round((totalGames / totalMatchCount) * 100) : 0,
+      left_at:         m.left_at as string | null,
+    };
+  });
+
+  // 나간(탈퇴 포함) 팀원은 올해 기록이 있을 때만 보여준다 — 팀 합계·순위는 유지하고, 기록 없는 빈 줄은 숨김
   return NextResponse.json(
-    members.map(m => {
-      const autoGames   = autoCountMap[m.id]    ?? 0;
-      const extraGames  = statsMap[m.id]?.extra_games ?? 0;
-      const totalGames  = autoGames + extraGames;
-      const autoGoals   = autoGoalsMap[m.id]    ?? 0;
-      const autoAssists = autoAssistsMap[m.id]  ?? 0;
-      const extraGoals   = statsMap[m.id]?.goals   ?? 0;
-      const extraAssists = statsMap[m.id]?.assists  ?? 0;
-      return {
-        id:              m.id,
-        name:            m.name,
-        jersey_number:   m.jersey_number ?? null,
-        is_me:           m.id === myMemberId,
-        goals:           autoGoals + extraGoals,
-        assists:         autoAssists + extraAssists,
-        games_played:    totalGames,
-        auto_games:      autoGames,
-        extra_games:     extraGames,
-        total_matches:   totalMatchCount,
-        attendance_rate: totalMatchCount > 0 ? Math.round((totalGames / totalMatchCount) * 100) : 0,
-      };
-    })
+    rows
+      .filter(r => r.left_at === null || r.goals > 0 || r.assists > 0 || r.games_played > 0)
+      .map(({ left_at, ...rest }) => { void left_at; return rest; })
   );
 }
