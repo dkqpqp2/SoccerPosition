@@ -54,7 +54,7 @@ export async function GET() {
     matchRsvps.forEach(r => {
       people.set(r.user_id, { name: userNameMap[r.user_id] ?? "알 수 없음", status: r.status });
     });
-    // 감독이 참가 인원에 넣은 사람은 RSVP가 불참·미정이어도 참석으로 본다. 용병은 따로 센다.
+    // 감독이 참가 인원에 넣은 사람 중 아직 직접 응답하지 않은 사람은 참석으로 본다 (본인이 누른 값이 항상 우선). 용병은 따로 센다.
     const mercenaryIds = new Set<string>();
     (attendeeRows ?? []).filter(a => a.match_id === match.id).forEach(a => {
       const m = memberMap.get(a.member_id);
@@ -64,7 +64,8 @@ export async function GET() {
         if (m.user_id) people.delete(m.user_id);
         return;
       }
-      people.set(m.user_id ?? `m:${m.id}`, { name: m.name, status: "attending" });
+      const key = m.user_id ?? `m:${m.id}`;
+      if (!people.has(key)) people.set(key, { name: m.name, status: "attending" });
     });
 
     const counts = { attending: 0, absent: 0, maybe: 0 };
@@ -73,9 +74,10 @@ export async function GET() {
       else if (p.status === "absent") counts.absent++;
       else if (p.status === "maybe") counts.maybe++;
     });
-    const myRsvp = matchRsvps.find(r => r.user_id === userId);
+    // 내 상태: 내가 누른 값, 없으면 감독이 참가 인원에 넣어서 참석으로 잡힌 상태
+    const myStatus = userId ? people.get(userId)?.status ?? null : null;
     const rsvpList = [...people.entries()].map(([key, p]) => ({ user_id: key, name: p.name, status: p.status }));
-    return { ...match, rsvp_counts: counts, regular_member_count: regularMemberCount, mercenary_count: mercenaryIds.size, my_rsvp: myRsvp?.status ?? null, rsvp_list: rsvpList };
+    return { ...match, rsvp_counts: counts, regular_member_count: regularMemberCount, mercenary_count: mercenaryIds.size, my_rsvp: myStatus, rsvp_list: rsvpList };
   });
 
   return NextResponse.json(matches);
