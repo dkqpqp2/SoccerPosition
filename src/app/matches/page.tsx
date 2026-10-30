@@ -655,7 +655,7 @@ export default function MatchesPage() {
                                 <span className="text-gray-500 font-bold">{counts.maybe}</span>
                                 <span className="ml-1 text-gray-700">명</span>
                                 {(match.mercenary_count ?? 0) > 0 && (
-                                  <span className="ml-1.5 text-amber-400 font-bold">용병 {match.mercenary_count}명</span>
+                                  <span className="ml-1.5 text-amber-400 font-bold whitespace-nowrap">용병 {match.mercenary_count}</span>
                                 )}
                               </span>
                               {canManage && match.rsvp_list?.length > 0 && (
