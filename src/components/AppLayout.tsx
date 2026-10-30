@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import SpmLogo from "@/components/SpmLogo";
 import InAppUpdateBanner from "@/components/InAppUpdateBanner";
+import NativePushRegistrar from "@/components/NativePushRegistrar";
 
 export interface HelpItem {
   icon: string;
@@ -132,6 +133,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex">
       <InAppUpdateBanner />
+      <NativePushRegistrar />
 
       {/* ── 사이드바 (PC only) ── */}
       <aside
