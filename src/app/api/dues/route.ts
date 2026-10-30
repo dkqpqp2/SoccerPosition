@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -128,11 +128,11 @@ export async function POST(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // 푸시 알림 발송
-  sendPushToTeam(teamId, {
+  after(() => sendPushToTeam(teamId, {
     title: "회비 납부 요청이 왔어요 💰",
     body: `"${data.title}" ${amount.toLocaleString()}원 납부 요청`,
     url: "/dues",
-  }, userId).catch(console.error);
+  }, userId));
 
   return NextResponse.json(data);
 }

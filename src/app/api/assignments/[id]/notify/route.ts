@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -65,11 +65,11 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }));
   await supabaseAdmin.from("notifications").insert(notifications);
 
-  sendPushToUsers(userIds.filter(uid => uid !== userId), {
+  after(() => sendPushToUsers(userIds.filter(uid => uid !== userId), {
     title: "포지션 배정 알림 ⚽",
     body: `[${assignment.session_name}] 포지션을 확인해보세요!`,
     url: `/share/${assignment.id}`,
-  }).catch(console.error);
+  }));
 
   return NextResponse.json({ notified: userIds.length });
 }

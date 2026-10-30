@@ -42,3 +42,6 @@ next-env.d.ts
 
 .vercel
 spm-release-key.jks
+
+# Firebase 앱 설정 (안드로이드 로컬 빌드용)
+android/app/google-services.json

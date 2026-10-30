@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
@@ -164,11 +164,11 @@ export async function POST(req: Request) {
   }
 
   // 푸시 알림 발송 (본인 포함)
-  sendPushToTeam(teamId, {
+  after(() => sendPushToTeam(teamId, {
     title: "새 투표가 등록됐어요 🗳️",
     body: `"${vote.title}" 투표에 참여해보세요!`,
     url: "/votes",
-  }).catch(console.error);
+  }));
 
   return NextResponse.json(vote);
 }

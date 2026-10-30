@@ -42,7 +42,7 @@ export async function deleteAccount(db: SupabaseClient, userId: string): Promise
   }
 
   // 2) 개인에게만 속한 기록 삭제 (다른 기록이 가리키지 않는 말단 데이터)
-  for (const table of ["notifications", "push_subscriptions", "vote_comments", "vote_responses", "match_rsvp"]) {
+  for (const table of ["notifications", "push_subscriptions", "device_tokens", "vote_comments", "vote_responses", "match_rsvp"]) {
     const d = await db.from(table).delete().eq("user_id", userId);
     if (d.error) return fail(`delete_${table}`, d.error.message);
   }

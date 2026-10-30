@@ -9,6 +9,7 @@ import {
   ImagePlus, Pencil,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
+import { unregisterNativePush } from "@/components/NativePushRegistrar";
 import PositionSelect from "@/components/PositionSelect";
 import { POSITION_MAP } from "@/lib/positions";
 
@@ -844,7 +845,10 @@ export default function MyPage() {
 
         {/* 로그아웃 */}
         <button
-          onClick={() => signOut({ callbackUrl: "/" })}
+          onClick={async () => {
+            await unregisterNativePush();
+            await signOut({ callbackUrl: "/" });
+          }}
           className="w-full bg-gray-900 border border-white/5 rounded-lg p-4 text-red-400 hover:text-red-300 hover:border-red-500/20 font-medium transition-colors"
         >
           로그아웃
