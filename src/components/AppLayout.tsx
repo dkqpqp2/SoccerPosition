@@ -11,6 +11,8 @@ import {
 import SpmLogo from "@/components/SpmLogo";
 import InAppUpdateBanner from "@/components/InAppUpdateBanner";
 import NativePushRegistrar from "@/components/NativePushRegistrar";
+import WebPushRegistrar from "@/components/WebPushRegistrar";
+import { syncAppBadge } from "@/lib/appBadge";
 
 export interface HelpItem {
   icon: string;
@@ -115,7 +117,11 @@ export default function AppLayout({ children, title, helpContent }: { children: 
       if (Array.isArray(data)) setPendingMatches(data.filter(r => r.status === "pending").length);
     }).catch(() => {});
     fetch("/api/notifications").then(r => r.json()).then((data: { is_read: boolean }[]) => {
-      if (Array.isArray(data)) setUnreadNotifications(data.filter(n => !n.is_read).length);
+      if (Array.isArray(data)) {
+        const unread = data.filter(n => !n.is_read).length;
+        setUnreadNotifications(unread);
+        syncAppBadge(unread);
+      }
     }).catch(() => {});
   }
 
@@ -134,6 +140,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
     <div className="min-h-screen bg-gray-950 text-white flex">
       <InAppUpdateBanner />
       <NativePushRegistrar />
+      <WebPushRegistrar />
 
       {/* ── 사이드바 (PC only) ── */}
       <aside

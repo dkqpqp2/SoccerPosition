@@ -2,13 +2,19 @@ self.addEventListener("push", (event) => {
   if (!event.data) return;
   const data = event.data.json();
   event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: "/icon-192.png",
-      badge: "/icon-192-maskable.png",
-      data: { url: data.url || "/" },
-      vibrate: [200, 100, 200],
-    })
+    Promise.all([
+      self.registration.showNotification(data.title, {
+        body: data.body,
+        icon: "/icon-192.png",
+        badge: "/icon-192-maskable.png",
+        data: { url: data.url || "/" },
+        vibrate: [200, 100, 200],
+      }),
+      // 홈 화면에 추가한 웹앱 아이콘의 숫자 배지 (안 읽은 알림 수)
+      typeof data.badge === "number" && self.navigator.setAppBadge
+        ? self.navigator.setAppBadge(data.badge).catch(() => {})
+        : Promise.resolve(),
+    ])
   );
 });
 
