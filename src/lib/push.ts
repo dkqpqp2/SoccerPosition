@@ -11,25 +11,32 @@ interface PushPayload {
 // 웹 푸시(브라우저·홈 화면에 추가한 웹앱) 발송. 만료된 구독은 자동 삭제.
 async function sendWebPush(userIds: string[], payload: PushPayload) {
   if (userIds.length === 0) return;
+  const { VAPID_SUBJECT, NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
+  if (!VAPID_SUBJECT || !NEXT_PUBLIC_VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
 
   // 런타임에 VAPID 초기화 (빌드 시점엔 환경변수 없음)
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT!,
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-    process.env.VAPID_PRIVATE_KEY!
-  );
+  webpush.setVapidDetails(VAPID_SUBJECT, NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
   const { data: subs } = await supabaseAdmin
     .from("push_subscriptions")
-    .select("endpoint, p256dh, auth")
+    .select("endpoint, p256dh, auth, user_id")
     .in("user_id", userIds);
 
   if (!subs?.length) return;
+
+  // 사용자별 안 읽은 알림 수를 웹앱 아이콘 숫자 배지로 함께 보낸다
+  const { data: unread } = await supabaseAdmin
+    .from("notifications")
+    .select("user_id")
+    .in("user_id", userIds)
+    .eq("is_read", false);
+  const unreadOf = new Map<string, number>();
+  (unread ?? []).forEach(n => unreadOf.set(n.user_id, (unreadOf.get(n.user_id) ?? 0) + 1));
 
   await Promise.allSettled(
     subs.map(sub =>
       webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-        JSON.stringify(payload)
+        JSON.stringify({ ...payload, badge: unreadOf.get(sub.user_id) ?? 1 })
       ).catch(async (err) => {
         // 만료된 구독 자동 삭제
         if (err.statusCode === 404 || err.statusCode === 410) {

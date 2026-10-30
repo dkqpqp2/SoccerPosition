@@ -10,6 +10,9 @@ import {
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import { unregisterNativePush } from "@/components/NativePushRegistrar";
+import WebPushSettings from "@/components/WebPushSettings";
+import { unregisterWebPush } from "@/components/WebPushRegistrar";
+import { syncAppBadge } from "@/lib/appBadge";
 import PositionSelect from "@/components/PositionSelect";
 import { POSITION_MAP } from "@/lib/positions";
 
@@ -137,17 +140,29 @@ export default function MyPage() {
 
   async function fetchNotifications() {
     const res = await fetch("/api/notifications");
-    if (res.ok) setNotifications(await res.json());
+    if (res.ok) {
+      const list = await res.json();
+      setNotifications(list);
+      syncAppBadge(list.length);
+    }
   }
 
   async function dismissNotification(id: string) {
     await fetch(`/api/notifications/${id}`, { method: "DELETE" });
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    setNotifications(prev => {
+      const next = prev.filter(n => n.id !== id);
+      syncAppBadge(next.length);
+      return next;
+    });
   }
 
   async function markReadAndGo(notification: { id: string; link: string }) {
     await fetch(`/api/notifications/${notification.id}`, { method: "DELETE" });
-    setNotifications(prev => prev.filter(n => n.id !== notification.id));
+    setNotifications(prev => {
+      const next = prev.filter(n => n.id !== notification.id);
+      syncAppBadge(next.length);
+      return next;
+    });
     router.push(notification.link);
   }
 
@@ -258,6 +273,7 @@ export default function MyPage() {
                 onClick={async () => {
                   await fetch("/api/notifications", { method: "PATCH" });
                   setNotifications([]);
+                  syncAppBadge(0);
                 }}
                 className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
               >
@@ -843,10 +859,14 @@ export default function MyPage() {
           </button>
         </div>}{/* end 팀 매칭 탭 */}
 
+        <WebPushSettings />
+
         {/* 로그아웃 */}
         <button
           onClick={async () => {
             await unregisterNativePush();
+            await unregisterWebPush();
+            syncAppBadge(0);
             await signOut({ callbackUrl: "/" });
           }}
           className="w-full bg-gray-900 border border-white/5 rounded-lg p-4 text-red-400 hover:text-red-300 hover:border-red-500/20 font-medium transition-colors"
