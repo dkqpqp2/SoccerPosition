@@ -674,26 +674,26 @@ export default function Dashboard() {
 
               {/* RSVP 출석 현황 */}
               {isUpcoming && upcomingMatch.rsvp_counts && (
-                <div className="flex items-center gap-3 px-4 pb-3">
-                  <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
-                    <Check size={13} /> 참석 {upcomingMatch.rsvp_counts.attending}명
+                <div className="flex items-center gap-2.5 px-4 pb-3">
+                  <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400 whitespace-nowrap">
+                    <Check size={13} /> 참석 {upcomingMatch.rsvp_counts.attending}
                   </span>
                   <span className="text-gray-700">·</span>
-                  <span className="flex items-center gap-1 text-xs font-semibold text-red-400">
-                    <X size={13} /> 불참 {upcomingMatch.rsvp_counts.absent}명
+                  <span className="flex items-center gap-1 text-xs font-semibold text-red-400 whitespace-nowrap">
+                    <X size={13} /> 불참 {upcomingMatch.rsvp_counts.absent}
                   </span>
                   <span className="text-gray-700">·</span>
-                  <span className="flex items-center gap-1 text-xs font-semibold text-gray-500">
+                  <span className="flex items-center gap-1 text-xs font-semibold text-gray-500 whitespace-nowrap">
                     <HelpCircle size={13} /> 미정 {Math.max(
                       upcomingMatch.rsvp_counts.maybe,
                       (upcomingMatch.regular_member_count ?? 0) - upcomingMatch.rsvp_counts.attending - upcomingMatch.rsvp_counts.absent,
-                    )}명
+                    )}
                   </span>
                   {(upcomingMatch.mercenary_count ?? 0) > 0 && (
                     <>
                       <span className="text-gray-700">·</span>
-                      <span className="flex items-center gap-1 text-xs font-semibold text-amber-400">
-                        <Zap size={13} /> 용병 {upcomingMatch.mercenary_count}명
+                      <span className="flex items-center gap-1 text-xs font-semibold text-amber-400 whitespace-nowrap">
+                        <Zap size={13} /> 용병 {upcomingMatch.mercenary_count}
                       </span>
                     </>
                   )}
