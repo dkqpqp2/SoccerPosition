@@ -68,6 +68,11 @@ export function canManageScrimmage(role: TeamRole | null): boolean {
   return role === "owner" || role === "manager" || role === "president";
 }
 
+/** 유니폼 관리 가능 여부 (팀장, 매니저, 회장 — 코치 제외) */
+export function canManageUniforms(role: TeamRole | null): boolean {
+  return role === "owner" || role === "manager" || role === "president";
+}
+
 /**
  * 포지션 배정 result(슬롯id -> {id: member_id, ...} | null)에 담긴 member_id가
  * 실제 이 팀 소속인지 검증 — 아니면 미배정(null)으로 치환해서 다른 팀 id가 섞여 들어가는 것 방지

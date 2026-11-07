@@ -417,6 +417,7 @@ const PERMS: { feature: string; fn: string; roles: Record<string, boolean> }[] =
   { feature: "포지션 배정 · 경기 만들기", fn: "canManage", roles: { owner: true, manager: true, coach: true, president: true, treasurer: false, member: false } },
   { feature: "경기 피드백 쓰기", fn: "canFeedback", roles: { owner: true, manager: true, coach: true, president: true, treasurer: false, member: false } },
   { feature: "내전(스크림) 관리", fn: "canManageScrimmage", roles: { owner: true, manager: true, coach: false, president: true, treasurer: false, member: false } },
+  { feature: "유니폼 관리", fn: "canManageUniforms", roles: { owner: true, manager: true, coach: false, president: true, treasurer: false, member: false } },
   { feature: "회비 관리", fn: "canManageDues", roles: { owner: true, manager: false, coach: false, president: false, treasurer: true, member: false } },
   { feature: "역할 임명 · 강퇴", fn: "isOwner", roles: { owner: true, manager: false, coach: false, president: false, treasurer: false, member: false } },
 ];

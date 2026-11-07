@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import {
   Home, Users, HeartPulse, LayoutGrid, Calendar, Target, FileText,
   Vote, Wallet, BarChart3, MessageCircle, Clapperboard, Handshake,
-  User, Bell, Lightbulb, X, Swords, PenTool, Share2, type LucideIcon,
+  User, Bell, Lightbulb, X, Swords, PenTool, Share2, Shirt, type LucideIcon,
 } from "lucide-react";
 import SpmLogo from "@/components/SpmLogo";
 import InAppUpdateBanner from "@/components/InAppUpdateBanner";
@@ -24,7 +24,7 @@ export interface HelpContent {
   items: HelpItem[];
 }
 
-const NAV_ITEMS: { path: string; icon: LucideIcon; label: string; managerOnly?: boolean; adminOnly?: boolean; ownerOnlyHidden?: boolean; group?: string }[] = [
+const NAV_ITEMS: { path: string; icon: LucideIcon; label: string; managerOnly?: boolean; leaderOnly?: boolean; adminOnly?: boolean; ownerOnlyHidden?: boolean; group?: string }[] = [
   { path: "/dashboard", icon: Home, label: "홈", group: "팀" },
   { path: "/members", icon: Users, label: "팀원 관리" },
   { path: "/status", icon: HeartPulse, label: "팀 현황" },
@@ -39,6 +39,7 @@ const NAV_ITEMS: { path: string; icon: LucideIcon; label: string; managerOnly?: 
   { path: "/board", icon: MessageCircle, label: "게시판" },
   { path: "/videos", icon: Clapperboard, label: "영상 추천" },
   { path: "/dues", icon: Wallet, label: "회비 관리", group: "관리" },
+  { path: "/uniforms", icon: Shirt, label: "유니폼 관리", leaderOnly: true },
   { path: "/stats", icon: BarChart3, label: "팀 통계" },
   { path: "/matching", icon: Handshake, label: "팀 매칭", adminOnly: true },
 ];
@@ -94,6 +95,8 @@ export default function AppLayout({ children, title, helpContent }: { children: 
 
   // 포메이션·포지션 배정은 관리자급(owner/manager/coach/president)에게만 표시
   const canManageNav = userRole === "owner" || userRole === "manager" || userRole === "coach" || userRole === "president";
+  // 코치를 뺀 팀장·매니저·회장 (유니폼 관리처럼 서버에서도 같은 기준으로 막는 메뉴)
+  const canLeadNav = userRole === "owner" || userRole === "manager" || userRole === "president";
   // 게시판은 FC키싱구라미 전용
   const boardAllowed = teamId === process.env.NEXT_PUBLIC_BOARD_TEAM_ID;
 
@@ -177,6 +180,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
         <nav className="flex-1 py-3 overflow-y-auto">
           {NAV_ITEMS.filter(item => {
             if (item.managerOnly && !canManageNav) return false;
+            if (item.leaderOnly && !canLeadNav) return false;
             if (item.ownerOnlyHidden && !isOwner) return false;
             if (item.path === "/board" && !boardAllowed) return false;
             return true;
@@ -377,6 +381,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
       {(() => {
         const visibleItems = NAV_ITEMS.filter(item => {
           if (item.managerOnly && !canManageNav) return false;
+          if (item.leaderOnly && !canLeadNav) return false;
           if (item.ownerOnlyHidden && !isOwner) return false;
           if (item.path === "/board" && !boardAllowed) return false;
           return true;
