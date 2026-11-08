@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import { unregisterNativePush } from "@/components/NativePushRegistrar";
+import MyUniforms from "@/components/MyUniforms";
 import WebPushSettings from "@/components/WebPushSettings";
 import { unregisterWebPush } from "@/components/WebPushRegistrar";
 import { syncAppBadge } from "@/lib/appBadge";
@@ -858,6 +859,8 @@ export default function MyPage() {
             {matchingSaved ? <span className="inline-flex items-center justify-center gap-1"><Check size={15} /> 저장됐어요!</span> : matchingSaving ? "저장 중..." : "매칭 프로필 저장"}
           </button>
         </div>}{/* end 팀 매칭 탭 */}
+
+        <MyUniforms />
 
         <WebPushSettings />
 
