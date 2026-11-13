@@ -7,16 +7,25 @@ import { createAppleClientSecret, isAppleConfigured } from "./apple";
 // users.kakao_id 칼럼은 "로그인 제공자별 고유 id"로 쓴다. 카카오는 카카오 id 그대로, Apple은 충돌하지 않게 앞에 apple: 을 붙인다.
 const APPLE_ID_PREFIX = "apple:";
 
+// Apple 설정값이 모두 있을 때만 켠다 (없으면 로그인 화면에도 버튼이 나오지 않음).
+// 키를 잘못 붙여넣어 서명 값을 못 만들 때도 카카오 로그인까지 같이 죽으면 안 되므로, 실패하면 Apple만 끄고 로그만 남긴다.
+function appleProviders() {
+  if (!isAppleConfigured()) return [];
+  try {
+    return [AppleProvider({ clientId: process.env.APPLE_CLIENT_ID!, clientSecret: createAppleClientSecret() })];
+  } catch (error) {
+    console.error("Apple 로그인 설정 오류 — Apple 로그인을 끕니다:", error instanceof Error ? error.message : error);
+    return [];
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     KakaoProvider({
       clientId: process.env.KAKAO_CLIENT_ID!,
       clientSecret: process.env.KAKAO_CLIENT_SECRET ?? "",
     }),
-    // Apple 설정값이 모두 있을 때만 켠다 (없으면 로그인 화면에도 버튼이 나오지 않음)
-    ...(isAppleConfigured()
-      ? [AppleProvider({ clientId: process.env.APPLE_CLIENT_ID!, clientSecret: createAppleClientSecret() })]
-      : []),
+    ...appleProviders(),
   ],
   callbacks: {
     async signIn({ user, account }) {
