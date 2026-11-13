@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUserAndTeam } from "@/lib/team";
+import { loadHidden } from "@/lib/moderation";
 
 export const maxDuration = 60;
 
@@ -10,8 +11,8 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { teamId } = await getUserAndTeam(session.user.id);
-  if (!teamId) return NextResponse.json([]);
+  const { userId, teamId } = await getUserAndTeam(session.user.id);
+  if (!userId || !teamId) return NextResponse.json([]);
 
   const year = req.nextUrl.searchParams.get("year");
 
@@ -24,7 +25,23 @@ export async function GET(req: NextRequest) {
   if (year) query = query.eq("year", parseInt(year));
 
   const { data } = await query;
-  return NextResponse.json(data ?? []);
+  const photos = data ?? [];
+
+  // 내가 차단한 사람이 올린 사진, 내가 신고한 사진은 보이지 않게 한다
+  const hidden = await loadHidden(userId);
+  const authorOf = new Map<string, string | null>();
+  const memberIds = [...new Set(photos.map(p => p.member_id).filter(Boolean))] as string[];
+  if (hidden.blocked.size > 0 && memberIds.length > 0) {
+    const { data: members } = await supabaseAdmin.from("team_members").select("id, user_id").eq("team_id", teamId).in("id", memberIds);
+    (members ?? []).forEach(m => authorOf.set(m.id as string, (m.user_id as string) ?? null));
+  }
+  return NextResponse.json(
+    photos.filter(p => {
+      if (hidden.reported.gallery_photo.has(p.id)) return false;
+      const author = p.member_id ? authorOf.get(p.member_id) : null;
+      return !(author && hidden.blocked.has(author));
+    })
+  );
 }
 
 export async function POST(req: NextRequest) {

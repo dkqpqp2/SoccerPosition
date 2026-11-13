@@ -11,12 +11,22 @@ import {
 } from "lucide-react";
 import SpmLogo from "@/components/SpmLogo";
 import AppleLoginButton from "@/components/AppleLoginButton";
+import { Capacitor } from "@capacitor/core";
 
 // Google Play 출시 앱 (applicationId = capacitor.config.ts의 appId). referrer는 Play Console에서 웹 랜딩 유입 설치를 구분하는 용도
 const PLAY_STORE_URL =
   "https://play.google.com/store/apps/details?id=com.soccerpositionmanagement.app&referrer=utm_source%3Dspm_web%26utm_medium%3Dlanding";
 
+// 아이폰(iOS) 앱 안에서는 다른 플랫폼(Google Play)을 언급하면 앱스토어 심사 규정에 어긋난다.
+// 검색엔진이 읽는 서버 HTML에는 그대로 두고, 아이폰 앱에서 열렸을 때만 화면에서 뺀다.
+function useIosApp() {
+  const [ios, setIos] = useState(false);
+  useEffect(() => { setIos(Capacitor.getPlatform() === "ios"); }, []);
+  return ios;
+}
+
 function PlayStoreButton({ className = "" }: { className?: string }) {
+  if (useIosApp()) return null;
   return (
     <a
       href={PLAY_STORE_URL}
@@ -322,6 +332,7 @@ export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
+  const iosApp = useIosApp();
 
   useEffect(() => {
     if (session) router.push("/dashboard");
@@ -381,7 +392,7 @@ export default function Home() {
                 <PlayStoreButton className="w-full sm:w-auto" />
               </div>
               <AppleLoginButton className="w-full sm:w-auto" />
-              <p className="text-xs text-gray-600">회원가입 없이 카카오 계정으로 바로 시작 · Android 앱도 있어요</p>
+              <p className="text-xs text-gray-600">회원가입 없이 카카오 계정으로 바로 시작{iosApp ? "" : " · Android 앱도 있어요"}</p>
             </div>
           </div>
 
@@ -520,7 +531,7 @@ export default function Home() {
           <Link href="/tools/dues-calculator" className="hover:text-gray-400 transition-colors">회비 계산기</Link>
         </p>
         <p className="text-xs text-gray-700">Sports Position Management · 풋살·축구 등 스포츠팀을 위한 포지션 관리 플랫폼</p>
-        <p className="text-[11px] text-gray-800 mt-2">Google Play는 Google LLC의 상표입니다.</p>
+        {!iosApp && <p className="text-[11px] text-gray-800 mt-2">Google Play는 Google LLC의 상표입니다.</p>}
       </footer>
 
       {showLoading && (

@@ -11,6 +11,7 @@ import {
 import AppLayout from "@/components/AppLayout";
 import { unregisterNativePush } from "@/components/NativePushRegistrar";
 import MyUniforms from "@/components/MyUniforms";
+import BlockedUsers from "@/components/BlockedUsers";
 import WebPushSettings from "@/components/WebPushSettings";
 import { unregisterWebPush } from "@/components/WebPushRegistrar";
 import { syncAppBadge } from "@/lib/appBadge";
@@ -861,6 +862,7 @@ export default function MyPage() {
         </div>}{/* end 팀 매칭 탭 */}
 
         <MyUniforms />
+        <BlockedUsers />
 
         <WebPushSettings />
 

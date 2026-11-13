@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUserAndTeam, getUserRole } from "@/lib/team";
 import { sendPushToTeam } from "@/lib/push";
+import { loadHidden } from "@/lib/moderation";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -22,6 +23,8 @@ export async function GET() {
   if (!votes?.length) return NextResponse.json([]);
 
   const voteIds = votes.map((v) => v.id);
+  // 내가 차단한 사람의 댓글, 내가 신고한 댓글은 보이지 않게 한다
+  const hidden = await loadHidden(userId);
 
   // 선택지 + 응답 + 댓글 + 팀원 수 병렬 조회
   const [
@@ -73,7 +76,7 @@ export async function GET() {
     const uniqueVoters = new Set(voteResponses.map((r) => r.user_id)).size;
 
     const voteComments = (comments ?? [])
-      .filter((c) => c.vote_id === vote.id)
+      .filter((c) => c.vote_id === vote.id && !hidden.blocked.has(c.user_id) && !hidden.reported.vote_comment.has(c.id))
       .map((c) => ({
         id: c.id,
         user_id: c.user_id,
