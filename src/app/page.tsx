@@ -2,11 +2,12 @@
 
 import { useSession, signIn } from "next-auth/react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Target, LayoutGrid, Calendar, Vote, Handshake, Clapperboard, Share2,
-  Check, Wand2, Sparkles, ArrowRight, Download,
+  Check, Wand2, Sparkles, ArrowRight, Download, Shuffle, Calculator,
 } from "lucide-react";
 import SpmLogo from "@/components/SpmLogo";
 
@@ -463,6 +464,27 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="py-16 sm:py-20 px-5 border-t border-white/5">
+        <div className="max-w-3xl mx-auto">
+          <Reveal className="text-center mb-8">
+            <p className="text-xs text-emerald-400 font-bold tracking-widest mb-2">Free tools</p>
+            <h2 className="text-2xl sm:text-3xl font-black">가입 없이 먼저 써보세요</h2>
+          </Reveal>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Link href="/tools/team-divider" className="bg-gray-900 border border-white/5 hover:border-emerald-500/40 rounded-2xl p-5 transition-colors">
+              <Shuffle size={20} className="text-emerald-400 mb-3" strokeWidth={1.75} aria-hidden="true" />
+              <h3 className="font-bold text-white mb-1">팀 나누기</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">내전 팀을 공평하게 랜덤으로 나눠요.</p>
+            </Link>
+            <Link href="/tools/dues-calculator" className="bg-gray-900 border border-white/5 hover:border-emerald-500/40 rounded-2xl p-5 transition-colors">
+              <Calculator size={20} className="text-emerald-400 mb-3" strokeWidth={1.75} aria-hidden="true" />
+              <h3 className="font-bold text-white mb-1">회비 계산기</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">1인당 구장비와 월 회비를 바로 계산해요.</p>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section className="py-20 sm:py-28 px-5 border-t border-white/5 text-center relative overflow-hidden">
         <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 w-[520px] h-[260px] rounded-full bg-emerald-500/10 blur-[100px]" aria-hidden="true" />
         <Reveal className="relative max-w-xl mx-auto">
@@ -488,6 +510,13 @@ export default function Home() {
           <SpmLogo size="sm" showText={false} />
           <span className="ml-2 text-sm font-bold text-gray-600">SPM</span>
         </div>
+        <p className="text-xs text-gray-600 mb-2">
+          <Link href="/tools" className="hover:text-gray-400 transition-colors">무료 도구</Link>
+          <span className="mx-2">·</span>
+          <Link href="/tools/team-divider" className="hover:text-gray-400 transition-colors">팀 나누기</Link>
+          <span className="mx-2">·</span>
+          <Link href="/tools/dues-calculator" className="hover:text-gray-400 transition-colors">회비 계산기</Link>
+        </p>
         <p className="text-xs text-gray-700">Sports Position Management · 풋살·축구 등 스포츠팀을 위한 포지션 관리 플랫폼</p>
         <p className="text-[11px] text-gray-800 mt-2">Google Play는 Google LLC의 상표입니다.</p>
       </footer>
