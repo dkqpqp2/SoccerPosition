@@ -31,6 +31,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    {
+      url: `${baseUrl}/support`,
+      lastModified: TOOLS_UPDATED,
+      changeFrequency: "monthly",
+      priority: 0.4,
+    },
+    {
+      url: `${baseUrl}/terms`,
+      lastModified: TOOLS_UPDATED,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
     // /join 은 초대 코드 입력 화면이라 noindex 처리했고, noindex 페이지는 사이트맵에 넣지 않는다
   ];
 }

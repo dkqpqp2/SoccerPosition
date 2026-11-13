@@ -78,7 +78,9 @@ export default function RootLayout({
         <footer className="w-full border-t border-white/5 bg-gray-950 py-4 px-6 mt-auto">
           <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[11px] text-gray-600">
             <span>© 2026 SPM · SportsPositionManagement</span>
+            <a href="/terms" className="hover:text-gray-400 transition-colors">이용약관</a>
             <a href="/privacy" className="hover:text-gray-400 transition-colors">개인정보처리방침</a>
+            <a href="/support" className="hover:text-gray-400 transition-colors">고객 지원</a>
             <a href="mailto:dkqpqp2@gmail.com" className="hover:text-gray-400 transition-colors">문의하기</a>
           </div>
         </footer>
