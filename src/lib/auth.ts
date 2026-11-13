@@ -1,6 +1,11 @@
 import { NextAuthOptions } from "next-auth";
 import KakaoProvider from "next-auth/providers/kakao";
+import AppleProvider from "next-auth/providers/apple";
 import { supabaseAdmin } from "./supabase";
+import { createAppleClientSecret, isAppleConfigured } from "./apple";
+
+// users.kakao_id 칼럼은 "로그인 제공자별 고유 id"로 쓴다. 카카오는 카카오 id 그대로, Apple은 충돌하지 않게 앞에 apple: 을 붙인다.
+const APPLE_ID_PREFIX = "apple:";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -8,15 +13,26 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.KAKAO_CLIENT_ID!,
       clientSecret: process.env.KAKAO_CLIENT_SECRET ?? "",
     }),
+    // Apple 설정값이 모두 있을 때만 켠다 (없으면 로그인 화면에도 버튼이 나오지 않음)
+    ...(isAppleConfigured()
+      ? [AppleProvider({ clientId: process.env.APPLE_CLIENT_ID!, clientSecret: createAppleClientSecret() })]
+      : []),
   ],
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user, account }) {
       try {
+      const isApple = account?.provider === "apple";
+      const loginId = isApple ? `${APPLE_ID_PREFIX}${account!.providerAccountId}` : user.id;
+      // Apple은 이름을 로그인 정보에 담아주지 않을 때가 많다 — 마이페이지에서 바꿀 수 있게 기본 이름을 둔다
+      const userName = user.name || (isApple ? "팀원" : user.name);
+      let dbUserId: string | null = null;
+
       const { data: existing } = await supabaseAdmin
         .from("users")
         .select("id")
-        .eq("kakao_id", user.id)
+        .eq("kakao_id", loginId)
         .single();
+      dbUserId = existing?.id ?? null;
 
       if (existing) {
         // 기존 유저 로그인 — 본인 팀 team_members에 없으면 자동 추가 (레거시 계정 보완)
@@ -55,14 +71,15 @@ export const authOptions: NextAuthOptions = {
         const { data: newUser } = await supabaseAdmin
           .from("users")
           .insert({
-            kakao_id: user.id,
-            name: user.name,
+            kakao_id: loginId,
+            name: userName,
             email: user.email,
             image: user.image,
           })
           .select("id")
           .single();
 
+        dbUserId = newUser?.id ?? null;
         if (newUser) {
           // 팀 자동 생성
           const { data: team } = await supabaseAdmin
@@ -87,7 +104,7 @@ export const authOptions: NextAuthOptions = {
             await supabaseAdmin.from("team_members").insert({
               team_id: team.id,
               user_id: newUser.id,
-              name: user.name,
+              name: userName,
               is_mercenary: false,
               is_cafe_mercenary: false,
             });
@@ -97,6 +114,14 @@ export const authOptions: NextAuthOptions = {
           }
         }
       }
+
+      // 탈퇴할 때 Apple 연결을 끊으려면 refresh token이 필요하다 — 서버 전용 테이블에 보관
+      if (isApple && dbUserId && account?.refresh_token) {
+        const { error } = await supabaseAdmin
+          .from("apple_credentials")
+          .upsert({ user_id: dbUserId, refresh_token: account.refresh_token, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+        if (error) console.error("apple credential save failed:", error.message);
+      }
       return true;
       } catch (error) {
         console.error("SignIn callback error:", error);
@@ -104,7 +129,9 @@ export const authOptions: NextAuthOptions = {
       }
     },
     async jwt({ token, user, account, profile }) {
-      if (account && profile) {
+      // 로그인 직후 한 번만: 세션의 사용자 id(token.sub)를 users.kakao_id에 저장된 값과 똑같이 맞춘다
+      if (account?.provider === "apple") token.sub = `${APPLE_ID_PREFIX}${account.providerAccountId}`;
+      if (account && profile && account.provider === "kakao") {
         // Kakao 로그인 시 프로필 사진 토큰에 저장
         const kakaoProfile = profile as any;
         token.picture =
@@ -127,6 +154,16 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   cookies: {
+    // Apple은 로그인 결과를 다른 사이트(apple.com)에서 POST로 돌려보낸다 → SameSite=None이 아니면 이 쿠키가 안 따라와서 로그인 후 돌아갈 주소(초대 코드 등)를 잃는다
+    callbackUrl: {
+      name: "next-auth.callback-url",
+      options: {
+        httpOnly: true,
+        sameSite: "none",
+        path: "/",
+        secure: true,
+      },
+    },
     pkceCodeVerifier: {
       name: "next-auth.pkce.code_verifier",
       options: {

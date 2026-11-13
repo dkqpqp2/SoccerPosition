@@ -31,6 +31,7 @@ export default function PrivacyPage() {
         <Section title="2. 수집하는 개인정보 항목">
           <ul className="list-disc list-inside space-y-1">
             <li>카카오 계정 정보: 이름, 이메일 주소, 프로필 사진</li>
+            <li>Apple 계정 정보(Apple로 로그인한 경우): 이름(제공 시), 이메일 주소 또는 Apple이 제공하는 비공개 릴레이 이메일</li>
             <li>서비스 이용 정보: 팀 이름, 팀원 정보(이름·포지션), 경기 기록</li>
             <li>접속 로그: IP 주소, 접속 일시, 서비스 이용 기록</li>
           </ul>
