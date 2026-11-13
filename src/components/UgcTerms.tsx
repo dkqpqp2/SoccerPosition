@@ -42,7 +42,7 @@ export function useUgcTerms(): { ensureAccepted: () => Promise<boolean>; termsMo
           <li>욕설·비하, 음란물, 불법 내용, 스팸·광고는 올릴 수 없어요.</li>
           <li>다른 사람이 불쾌한 내용을 보면 <b className="text-white">신고</b>하거나 그 사용자를 <b className="text-white">차단</b>할 수 있어요.</li>
           <li>신고된 내용은 운영자가 확인하고, 규칙에 어긋나면 삭제하며 반복하면 이용을 제한해요.</li>
-          <li>문의는 페이지 하단의 &quot;문의하기&quot;로 보내 주세요.</li>
+          <li>자세한 내용은 <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-emerald-400 underline">이용약관</a>에서 볼 수 있고, 문의는 <a href="/support" target="_blank" rel="noopener noreferrer" className="text-emerald-400 underline">고객 지원</a>으로 보내 주세요.</li>
         </ul>
         <div className="flex gap-2">
           <button onClick={() => answer(false)} className="flex-1 bg-gray-800 text-gray-300 font-medium py-2.5 rounded-xl text-sm">취소</button>
