@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { Camera, Megaphone, Pencil, X, type LucideIcon } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
+import ReportBlockMenu from "@/components/ReportBlockMenu";
+import { useUgcTerms } from "@/components/UgcTerms";
+import { compressImage } from "@/lib/imageCompress";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const CATEGORIES   = ["전체", "회식", "야유회", "경기", "기타"] as const;
@@ -80,6 +83,7 @@ function groupPhotos(photos: Photo[]): PhotoGroup[] {
 }
 
 export default function BoardPage() {
+  const { ensureAccepted, termsModal } = useUgcTerms();
   const { status } = useSession();
   const router     = useRouter();
 
@@ -187,6 +191,7 @@ export default function BoardPage() {
   async function uploadPhotos(e: React.FormEvent) {
     e.preventDefault();
     if (upFiles.length === 0 || !upTitle.trim()) return;
+    if (!(await ensureAccepted())) return; // 처음 올릴 때 커뮤니티 이용 규칙 동의
 
     setUploading(true);
     setUploadError("");
@@ -197,7 +202,7 @@ export default function BoardPage() {
       setUploadStep(i + 1);
 
       const fd = new FormData();
-      fd.append("file",        upFiles[i]);
+      fd.append("file",        await compressImage(upFiles[i])); // 서버 공간을 아끼려고 올리기 전에 줄인다
       fd.append("title",       upTitle.trim()); // 모두 같은 제목
       fd.append("description", upDesc.trim());
       fd.append("year",        String(upYear));
@@ -574,6 +579,14 @@ export default function BoardPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-3">
+                {detailGroup.member_id !== myMemberId && detailGroup.photos[0] && (
+                  <ReportBlockMenu
+                    targetType="gallery_photo"
+                    targetId={detailGroup.photos[0].id}
+                    onDone={() => { setDetailGroup(null); fetchPhotos(); }}
+                    className="text-xs bg-white/10 hover:bg-white/20 px-2.5 py-1.5 rounded-xl"
+                  />
+                )}
                 {(isStaff || detailGroup.member_id === myMemberId) && (
                   <button onClick={() => deleteGroup(detailGroup)}
                     className="text-xs text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-2.5 py-1.5 rounded-xl transition-colors">
@@ -648,6 +661,7 @@ export default function BoardPage() {
           </div>
         </div>
       )}
+      {termsModal}
     </AppLayout>
   );
 }

@@ -5,6 +5,8 @@ import {
   Vote as VoteIcon, Calendar, Clock, Check, User, MessageCircle,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
+import ReportBlockMenu from "@/components/ReportBlockMenu";
+import { useUgcTerms } from "@/components/UgcTerms";
 import TimeSelect from "@/components/TimeSelect";
 
 interface Voter {
@@ -447,6 +449,7 @@ export default function VotesPage() {
                 onDelete={handleDelete}
                 onAddComment={handleAddComment}
                 onDeleteComment={handleDeleteComment}
+                onModerated={fetchVotes}
                 formatEndAt={formatEndAt}
               />
             ))}
@@ -634,6 +637,7 @@ function VoteCard({
   onDelete,
   onAddComment,
   onDeleteComment,
+  onModerated,
   formatEndAt,
 }: {
   vote: Vote;
@@ -644,10 +648,12 @@ function VoteCard({
   onDelete: (id: string) => void;
   onAddComment: (voteId: string, content: string) => Promise<boolean>;
   onDeleteComment: (voteId: string, commentId: string) => void;
+  onModerated: () => void;
   formatEndAt: (s: string) => string;
 }) {
   const [selected, setSelected] = useState<string[]>(vote.my_responses);
   const [expandedOpt, setExpandedOpt] = useState<string | null>(null);
+  const { ensureAccepted, termsModal } = useUgcTerms();
   const [showComments, setShowComments] = useState(false);
   const [commentInput, setCommentInput] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
@@ -671,6 +677,7 @@ function VoteCard({
   async function submitComment() {
     const trimmed = commentInput.trim();
     if (!trimmed || submittingComment) return;
+    if (!(await ensureAccepted())) return; // 처음 댓글을 달 때 커뮤니티 이용 규칙 동의
     setSubmittingComment(true);
     const ok = await onAddComment(vote.id, trimmed);
     if (ok) setCommentInput("");
@@ -705,6 +712,7 @@ function VoteCard({
         isClosed ? "border-white/5" : "border-emerald-500/10"
       }`}
     >
+      {termsModal}
       {/* ── 헤더 ── */}
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-start gap-2">
@@ -976,6 +984,9 @@ function VoteCard({
                         <span className="text-[10px] text-gray-700">
                           {formatCommentTime(comment.created_at)}
                         </span>
+                        {!comment.is_mine && (
+                          <ReportBlockMenu targetType="vote_comment" targetId={comment.id} onDone={onModerated} className="text-[10px]" />
+                        )}
                       </div>
                       <p className="text-xs text-gray-300 mt-0.5 leading-relaxed whitespace-pre-wrap break-words">
                         {comment.content}

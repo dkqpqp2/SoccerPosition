@@ -47,6 +47,14 @@ export async function deleteAccount(db: SupabaseClient, userId: string): Promise
     if (d.error) return fail(`delete_${table}`, d.error.message);
   }
 
+  // 내가 한 신고, 내가 한 차단 / 나를 차단한 기록 삭제 (컬럼 이름이 달라 위 목록과 따로 처리)
+  const reports = await db.from("content_reports").delete().eq("reporter_id", userId);
+  if (reports.error) return fail("delete_content_reports", reports.error.message);
+  const blocksBy = await db.from("user_blocks").delete().eq("blocker_id", userId);
+  if (blocksBy.error) return fail("delete_user_blocks_by", blocksBy.error.message);
+  const blocksOf = await db.from("user_blocks").delete().eq("blocked_id", userId);
+  if (blocksOf.error) return fail("delete_user_blocks_of", blocksOf.error.message);
+
   // 3) 팀 소속 해제
   const tu = await db.from("team_users").delete().eq("user_id", userId);
   if (tu.error) return fail("team_users", tu.error.message);
