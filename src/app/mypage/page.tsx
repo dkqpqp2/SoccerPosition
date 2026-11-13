@@ -13,6 +13,7 @@ import { unregisterNativePush } from "@/components/NativePushRegistrar";
 import MyUniforms from "@/components/MyUniforms";
 import BlockedUsers from "@/components/BlockedUsers";
 import WebPushSettings from "@/components/WebPushSettings";
+import NativePushSettings from "@/components/NativePushSettings";
 import { unregisterWebPush } from "@/components/WebPushRegistrar";
 import { syncAppBadge } from "@/lib/appBadge";
 import PositionSelect from "@/components/PositionSelect";
@@ -864,6 +865,7 @@ export default function MyPage() {
         <MyUniforms />
         <BlockedUsers />
 
+        <NativePushSettings />
         <WebPushSettings />
 
         {/* 로그아웃 */}
