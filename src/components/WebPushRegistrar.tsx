@@ -63,15 +63,19 @@ export async function unregisterWebPush() {
   }
 }
 
+// AppLayout은 페이지를 옮길 때마다 새로 만들어지므로, 이동할 때마다 서버에 다시 등록하지 않게 한 번만 한다
+let synced = false;
+
 /** 이미 알림을 허용한 웹앱이 로그인하면 조용히 구독을 서버에 맞춘다 (재로그인·구독 만료 대비). 권한 요청은 하지 않는다. */
 export default function WebPushRegistrar() {
   const { status } = useSession();
 
   useEffect(() => {
     if (status !== "authenticated" || !isWebPushSupported()) return;
-    if (Notification.permission !== "granted" || isWebPushOptedOut()) return;
+    if (synced || Notification.permission !== "granted" || isWebPushOptedOut()) return;
+    synced = true;
     subscribeWebPush().catch(() => {
-      // 조용히 무시 — 마이페이지 알림 설정에서 다시 켤 수 있다
+      synced = false; // 다음 페이지 이동 때 다시 시도. 계속 실패해도 마이페이지 알림 설정에서 다시 켤 수 있다
     });
   }, [status]);
 

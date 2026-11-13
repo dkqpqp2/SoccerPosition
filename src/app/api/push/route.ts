@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUserAndTeam } from "@/lib/team";
+import { isAllowedPushEndpoint } from "@/lib/webPushEndpoint";
 
 // POST - 구독 등록
 export async function POST(req: NextRequest) {
@@ -12,8 +13,12 @@ export async function POST(req: NextRequest) {
   const { userId, teamId } = await getUserAndTeam(session.user.id);
   if (!userId) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  const { endpoint, keys } = await req.json();
-  if (!endpoint || !keys?.p256dh || !keys?.auth) {
+  const { endpoint, keys } = await req.json().catch(() => ({}));
+  if (
+    !isAllowedPushEndpoint(endpoint) ||
+    typeof keys?.p256dh !== "string" || typeof keys?.auth !== "string" ||
+    keys.p256dh.length > 256 || keys.auth.length > 256
+  ) {
     return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
   }
 
