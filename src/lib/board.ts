@@ -15,3 +15,8 @@ export const GALLERY_IMAGE_TYPES: Record<string, string> = {
   "image/heic": "heic",
   "image/heif": "heif",
 };
+
+// 팀당 사진 수 상한: 무료 저장 공간(약 1GB)을 한 팀이 다 쓰지 않게 한다. (줄인 사진 약 300KB × 300장 ≈ 90MB)
+export const GALLERY_MAX_PHOTOS_PER_TEAM = 300;
+// 올린 사진은 파일 이름이 매번 달라 바뀌지 않으므로 브라우저가 1년간 다시 내려받지 않게 한다 (초 단위)
+export const GALLERY_CACHE_SECONDS = "31536000";

@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUserAndTeam } from "@/lib/team";
 import { loadHidden } from "@/lib/moderation";
-import { isBoardTeam, GALLERY_MAX_BYTES, GALLERY_IMAGE_TYPES } from "@/lib/board";
+import { isBoardTeam, GALLERY_MAX_BYTES, GALLERY_IMAGE_TYPES, GALLERY_MAX_PHOTOS_PER_TEAM, GALLERY_CACHE_SECONDS } from "@/lib/board";
 
 export const maxDuration = 60;
 
@@ -53,6 +53,14 @@ export async function POST(req: NextRequest) {
   if (!userId || !teamId) return NextResponse.json({ error: "No team" }, { status: 404 });
   if (!isBoardTeam(teamId)) return NextResponse.json({ error: "사진 올리기는 아직 일부 팀에서만 쓸 수 있어요" }, { status: 403 });
 
+  const { count: photoCount } = await supabaseAdmin
+    .from("gallery_photos")
+    .select("id", { count: "exact", head: true })
+    .eq("team_id", teamId);
+  if ((photoCount ?? 0) >= GALLERY_MAX_PHOTOS_PER_TEAM) {
+    return NextResponse.json({ error: `사진은 팀당 ${GALLERY_MAX_PHOTOS_PER_TEAM}장까지 올릴 수 있어요. 오래된 사진을 지우고 다시 올려 주세요` }, { status: 400 });
+  }
+
   // 작성자 이름 조회
   const { data: member } = await supabaseAdmin
     .from("team_members")
@@ -87,7 +95,7 @@ export async function POST(req: NextRequest) {
 
   const { data: upload, error: upErr } = await supabaseAdmin.storage
     .from("gallery")
-    .upload(path, buf, { contentType: file.type, upsert: false });
+    .upload(path, buf, { contentType: file.type, upsert: false, cacheControl: GALLERY_CACHE_SECONDS });
 
   if (upErr) {
     console.error("[gallery upload] storage error:", upErr);

@@ -7,6 +7,7 @@ import { Camera, Megaphone, Pencil, X, type LucideIcon } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import ReportBlockMenu from "@/components/ReportBlockMenu";
 import { useUgcTerms } from "@/components/UgcTerms";
+import { compressImage } from "@/lib/imageCompress";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const CATEGORIES   = ["전체", "회식", "야유회", "경기", "기타"] as const;
@@ -201,7 +202,7 @@ export default function BoardPage() {
       setUploadStep(i + 1);
 
       const fd = new FormData();
-      fd.append("file",        upFiles[i]);
+      fd.append("file",        await compressImage(upFiles[i])); // 서버 공간을 아끼려고 올리기 전에 줄인다
       fd.append("title",       upTitle.trim()); // 모두 같은 제목
       fd.append("description", upDesc.trim());
       fd.append("year",        String(upYear));
