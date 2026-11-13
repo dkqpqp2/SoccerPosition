@@ -4,13 +4,13 @@ import "./globals.css";
 import { SessionProvider } from "@/components/SessionProvider";
 import { Analytics } from "@vercel/analytics/next";
 
-const SITE_TITLE = "SPM - 축구·풋살 팀 관리 | Sports Position Management";
+const SITE_TITLE = "스포츠팀매니저(SPM) - 풋살·축구 팀 관리 앱 | 포지션 배정·회비·전술판";
 const SITE_DESCRIPTION = "풋살·축구 등 스포츠팀의 포지션 배정, 전술판, 경기 기록, 회비 관리를 한곳에서 해결하는 무료 팀 관리 서비스. 카카오 계정으로 바로 시작하세요.";
 
 export const metadata: Metadata = {
   // og:image 같은 상대 경로를 실제 도메인으로 바꾸는 기준 (없으면 빌드 주소로 잘못 나옴)
   metadataBase: new URL("https://www.soccerpositionmanagement.com"),
-  title: { default: SITE_TITLE, template: "%s | SPM" },
+  title: { default: SITE_TITLE, template: "%s | 스포츠팀매니저" },
   description: SITE_DESCRIPTION,
   manifest: "/manifest.json",
   icons: {
@@ -23,14 +23,14 @@ export const metadata: Metadata = {
   appleWebApp: {
     title: "스포츠팀매니저",
   },
-  keywords: ["SPM", "스포츠팀 관리", "축구 포지션", "포지션 배정", "축구팀 관리", "풋살 팀 관리", "Sports Position Management", "팀원 관리"],
+  keywords: ["스포츠팀매니저", "SPM", "스포츠팀 관리", "축구 포지션", "포지션 배정", "축구팀 관리", "풋살 팀 관리", "Sports Position Management", "팀원 관리"],
   authors: [{ name: "SPM" }],
   // og:image / twitter:image 는 같은 폴더의 opengraph-image.png, twitter-image.png 파일에서 자동으로 붙음
   openGraph: {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     url: "https://www.soccerpositionmanagement.com",
-    siteName: "SPM",
+    siteName: "스포츠팀매니저",
     locale: "ko_KR",
     type: "website",
   },
@@ -54,6 +54,16 @@ export const metadata: Metadata = {
   },
 };
 
+// 검색엔진에 사이트 이름(스포츠팀매니저 / SPM)을 알려주는 구조화 데이터
+const WEBSITE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "스포츠팀매니저",
+  alternateName: ["SPM", "Sports Position Management", "스포츠 포지션 매니지먼트"],
+  url: "https://www.soccerpositionmanagement.com",
+  inLanguage: "ko",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -62,6 +72,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className="min-h-full flex flex-col">
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSON_LD) }} />
         <SessionProvider>{children}</SessionProvider>
         <Analytics />
         <footer className="w-full border-t border-white/5 bg-gray-950 py-4 px-6 mt-auto">
