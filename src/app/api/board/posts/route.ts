@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUserAndTeam, getUserRole } from "@/lib/team";
 import { containsProfanity } from "@/lib/profanity";
+import { isBoardTeam } from "@/lib/board";
 
 /** 건의함 목록 열람은 관리자(owner)·회장(president)만 가능 — 제보자 보호 목적 */
 export async function GET() {
@@ -11,7 +12,7 @@ export async function GET() {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { userId, teamId } = await getUserAndTeam(session.user.id);
-  if (!teamId) return NextResponse.json([]);
+  if (!teamId || !isBoardTeam(teamId)) return NextResponse.json([]);
 
   const role = userId ? await getUserRole(userId, teamId) : null;
   if (role !== "owner" && role !== "president") {
@@ -33,6 +34,7 @@ export async function POST(req: NextRequest) {
 
   const { userId, teamId } = await getUserAndTeam(session.user.id);
   if (!userId || !teamId) return NextResponse.json({ error: "No team" }, { status: 404 });
+  if (!isBoardTeam(teamId)) return NextResponse.json({ error: "게시판은 아직 일부 팀에서만 쓸 수 있어요" }, { status: 403 });
 
   const { data: member } = await supabaseAdmin
     .from("team_members")

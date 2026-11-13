@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUserAndTeam } from "@/lib/team";
 import { loadHidden } from "@/lib/moderation";
+import { isBoardTeam, GALLERY_MAX_BYTES, GALLERY_IMAGE_TYPES } from "@/lib/board";
 
 export const maxDuration = 60;
 
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { userId, teamId } = await getUserAndTeam(session.user.id);
-  if (!userId || !teamId) return NextResponse.json([]);
+  if (!userId || !teamId || !isBoardTeam(teamId)) return NextResponse.json([]);
 
   const year = req.nextUrl.searchParams.get("year");
 
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
 
   const { userId, teamId } = await getUserAndTeam(session.user.id);
   if (!userId || !teamId) return NextResponse.json({ error: "No team" }, { status: 404 });
+  if (!isBoardTeam(teamId)) return NextResponse.json({ error: "사진 올리기는 아직 일부 팀에서만 쓸 수 있어요" }, { status: 403 });
 
   // 작성자 이름 조회
   const { data: member } = await supabaseAdmin
@@ -70,9 +72,16 @@ export async function POST(req: NextRequest) {
   const group_id    = formData.get("group_id")    as string | null;
 
   if (!file || !title) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  if (title.length > 100 || description.length > 500) {
+    return NextResponse.json({ error: "제목은 100자, 설명은 500자까지 쓸 수 있어요" }, { status: 400 });
+  }
+  const ext = GALLERY_IMAGE_TYPES[file.type];
+  if (!ext) return NextResponse.json({ error: "사진(JPG, PNG, WEBP, HEIC)만 올릴 수 있어요" }, { status: 400 });
+  if (file.size > GALLERY_MAX_BYTES) {
+    return NextResponse.json({ error: "사진 한 장은 4MB까지 올릴 수 있어요. 크기를 줄여서 다시 올려 주세요" }, { status: 413 });
+  }
 
   // Supabase Storage 업로드
-  const ext  = file.name.split(".").pop() ?? "jpg";
   const path = `${teamId}/${Date.now()}.${ext}`;
   const buf  = Buffer.from(await file.arrayBuffer());
 
