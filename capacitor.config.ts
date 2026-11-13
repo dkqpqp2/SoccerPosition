@@ -10,6 +10,8 @@ const config: CapacitorConfig = {
     allowNavigation: [
       'kauth.kakao.com',
       'accounts.kakao.com',
+      'appleid.apple.com',
+      'idmsa.apple.com',
       'www.soccerpositionmanagement.com',
     ],
   },

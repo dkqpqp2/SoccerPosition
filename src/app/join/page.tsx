@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import { MessageCircle, CheckCircle2 } from "lucide-react";
 import SpmLogo from "@/components/SpmLogo";
+import AppleLoginButton from "@/components/AppleLoginButton";
+import { Capacitor } from "@capacitor/core";
 
 function JoinContent() {
   const { data: session, status } = useSession();
@@ -19,7 +21,8 @@ function JoinContent() {
 
   // 로그인 안 된 상태로 초대 링크 접속 → 로그인 후 자동 복귀
   useEffect(() => {
-    if (status === "unauthenticated" && codeFromUrl) {
+    // 아이폰 앱에서는 Apple 로그인도 고를 수 있게 자동 이동을 하지 않고 아래 로그인 화면을 보여준다
+    if (status === "unauthenticated" && codeFromUrl && Capacitor.getPlatform() !== "ios") {
       signIn("kakao", { callbackUrl: `/join?code=${codeFromUrl}` });
     }
   }, [status, codeFromUrl]);
@@ -61,11 +64,15 @@ function JoinContent() {
         <div className="bg-gray-900 border border-white/10 rounded-lg p-6 w-full max-w-xs text-center flex flex-col gap-4">
           <p className="text-gray-400 text-sm">팀에 합류하려면 먼저 로그인해주세요</p>
           <button
-            onClick={() => signIn("kakao", { callbackUrl: "/join" })}
+            onClick={() => signIn("kakao", { callbackUrl: codeFromUrl ? `/join?code=${encodeURIComponent(codeFromUrl)}` : "/join" })}
             className="w-full flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold px-6 py-3 rounded-xl transition-colors text-sm"
           >
             <MessageCircle size={16} strokeWidth={2} /> 카카오 로그인
           </button>
+          <AppleLoginButton
+            callbackUrl={codeFromUrl ? `/join?code=${encodeURIComponent(codeFromUrl)}` : "/join"}
+            className="w-full !py-3 !px-6 !text-sm !rounded-xl"
+          />
         </div>
       </div>
     );

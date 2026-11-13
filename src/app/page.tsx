@@ -10,6 +10,7 @@ import {
   Check, Wand2, Sparkles, ArrowRight, Download, Shuffle, Calculator,
 } from "lucide-react";
 import SpmLogo from "@/components/SpmLogo";
+import AppleLoginButton from "@/components/AppleLoginButton";
 
 // Google Play 출시 앱 (applicationId = capacitor.config.ts의 appId). referrer는 Play Console에서 웹 랜딩 유입 설치를 구분하는 용도
 const PLAY_STORE_URL =
@@ -379,6 +380,7 @@ export default function Home() {
                 </button>
                 <PlayStoreButton className="w-full sm:w-auto" />
               </div>
+              <AppleLoginButton className="w-full sm:w-auto" />
               <p className="text-xs text-gray-600">회원가입 없이 카카오 계정으로 바로 시작 · Android 앱도 있어요</p>
             </div>
           </div>
