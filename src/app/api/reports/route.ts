@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUserAndTeam } from "@/lib/team";
 import { isReportTarget, resolveTarget } from "@/lib/moderation";
+import { operatorIds } from "@/lib/operator";
+import { sendPushToUsers } from "@/lib/push";
 
 const MAX_REASON_LENGTH = 200;
 
@@ -35,6 +37,16 @@ export async function POST(req: NextRequest) {
     { onConflict: "reporter_id,target_type,target_id", ignoreDuplicates: true }
   );
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // 운영자에게 새 신고가 들어왔다고 알린다 (24시간 안에 확인하겠다는 약속을 지키기 위함)
+  const operators = operatorIds();
+  if (operators.length > 0) {
+    after(() => sendPushToUsers(operators, {
+      title: "새 신고가 들어왔어요",
+      body: body.target_type === "vote_comment" ? "투표 댓글 신고" : "사진 신고",
+      url: "/reports",
+    }));
+  }
 
   return NextResponse.json({ success: true });
 }
