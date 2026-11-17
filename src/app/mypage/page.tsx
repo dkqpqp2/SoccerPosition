@@ -12,6 +12,7 @@ import AppLayout from "@/components/AppLayout";
 import { unregisterNativePush } from "@/components/NativePushRegistrar";
 import MyUniforms from "@/components/MyUniforms";
 import BlockedUsers from "@/components/BlockedUsers";
+import OperatorReportsLink from "@/components/OperatorReportsLink";
 import WebPushSettings from "@/components/WebPushSettings";
 import NativePushSettings from "@/components/NativePushSettings";
 import { unregisterWebPush } from "@/components/WebPushRegistrar";
@@ -864,6 +865,7 @@ export default function MyPage() {
 
         <MyUniforms />
         <BlockedUsers />
+        <OperatorReportsLink />
 
         <NativePushSettings />
         <WebPushSettings />

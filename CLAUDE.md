@@ -135,6 +135,7 @@ KAKAO_CLIENT_SECRET
 KAKAO_REST_API_KEY       # 카카오 장소검색·지도 API용
 APPLE_CLIENT_ID / APPLE_TEAM_ID / APPLE_KEY_ID / APPLE_PRIVATE_KEY   # Apple 로그인(.p8 키 내용). 하나라도 없으면 Apple 로그인 버튼이 숨겨짐
 NEXT_PUBLIC_KAKAO_JS_KEY # 카카오 JS SDK용
+OPERATOR_USER_IDS        # 서비스 운영자(내 계정)의 users.id, 쉼표 구분 — /reports 신고 관리 화면과 신고 푸시 알림 대상. 비면 아무도 운영자가 아님
 ADMIN_SECRET             # 로컬 개발 전용 관리자 화면 비밀번호 — Vercel에는 설정하지 않음(운영에서는 /admin, /api/admin이 404로 막힘)
 ```
 
