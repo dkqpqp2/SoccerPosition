@@ -66,7 +66,8 @@ export const authOptions: NextAuthOptions = {
             .limit(1);
 
           if (!existingMembers?.length) {
-            const displayName = userDetail?.display_name || user.name;
+            // Apple 로그인은 user.name이 비어 있을 수 있어서(team_members.name이 비면 안 됨) 기본 이름까지 거친 값을 쓴다
+            const displayName = userDetail?.display_name || userName;
             await supabaseAdmin.from("team_members").insert({
               team_id: ownerTeam.id,
               user_id: existing.id,

@@ -394,7 +394,7 @@ export default function MyPage() {
                       onClick={() => setUseKakaoName(true)}
                       className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors border ${useKakaoName ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" : "bg-white/5 border-white/10 text-gray-500 hover:bg-white/10"}`}
                     >
-                      카카오 닉네임
+                      로그인 계정 이름
                     </button>
                     <button
                       onClick={() => setUseKakaoName(false)}
@@ -405,7 +405,7 @@ export default function MyPage() {
                   </div>
                   {useKakaoName ? (
                     <div className="bg-gray-800/50 border border-white/5 rounded-xl px-4 py-2.5 text-sm text-gray-400">
-                      {profile.name || "카카오 닉네임 없음"}
+                      {profile.name || "이름 없음"}
                     </div>
                   ) : (
                     <input
