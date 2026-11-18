@@ -13,6 +13,7 @@ import { supabaseClient } from "@/lib/supabaseClient";
 import { FORMATIONS, Formation, PositionSlot, SOCCER_FORMATIONS, FUTSAL_FORMATIONS } from "@/lib/formations";
 import KakaoShare from "@/components/KakaoShare";
 import AppLayout from "@/components/AppLayout";
+import { useAiConsent } from "@/components/AiConsent";
 
 interface Member {
   id: string;
@@ -102,6 +103,7 @@ function AssignContent() {
   const [userName, setUserName] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [aiAssignLoading, setAiAssignLoading] = useState(false);
+  const { ensureAccepted: ensureAiConsent, consentModal: aiConsentModal } = useAiConsent();
   const [aiAssignError, setAiAssignError] = useState("");
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [otherEditors, setOtherEditors] = useState<string[]>([]);
@@ -387,6 +389,7 @@ function AssignContent() {
 
   async function aiAutoAssign() {
     if (attendingIds.size === 0 || aiAssignLoading) return;
+    if (!(await ensureAiConsent())) return;
     setAiAssignLoading(true);
     setAiAssignError("");
     setAiSummary(null);
@@ -720,6 +723,7 @@ function AssignContent() {
 
                     {canManage && (
                       <div className="flex flex-col gap-2">
+                        {aiConsentModal}
                         <button
                           onClick={autoAssign}
                           disabled={attendingIds.size === 0}

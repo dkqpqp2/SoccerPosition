@@ -8,6 +8,7 @@ import {
   AlertTriangle, StickyNote, Save, Wand2, Loader2,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
+import { useAiConsent } from "@/components/AiConsent";
 import { POSITION_MAP } from "@/lib/positions";
 
 interface MemberDetail {
@@ -63,6 +64,7 @@ export default function MemberDetailPage() {
   const [savedToast,setSavedToast]= useState(false);
   const [year,      setYear]      = useState(CURRENT_YEAR);
   const [aiLoading,    setAiLoading]    = useState(false);
+  const { ensureAccepted: ensureAiConsent, consentModal: aiConsentModal } = useAiConsent();
   const [aiError,      setAiError]      = useState("");
   const [aiSuggestion, setAiSuggestion] = useState<AiSuggestion | null>(null);
   const [otherEditing, setOtherEditing] = useState<{ name: string } | null>(null);
@@ -155,6 +157,7 @@ export default function MemberDetailPage() {
 
   async function runAiAssist() {
     if (!member) return;
+    if (!(await ensureAiConsent())) return;
     setAiError("");
     setAiSuggestion(null);
     setAiLoading(true);
@@ -373,6 +376,7 @@ export default function MemberDetailPage() {
             {/* AI 어시스트 */}
             {canEdit && (
               <div>
+                {aiConsentModal}
                 <button
                   onClick={runAiAssist}
                   disabled={aiLoading || !eval_.strengths.trim() || !eval_.weaknesses.trim()}
