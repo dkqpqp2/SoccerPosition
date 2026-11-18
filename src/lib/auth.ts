@@ -2,7 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import KakaoProvider from "next-auth/providers/kakao";
 import AppleProvider from "next-auth/providers/apple";
 import { supabaseAdmin } from "./supabase";
-import { createAppleClientSecret, isAppleConfigured } from "./apple";
+import { createAppleClientSecret, isAppleConfigured, missingAppleSettings } from "./apple";
 
 // users.kakao_id 칼럼은 "로그인 제공자별 고유 id"로 쓴다. 카카오는 카카오 id 그대로, Apple은 충돌하지 않게 앞에 apple: 을 붙인다.
 const APPLE_ID_PREFIX = "apple:";
@@ -10,7 +10,12 @@ const APPLE_ID_PREFIX = "apple:";
 // Apple 설정값이 모두 있을 때만 켠다 (없으면 로그인 화면에도 버튼이 나오지 않음).
 // 키를 잘못 붙여넣어 서명 값을 못 만들 때도 카카오 로그인까지 같이 죽으면 안 되므로, 실패하면 Apple만 끄고 로그만 남긴다.
 function appleProviders() {
-  if (!isAppleConfigured()) return [];
+  if (!isAppleConfigured()) {
+    const missing = missingAppleSettings();
+    // 4개가 모두 비어 있으면 Apple을 쓰지 않는 것이라 조용히 넘어가고, 일부만 있으면 빠진 이름을 로그에 남긴다
+    if (missing.length < 4) console.error("Apple 로그인 설정이 일부 비어 있어요 — Apple 로그인을 끕니다. 빠진 값:", missing.join(", "));
+    return [];
+  }
   try {
     return [AppleProvider({ clientId: process.env.APPLE_CLIENT_ID!, clientSecret: createAppleClientSecret() })];
   } catch (error) {
