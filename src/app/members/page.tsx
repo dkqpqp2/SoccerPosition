@@ -128,7 +128,7 @@ export default function MembersPage() {
 
   async function handleDelete(member: Member) {
     const message = member.user_id
-      ? "이 팀원은 카카오 계정이 연결되어 있어요. 삭제하면 이 팀에 대한 앱 접근 권한도 함께 사라져요. 정말 삭제할까요?"
+      ? "이 팀원은 로그인 계정이 연결되어 있어요. 삭제하면 이 팀에 대한 앱 접근 권한도 함께 사라져요. 정말 삭제할까요?"
       : "정말 삭제할까요?";
     if (!confirm(message)) return;
     await fetch(`/api/members/${member.id}`, { method: "DELETE" });
