@@ -355,7 +355,7 @@ export default function MyPage() {
             <div>
               <p className="font-bold text-white text-lg">{profile.name}</p>
               <p className="text-sm text-gray-500 mt-0.5">{profile.email || "이메일 없음"}</p>
-              <p className="text-xs text-emerald-400 mt-1 font-medium">카카오 계정 연동됨</p>
+              <p className="text-xs text-emerald-400 mt-1 font-medium">계정 연동됨</p>
             </div>
           </div>
           <span className="shrink-0 text-xs font-bold bg-sky-500/15 text-sky-400 border border-sky-500/20 px-2.5 py-1 rounded-full whitespace-nowrap">
