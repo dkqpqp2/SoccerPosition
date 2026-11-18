@@ -5,6 +5,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 // Realtime(Presence)만 쓰고 DB 테이블은 건드리지 않는다 — 방 채널 이름은 /api/lounge/session이 서버에서 계산해 내려준다.
 import { supabaseClient } from "@/lib/supabaseClient";
 import { containsProfanity } from "@/lib/profanity";
+import { mergeOthers } from "./presenceList";
 
 export const MAX_CHAT_LENGTH = 80;
 const CHAT_MIN_INTERVAL_MS = 1000; // 연속 전송 최소 간격
@@ -84,6 +85,7 @@ export function useLoungeRoom(opts: {
   // 다른 사람마다 "마지막으로 변화(이동·색·살아 있음 신호)를 본 시각"을 내 시계로 기록한다 (남의 시계는 믿지 않는다)
   const seenRef = useRef(new Map<string, { sig: string; at: number }>());
   const allOthersRef = useRef<OtherPlayer[]>([]);
+  const visibleRef = useRef<OtherPlayer[]>([]); // 지금 화면에 넘겨 준 목록 (모양이 안 바뀌면 같은 목록을 유지한다)
   const seenSayRef = useRef(new Map<string, number>()); // 사람별로 이미 본 마지막 메시지 번호
   const lastSayAt = useRef(0);
   const onChatRef = useRef(opts.onChat);
@@ -115,7 +117,12 @@ export function useLoungeRoom(opts: {
     // 신호가 끊긴 지 오래된 사람은 빼고 화면용 목록을 만든다
     const publish = () => {
       const now = Date.now();
-      setOthers(allOthersRef.current.filter(o => now - (seen.get(o.key)?.at ?? now) < STALE_MS));
+      const visible = allOthersRef.current.filter(o => now - (seen.get(o.key)?.at ?? now) < STALE_MS);
+      // "살아 있어요" 신호처럼 화면 모양이 안 바뀌는 변화는 React에 알리지 않는다 (30명이 다시 계산되는 것을 막는다)
+      const merged = mergeOthers(visibleRef.current, visible);
+      if (merged === visibleRef.current) return;
+      visibleRef.current = merged;
+      setOthers(merged);
     };
     const pruneTimer = setInterval(publish, PRUNE_CHECK_MS);
 
@@ -205,6 +212,8 @@ export function useLoungeRoom(opts: {
       seen.clear();
       seenSay.clear();
       allOthersRef.current = [];
+      visibleRef.current = [];
+      setOthers([]);
       readyRef.current = false;
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = null;

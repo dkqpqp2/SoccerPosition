@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MutableRefObject } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MutableRefObject } from "react";
 import Link from "next/link";
 import * as THREE from "three";
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import TacticsSessionPanel, { type TacticsMode } from "./TacticsSessionPanel";
 import { MAX_CHAT_LENGTH, useLoungeRoom, type ChatMessage, type OtherPlayer } from "./useLoungeRoom";
+import { sameRender } from "./presenceList";
 import { useLeaderboard } from "./useLeaderboard";
 import HallOfFameBoard from "./HallOfFameBoard";
 import LeaderboardModal from "./LeaderboardModal";
@@ -381,7 +382,8 @@ function BallPlayer({
 }
 
 // ── 같은 방의 다른 사람: 받은 "출발점 + 목표 지점"대로 같은 속도로 걸어간다 ──
-function RemotePlayer({ other, bubble }: { other: OtherPlayer; bubble: string | null }) {
+// memo: 이 사람의 모양(이름·색·이동)이나 말풍선이 바뀔 때만 다시 계산한다. 다른 사람이 움직이거나 화면의 다른 상태가 바뀌어도 30명 전체를 다시 계산하지 않는다.
+const RemotePlayer = memo(function RemotePlayer({ other, bubble }: { other: OtherPlayer; bubble: string | null }) {
   const initial = useRef<[number, number]>([other.x, other.z]).current; // 처음 나타난 자리 (이후 상태가 바뀌어도 고정)
   const posRef = useRef(new THREE.Vector3(other.x, 0, other.z));
   const targetRef = useRef<THREE.Vector3 | null>(null);
@@ -390,6 +392,38 @@ function RemotePlayer({ other, bubble }: { other: OtherPlayer; bubble: string | 
     if (other.tx !== null && other.tz !== null) targetRef.current = new THREE.Vector3(other.tx, 0, other.tz);
   }, [other.seq, other.tx, other.tz]);
   return <BallPlayer color={other.color} name={other.name} posRef={posRef} targetRef={targetRef} initial={initial} bubble={bubble} />;
+}, (a, b) => a.bubble === b.bubble && sameRender(a.other, b.other));
+
+// ── 개발 전용 성능 시험: 주소에 ?fake=30 을 붙이면 가상 캐릭터 30명이 방 안을 걸어 다닌다 (운영에서는 동작하지 않음) ──
+// 1초마다 접속자 목록을 통째로 새로 만들고(실제 접속 동기화처럼), 그중 평균 3명만 새 목적지로 보낸다. 나머지는 "살아 있어요" 신호만 바뀐다.
+function FakePlayers({ count }: { count: number }) {
+  const randomSpot = () => clampToRoom((Math.random() - 0.5) * ROOM_W, (Math.random() - 0.5) * ROOM_D);
+  const [list, setList] = useState<OtherPlayer[]>(() =>
+    Array.from({ length: count }, (_, i) => {
+      const from = randomSpot();
+      const to = randomSpot();
+      return {
+        key: `fake-${i}`, name: `가상${i + 1}`, color: BALL_COLORS[i % BALL_COLORS.length],
+        x: from.x, z: from.z, tx: to.x, tz: to.z, seq: 1, beat: 0, sayId: 0, sayText: "",
+      };
+    })
+  );
+  useEffect(() => {
+    const t = setInterval(() => {
+      setList(prev =>
+        prev.map(p => {
+          if (Math.random() < 3 / prev.length) {
+            const to = randomSpot();
+            return { ...p, tx: to.x, tz: to.z, seq: p.seq + 1 };
+          }
+          return { ...p, beat: p.beat + 1 };
+        })
+      );
+    }, 1000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return <>{list.map(o => <RemotePlayer key={o.key} other={o} bubble={null} />)}</>;
 }
 
 // ── 화면 아래 최근 대화 (최근 20초 안의 것 최대 3줄) ──
@@ -653,6 +687,12 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
   const [color, setColor] = useState(BALL_COLORS[0]);
   const [inZone, setInZone] = useState(false);
   const [panel, setPanel] = useState<TacticsMode | null>(null);
+  // 개발 전용: 성능 시험용 가상 캐릭터 수 (?fake=30). 운영 빌드에서는 항상 0
+  const [fakeCount] = useState(() =>
+    process.env.NODE_ENV === "development" && typeof window !== "undefined"
+      ? Math.min(60, Math.max(0, Number(new URLSearchParams(window.location.search).get("fake")) || 0))
+      : 0
+  );
   const leaderboard = useLeaderboard(); // 득점왕·도움왕·참석왕 (명예의 전당 보드)
   const [showBoard, setShowBoard] = useState(false);
   // 관리자급(감독·코치·관리자 등)이면 "전술 설명하기"가 보인다. 개발 중에는 아래 칩으로 관리자/팀원을 바꿔 볼 수 있다.
@@ -775,6 +815,7 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
         {room.others.map(o => (
           <RemotePlayer key={o.key} other={o} bubble={bubbles[o.key] ?? null} />
         ))}
+        {fakeCount > 0 && <FakePlayers count={fakeCount} />}
         <CameraRig posRef={posRef} zoomRef={zoomRef} />
       </Canvas>
 
