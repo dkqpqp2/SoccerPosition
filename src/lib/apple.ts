@@ -20,9 +20,17 @@ const b64url = (input: Buffer | string) => Buffer.from(input).toString("base64ur
 export function normalizeApplePrivateKey(raw: string): string {
   const text = raw.trim().replace(/^["']|["']$/g, "").replace(/\\n/g, "\n");
   const match = text.match(/-----BEGIN ([A-Z ]+)-----([\s\S]*?)-----END \1-----/);
-  if (!match) return text; // 형식을 알 수 없으면 그대로 두고 createPrivateKey가 오류를 내게 한다
-  const body = match[2].replace(/\s+/g, "");
-  return `-----BEGIN ${match[1]}-----\n${(body.match(/.{1,64}/g) ?? []).join("\n")}\n-----END ${match[1]}-----\n`;
+  const label = match ? match[1] : "PRIVATE KEY";
+  // BEGIN/END 줄 없이 가운데 글자만 붙여넣은 경우도 있어서, 공백을 뺀 내용이 키 글자(base64)로 보이면 그 내용으로 키를 만든다
+  const body = (match ? match[2] : text).replace(/\s+/g, "");
+  if (!match && !/^[A-Za-z0-9+/=]{100,}$/.test(body)) return text; // 키처럼 보이지 않으면 그대로 두고 createPrivateKey가 오류를 내게 한다
+  return `-----BEGIN ${label}-----\n${(body.match(/.{1,64}/g) ?? []).join("\n")}\n-----END ${label}-----\n`;
+}
+
+/** 키 값이 읽히지 않을 때 로그에 남길 형태 정보 (길이와 표시 줄 유무만 — 키 내용은 절대 찍지 않는다). */
+export function describeApplePrivateKey(raw: string): string {
+  const text = raw.trim();
+  return `길이 ${text.length}자, BEGIN줄 ${text.includes("-----BEGIN") ? "있음" : "없음"}, END줄 ${text.includes("-----END") ? "있음" : "없음"}, 줄바꿈 ${text.includes("\n") ? "있음" : text.includes("\\n") ? "\\n 글자" : "없음"}`;
 }
 
 /** 설정이 일부만 있을 때 어떤 값이 빠졌는지 알려준다 (로그용 — 값 자체는 절대 찍지 않는다). */

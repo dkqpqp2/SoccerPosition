@@ -2,7 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import KakaoProvider from "next-auth/providers/kakao";
 import AppleProvider from "next-auth/providers/apple";
 import { supabaseAdmin } from "./supabase";
-import { createAppleClientSecret, isAppleConfigured, missingAppleSettings } from "./apple";
+import { createAppleClientSecret, describeApplePrivateKey, isAppleConfigured, missingAppleSettings } from "./apple";
 
 // users.kakao_id 칼럼은 "로그인 제공자별 고유 id"로 쓴다. 카카오는 카카오 id 그대로, Apple은 충돌하지 않게 앞에 apple: 을 붙인다.
 const APPLE_ID_PREFIX = "apple:";
@@ -19,7 +19,7 @@ function appleProviders() {
   try {
     return [AppleProvider({ clientId: process.env.APPLE_CLIENT_ID!, clientSecret: createAppleClientSecret() })];
   } catch (error) {
-    console.error("Apple 로그인 설정 오류 — Apple 로그인을 끕니다:", error instanceof Error ? error.message : error);
+    console.error("Apple 로그인 설정 오류 — Apple 로그인을 끕니다:", error instanceof Error ? error.message : error, `(APPLE_PRIVATE_KEY 형태: ${describeApplePrivateKey(process.env.APPLE_PRIVATE_KEY ?? "")})`);
     return [];
   }
 }
