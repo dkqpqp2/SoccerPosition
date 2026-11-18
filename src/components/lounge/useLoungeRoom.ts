@@ -6,6 +6,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabaseClient } from "@/lib/supabaseClient";
 import { containsProfanity } from "@/lib/profanity";
 import { mergeOthers } from "./presenceList";
+import { isValidSeat } from "./loungeConstants";
 
 export const MAX_CHAT_LENGTH = 80;
 const CHAT_MIN_INTERVAL_MS = 1000; // 연속 전송 최소 간격
@@ -18,6 +19,7 @@ export type PresenceState = {
   tx: number | null; // 걸어가는 목표 지점(없으면 서 있음)
   tz: number | null;
   seq: number; // 탭할 때마다 1씩 증가 — 받는 쪽이 "새 이동"을 알아채는 용도
+  seat: number | null; // 앉은(앉으러 가는) 벤치 자리 번호. 바닥을 탭해서 일어나면 null
   beat: number; // 15초마다 1씩 증가하는 "살아 있어요" 신호 — 갑자기 꺼진 사람을 받는 쪽이 걸러내는 용도
   // 채팅: 보낸 사람 본인의 접속 상태에 실어 보낸다 → Supabase가 상태는 그 사람의 키로만 쓰게 막아 주므로 다른 사람 이름으로 위조할 수 없다.
   sayId: number; // 메시지를 보낼 때마다 1씩 증가 (받는 쪽이 새 메시지를 알아채는 용도)
@@ -55,6 +57,7 @@ function sanitize(raw: unknown, clamp: (x: number, z: number) => { x: number; z:
     tx: target ? target.x : null,
     tz: target ? target.z : null,
     seq: num(r.seq) ?? 0,
+    seat: isValidSeat(r.seat) ? r.seat : null,
     beat: num(r.beat) ?? 0,
     sayId: num(r.sayId) ?? 0,
     sayText: typeof r.sayText === "string" ? r.sayText.slice(0, MAX_CHAT_LENGTH) : "",
@@ -76,6 +79,7 @@ export function useLoungeRoom(opts: {
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const myKey = useRef<string>("");
+  const [myKeyState, setMyKeyState] = useState(""); // 같은 자리를 동시에 고른 경우 누가 양보할지 정하는 데 쓴다
   const stateRef = useRef<PresenceState | null>(null); // 내 최신 상태
   const readyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -111,6 +115,7 @@ export function useLoungeRoom(opts: {
     let cancelled = false;
     let channel: RealtimeChannel | null = null;
     myKey.current = crypto.randomUUID();
+    setMyKeyState(myKey.current);
     const seen = seenRef.current;
     const seenSay = seenSayRef.current;
 
@@ -148,7 +153,7 @@ export function useLoungeRoom(opts: {
         setMyName(me.name);
 
         const init = initialRef.current;
-        stateRef.current = { name: me.name, color: init.color, x: init.x, z: init.z, tx: null, tz: null, seq: 0, beat: 0, sayId: 0, sayText: "" };
+        stateRef.current = { name: me.name, color: init.color, x: init.x, z: init.z, tx: null, tz: null, seq: 0, seat: null, beat: 0, sayId: 0, sayText: "" };
 
         channel = supabaseClient.channel(channelName, { config: { presence: { key: myKey.current } } });
         channelRef.current = channel;
@@ -222,11 +227,11 @@ export function useLoungeRoom(opts: {
     };
   }, []);
 
-  /** 내가 바닥을 탭했을 때: 지금 위치에서 목표 지점으로 걸어간다고 알린다 */
-  const announceMove = useCallback((from: { x: number; z: number }, to: { x: number; z: number }) => {
+  /** 내가 바닥을 탭했을 때: 지금 위치에서 목표 지점으로 걸어간다고 알린다. seat가 있으면 그 벤치 자리에 앉으러 가는 것, 없으면(null) 일어나서 걷는 것 */
+  const announceMove = useCallback((from: { x: number; z: number }, to: { x: number; z: number }, seat: number | null = null) => {
     const prev = stateRef.current;
     if (!prev) return;
-    stateRef.current = { ...prev, x: from.x, z: from.z, tx: to.x, tz: to.z, seq: prev.seq + 1 };
+    stateRef.current = { ...prev, x: from.x, z: from.z, tx: to.x, tz: to.z, seq: prev.seq + 1, seat };
     flush();
   }, [flush]);
 
@@ -257,5 +262,5 @@ export function useLoungeRoom(opts: {
     return "ok";
   }, [flush]);
 
-  return { status, others, myName, announceMove, announceColor, say };
+  return { status, others, myName, myKey: myKeyState, announceMove, announceColor, say };
 }

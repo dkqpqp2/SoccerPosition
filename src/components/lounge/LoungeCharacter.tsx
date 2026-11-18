@@ -6,6 +6,7 @@ import { useFrame } from "@react-three/fiber";
 import { Bubble, Label } from "./LoungeLabels";
 import { SPAWN_Z, SPEED, lerpAngle } from "./loungeConstants";
 
+const SIT_DROP = 0.38; // 앉을 때 몸이 내려가는 높이 (엉덩이가 벤치 윗면 높이 0.57에 닿도록)
 const INK = "#141b2d"; // 윤곽선·팔다리의 진한 남색
 const JERSEY = "#3f7f5c"; // 몸(유니폼) 색 — 나중에 팀 색으로 바꿀 수 있다
 
@@ -75,6 +76,7 @@ export default function Character({
   targetRef,
   initial = [0, SPAWN_Z],
   bubble = null,
+  seat = null,
 }: {
   color: string; // 머리색
   name: string;
@@ -82,8 +84,13 @@ export default function Character({
   targetRef: MutableRefObject<THREE.Vector3 | null>;
   initial?: [number, number]; // 처음 서는 자리 [x, z] — 마운트할 때 한 번만 쓰인다
   bubble?: string | null; // 머리 위에 띄울 말풍선 글
+  seat?: number | null; // 앉을(앉은) 벤치 자리. 값이 있고 목표 지점에 도착하면 앉는다. null이면 선다
 }) {
   const s = getShared();
+  const seatRef = useRef(seat);
+  seatRef.current = seat; // useFrame 안에서 항상 최신 값을 읽도록
+  const sitBlend = useRef(0); // 0 = 서 있음 ~ 1 = 완전히 앉음
+  const tagG = useRef<THREE.Group>(null); // 이름표·말풍선 묶음 (앉으면 같이 내려간다)
   const root = useRef<THREE.Group>(null);
   const bodyG = useRef<THREE.Group>(null);
   const headG = useRef<THREE.Group>(null);
@@ -116,22 +123,29 @@ export default function Character({
         facing.current = lerpAngle(facing.current, Math.atan2(dx, dz), 1 - Math.exp(-12 * dt));
       }
     }
+    // 자리가 정해져 있고 도착했으면(걷는 중이 아니면) 앉는다. 앉는 동안은 정면(+z, 카메라 쪽)을 본다.
+    const seated = seatRef.current !== null && !moving;
+    if (seated) facing.current = lerpAngle(facing.current, 0, 1 - Math.exp(-10 * dt));
     g.rotation.y = facing.current;
     posRef.current.copy(g.position);
 
-    // 애니메이션: 걷는 동안 팔다리를 번갈아 흔들고, 몸은 통통 튀며, 머리는 좌우로 살짝 갸우뚱
+    const damp = THREE.MathUtils.damp;
+    const lerp = THREE.MathUtils.lerp;
+    sitBlend.current = damp(sitBlend.current, seated ? 1 : 0, 9, dt);
+    const sit = sitBlend.current;
+
+    // 애니메이션: 걷는 동안 팔다리를 번갈아 흔들고, 몸은 통통 튀며, 머리는 좌우로 살짝 갸우뚱. 앉으면 다리를 앞으로 뻗고 팔을 무릎 쪽으로 모은다.
     if (moving) phase.current += dt * SPEED * 2.6;
     const swing = moving ? Math.sin(phase.current) * 0.9 : 0;
-    const damp = THREE.MathUtils.damp;
-    if (legL.current) legL.current.rotation.x = damp(legL.current.rotation.x, swing, 16, dt);
-    if (legR.current) legR.current.rotation.x = damp(legR.current.rotation.x, -swing, 16, dt);
-    if (armL.current) armL.current.rotation.x = damp(armL.current.rotation.x, -swing * 0.8, 16, dt);
-    if (armR.current) armR.current.rotation.x = damp(armR.current.rotation.x, swing * 0.8, 16, dt);
+    if (legL.current) legL.current.rotation.x = damp(legL.current.rotation.x, lerp(swing, -1.35, sit), 16, dt);
+    if (legR.current) legR.current.rotation.x = damp(legR.current.rotation.x, lerp(-swing, -1.35, sit), 16, dt);
+    if (armL.current) armL.current.rotation.x = damp(armL.current.rotation.x, lerp(-swing * 0.8, -0.5, sit), 16, dt);
+    if (armR.current) armR.current.rotation.x = damp(armR.current.rotation.x, lerp(swing * 0.8, -0.5, sit), 16, dt);
     if (bodyG.current) {
       const bounce = moving ? Math.abs(Math.sin(phase.current)) * 0.08 : 0;
-      bodyG.current.position.y = damp(bodyG.current.position.y, bounce, 14, dt);
+      bodyG.current.position.y = damp(bodyG.current.position.y, bounce + SIT_DROP * sit, 14, dt);
       bodyG.current.rotation.x = damp(bodyG.current.rotation.x, moving ? 0.1 : 0, 10, dt);
-      // 서 있을 때는 숨 쉬듯 아주 조금 커졌다 작아진다
+      // 서 있거나 앉아 있을 때는 숨 쉬듯 아주 조금 커졌다 작아진다
       const breath = moving ? 1 : 1 + Math.sin(state.clock.elapsedTime * 2) * 0.012;
       bodyG.current.scale.y = damp(bodyG.current.scale.y, breath, 10, dt);
     }
@@ -139,6 +153,7 @@ export default function Character({
       const roll = moving ? Math.sin(phase.current) * 0.07 : Math.sin(state.clock.elapsedTime * 1.3) * 0.02;
       headG.current.rotation.z = damp(headG.current.rotation.z, roll, 12, dt);
     }
+    if (tagG.current) tagG.current.position.y = SIT_DROP * sit;
   });
 
   return (
@@ -175,8 +190,10 @@ export default function Character({
         </group>
       </group>
 
-      <Label text={name} position={[0, 1.84, 0]} height={0.3} onTop />
-      {bubble && <Bubble text={bubble} />}
+      <group ref={tagG}>
+        <Label text={name} position={[0, 1.84, 0]} height={0.3} onTop />
+        {bubble && <Bubble text={bubble} />}
+      </group>
     </group>
   );
 }

@@ -6,10 +6,10 @@ import * as THREE from "three";
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import TacticsSessionPanel, { type TacticsMode } from "./TacticsSessionPanel";
 import { MAX_CHAT_LENGTH, useLoungeRoom, type ChatMessage, type OtherPlayer } from "./useLoungeRoom";
-import { sameRender } from "./presenceList";
+import { sameRender, seatRival } from "./presenceList";
 import Character from "./LoungeCharacter";
 import { BUBBLE_MS, Label } from "./LoungeLabels";
-import { HEAD_COLORS, SPAWN_Z } from "./loungeConstants";
+import { BENCH_CENTERS, BENCH_LENGTH, HEAD_COLORS, SEATS_PER_BENCH, SPAWN_Z, seatPosition } from "./loungeConstants";
 import { useLeaderboard } from "./useLeaderboard";
 import HallOfFameBoard from "./HallOfFameBoard";
 import LeaderboardModal from "./LeaderboardModal";
@@ -59,7 +59,7 @@ const RemotePlayer = memo(function RemotePlayer({ other, bubble }: { other: Othe
   useEffect(() => {
     if (other.tx !== null && other.tz !== null) targetRef.current = new THREE.Vector3(other.tx, 0, other.tz);
   }, [other.seq, other.tx, other.tz]);
-  return <Character color={other.color} name={other.name} posRef={posRef} targetRef={targetRef} initial={initial} bubble={bubble} />;
+  return <Character color={other.color} name={other.name} posRef={posRef} targetRef={targetRef} initial={initial} bubble={bubble} seat={other.seat} />;
 }, (a, b) => a.bubble === b.bubble && sameRender(a.other, b.other));
 
 // ── 개발 전용 성능 시험: 주소에 ?fake=30 을 붙이면 가상 캐릭터 30명이 방 안을 걸어 다닌다 (운영에서는 동작하지 않음) ──
@@ -72,7 +72,7 @@ function FakePlayers({ count }: { count: number }) {
       const to = randomSpot();
       return {
         key: `fake-${i}`, name: `가상${i + 1}`, color: HEAD_COLORS[i % HEAD_COLORS.length],
-        x: from.x, z: from.z, tx: to.x, tz: to.z, seq: 1, beat: 0, sayId: 0, sayText: "",
+        x: from.x, z: from.z, tx: to.x, tz: to.z, seq: 1, seat: null, beat: 0, sayId: 0, sayText: "",
       };
     })
   );
@@ -229,7 +229,15 @@ function Locker({ index, onInfo }: { index: number; onInfo: (msg: string) => voi
   );
 }
 
-function Room({ onFloorTap, onInfo }: { onFloorTap: (x: number, z: number) => void; onInfo: (msg: string) => void }) {
+function Room({
+  onFloorTap,
+  onBenchTap,
+  onInfo,
+}: {
+  onFloorTap: (x: number, z: number) => void;
+  onBenchTap: (benchIndex: number, pointX: number) => void;
+  onInfo: (msg: string) => void;
+}) {
   return (
     <group>
       {/* 바닥 */}
@@ -330,18 +338,26 @@ function Room({ onFloorTap, onInfo }: { onFloorTap: (x: number, z: number) => vo
         <Label text="게시판" position={[0, 2.55, 0.1]} height={0.32} bg="#fbbf24" fg="#1c1203" />
       </group>
 
-      {/* 벤치 두 개 */}
-      {[-5.5, 5.5].map(bx => (
-        <group key={bx} position={[bx, 0.3, 3.4]} raycast={() => null}>
+      {/* 벤치 두 개: 탭하면 가까운 빈 자리로 가서 앉는다 */}
+      {BENCH_CENTERS.map(([bx, bz], bi) => (
+        <group
+          key={bi}
+          position={[bx, 0.3, bz]}
+          onClick={e => {
+            if (e.delta > 8) return;
+            e.stopPropagation();
+            onBenchTap(bi, e.point.x);
+          }}
+        >
           <mesh position={[0, 0.2, 0]}>
-            <boxGeometry args={[3.2, 0.14, 0.6]} />
+            <boxGeometry args={[BENCH_LENGTH, 0.14, 0.6]} />
             <meshStandardMaterial color="#9a6b3f" roughness={0.8} />
           </mesh>
-          <mesh position={[-1.3, -0.05, 0]}>
+          <mesh position={[-BENCH_LENGTH / 2 + 0.3, -0.05, 0]}>
             <boxGeometry args={[0.12, 0.5, 0.5]} />
             <meshStandardMaterial color="#374151" />
           </mesh>
-          <mesh position={[1.3, -0.05, 0]}>
+          <mesh position={[BENCH_LENGTH / 2 - 0.3, -0.05, 0]}>
             <boxGeometry args={[0.12, 0.5, 0.5]} />
             <meshStandardMaterial color="#374151" />
           </mesh>
@@ -402,6 +418,21 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
   }, []);
 
   const room = useLoungeRoom({ initial: { color: HEAD_COLORS[0], x: 0, z: SPAWN_Z }, clamp: clampToRoom, onChat: handleChat });
+  const [mySeat, setMySeat] = useState<number | null>(null); // 내가 앉은(앉으러 가는) 벤치 자리
+
+  // 같은 자리를 거의 동시에 고른 경우: 접속 키가 작은 쪽이 자리를 갖고, 큰 쪽(나)은 일어나서 벤치 앞으로 나온다.
+  // 두 사람이 같은 규칙으로 판단하므로 따로 메시지를 주고받지 않아도 한 명만 양보한다.
+  useEffect(() => {
+    if (mySeat === null || !seatRival(room.others, mySeat, room.myKey)) return;
+    setMySeat(null);
+    const sp = seatPosition(mySeat);
+    const out = clampToRoom(sp.x, sp.z + 1.3);
+    targetRef.current = new THREE.Vector3(out.x, 0, out.z);
+    room.announceMove({ x: posRef.current.x, z: posRef.current.z }, out, null);
+    handleInfo("다른 사람이 먼저 앉았어요");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room.others, room.myKey, mySeat]);
+
   const [draft, setDraft] = useState("");
   const [showColors, setShowColors] = useState(false);
   const [moved, setMoved] = useState(false); // 한 번이라도 걸으면 안내 문구를 숨긴다
@@ -421,9 +452,38 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
 
   function handleFloorTap(x: number, z: number) {
     setMoved(true);
+    setMySeat(null); // 앉아 있었다면 일어난다
     const p = clampToRoom(x, z);
     targetRef.current = new THREE.Vector3(p.x, 0, p.z);
-    room.announceMove({ x: posRef.current.x, z: posRef.current.z }, p); // 같은 방 사람들에게 "여기서 저기로 걸어간다"고 알림
+    room.announceMove({ x: posRef.current.x, z: posRef.current.z }, p, null); // 같은 방 사람들에게 "여기서 저기로 걸어간다"고 알림
+    markerId.current += 1;
+    setMarker({ x: p.x, z: p.z, id: markerId.current });
+  }
+
+  // 벤치를 탭하면: 그 벤치에서 (남이 안 앉은) 탭한 곳에 가장 가까운 자리로 걸어가 앉는다
+  function handleBenchTap(benchIndex: number, pointX: number) {
+    setMoved(true);
+    const taken = new Set<number>();
+    for (const o of room.others) if (o.seat !== null) taken.add(o.seat);
+    let best: number | null = null;
+    let bestDist = Infinity;
+    for (let slot = 0; slot < SEATS_PER_BENCH; slot++) {
+      const id = benchIndex * SEATS_PER_BENCH + slot;
+      if (taken.has(id)) continue;
+      const d = Math.abs(seatPosition(id).x - pointX);
+      if (d < bestDist) {
+        best = id;
+        bestDist = d;
+      }
+    }
+    if (best === null) {
+      handleInfo("이 벤치는 자리가 없어요");
+      return;
+    }
+    const p = seatPosition(best);
+    setMySeat(best);
+    targetRef.current = new THREE.Vector3(p.x, 0, p.z);
+    room.announceMove({ x: posRef.current.x, z: posRef.current.z }, p, best);
     markerId.current += 1;
     setMarker({ x: p.x, z: p.z, id: markerId.current });
   }
@@ -469,7 +529,7 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
         <directionalLight position={[4, 9, 6]} intensity={1.4} />
         <pointLight position={[-6, 3.2, -2]} intensity={14} distance={16} color="#fde68a" />
         <pointLight position={[6, 3.2, -2]} intensity={14} distance={16} color="#fde68a" />
-        <Room onFloorTap={handleFloorTap} onInfo={handleInfo} />
+        <Room onFloorTap={handleFloorTap} onBenchTap={handleBenchTap} onInfo={handleInfo} />
         <HallOfFameBoard
           position={[8.4, 0, 1.2]}
           data={leaderboard.data}
@@ -479,7 +539,7 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
         <ZoneMarker active={inZone} />
         <ZoneWatcher posRef={posRef} onChange={setInZone} />
         {marker && <TargetMarker key={marker.id} x={marker.x} z={marker.z} />}
-        <Character color={color} name="나" posRef={posRef} targetRef={targetRef} bubble={bubbles.me ?? null} />
+        <Character color={color} name="나" posRef={posRef} targetRef={targetRef} bubble={bubbles.me ?? null} seat={mySeat} />
         {room.others.map(o => (
           <RemotePlayer key={o.key} other={o} bubble={bubbles[o.key] ?? null} />
         ))}

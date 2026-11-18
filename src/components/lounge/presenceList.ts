@@ -12,11 +12,22 @@ export type RenderFields = {
   tx: number | null;
   tz: number | null;
   seq: number;
+  seat: number | null; // 앉은(앉으러 가는) 벤치 자리 번호, 없으면 null
 };
 
-/** 화면에 보이는 모양(이름·색·이동)이 같은지 */
+/** 화면에 보이는 모양(이름·색·이동·앉은 자리)이 같은지 */
 export function sameRender(a: RenderFields, b: RenderFields): boolean {
-  return a.name === b.name && a.color === b.color && a.x === b.x && a.z === b.z && a.tx === b.tx && a.tz === b.tz && a.seq === b.seq;
+  return a.name === b.name && a.color === b.color && a.x === b.x && a.z === b.z && a.tx === b.tx && a.tz === b.tz && a.seq === b.seq && a.seat === b.seat;
+}
+
+/**
+ * 같은 자리를 거의 동시에 고른 경우 누가 양보할지 정한다.
+ * 내 자리(mySeat)에 이미 다른 사람이 앉으려 하고 있고 그 사람의 접속 키가 나보다 작으면, 그 사람이 자리를 갖고 나는 양보한다.
+ * 두 사람이 같은 규칙으로 판단하므로 따로 메시지를 주고받지 않아도 한 명만 양보한다. 양보할 상대가 없으면 null.
+ */
+export function seatRival<T extends { key: string; seat: number | null }>(others: T[], mySeat: number | null, myKey: string): T | null {
+  if (mySeat === null || !myKey) return null;
+  return others.find(o => o.seat === mySeat && o.key < myKey) ?? null;
 }
 
 /**
