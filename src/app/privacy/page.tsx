@@ -17,7 +17,7 @@ export default function PrivacyPage() {
       <main className="max-w-3xl mx-auto px-6 py-10 space-y-8">
         <div>
           <h1 className="text-2xl font-black text-white">개인정보처리방침</h1>
-          <p className="text-gray-500 text-sm mt-2">최종 수정일: 2026년 10월 3일</p>
+          <p className="text-gray-500 text-sm mt-2">최종 수정일: 2026년 11월 18일</p>
         </div>
 
         <Section title="1. 개요">
@@ -32,7 +32,9 @@ export default function PrivacyPage() {
           <ul className="list-disc list-inside space-y-1">
             <li>카카오 계정 정보: 이름, 이메일 주소, 프로필 사진</li>
             <li>Apple 계정 정보(Apple로 로그인한 경우): 이름(제공 시), 이메일 주소 또는 Apple이 제공하는 비공개 릴레이 이메일</li>
-            <li>서비스 이용 정보: 팀 이름, 팀원 정보(이름·포지션), 경기 기록</li>
+            <li>서비스 이용 정보: 팀 이름, 팀원 정보(이름·포지션), 경기 기록, 팀원 평가 메모(장점·단점)</li>
+            <li>이용자가 올린 콘텐츠: 팀 로고와 팀 사진, 댓글, 투표 응답</li>
+            <li>푸시 알림을 켠 경우: 기기 푸시 알림 토큰</li>
             <li>접속 로그: IP 주소, 접속 일시, 서비스 이용 기록</li>
           </ul>
         </Section>
@@ -41,6 +43,8 @@ export default function PrivacyPage() {
           <ul className="list-disc list-inside space-y-1">
             <li>회원 가입 및 로그인 처리</li>
             <li>팀 포지션 배정, 경기 관리, 통계 등 서비스 핵심 기능 제공</li>
+            <li>투표·회비 요청·포지션 배정 등 푸시 알림 발송</li>
+            <li>이용자가 직접 AI 기능을 실행했을 때 결과 생성 (아래 6번 참고)</li>
             <li>서비스 운영 및 이용자 문의 처리</li>
             <li>서비스 품질 개선 및 오류 분석</li>
           </ul>
@@ -88,8 +92,31 @@ export default function PrivacyPage() {
                   <td className="py-2 pr-4 text-gray-300">Vercel Inc.</td>
                   <td className="py-2 text-gray-300">서비스 호스팅</td>
                 </tr>
+                <tr className="border-b border-white/5">
+                  <td className="py-2 pr-4 text-gray-300">Apple Inc.</td>
+                  <td className="py-2 text-gray-300">Apple로 로그인 인증</td>
+                </tr>
+                <tr className="border-b border-white/5">
+                  <td className="py-2 pr-4 text-gray-300">Google LLC (Firebase)</td>
+                  <td className="py-2 text-gray-300">푸시 알림 발송</td>
+                </tr>
+                <tr className="border-b border-white/5">
+                  <td className="py-2 pr-4 text-gray-300">Anthropic, PBC (미국)</td>
+                  <td className="py-2 text-gray-300">AI 기능 처리 (아래 설명 참고)</td>
+                </tr>
               </tbody>
             </table>
+          </div>
+          <div className="mt-4 space-y-2">
+            <p className="font-semibold text-gray-200">AI 기능에 관한 안내</p>
+            <p>
+              서비스에는 AI 포지션 배정, 선수 평가 다듬기, 전술 제안 기능이 있습니다. 이 기능은 이용자가 해당 버튼을 직접 눌렀을 때만 동작하며,
+              그때 필요한 정보(팀원 이름, 선호 포지션, 팀원 평가 메모(장점·단점), 전술판 내용)가 AI 처리를 위해 미국의 Anthropic, PBC 서버로 전송됩니다.
+              전송된 정보는 결과를 만드는 데만 쓰이며, 서비스는 이 정보를 AI 학습 목적으로 제공하지 않습니다.
+            </p>
+            <p>
+              팀원의 이름이나 평가 메모가 전송되는 것을 원하지 않으시면 AI 기능을 사용하지 않으시면 됩니다. AI 기능을 쓰지 않아도 다른 기능은 모두 이용할 수 있습니다.
+            </p>
           </div>
         </Section>
 
@@ -128,7 +155,7 @@ export default function PrivacyPage() {
         </Section>
 
         <div className="pt-4 border-t border-white/5 text-center">
-          <p className="text-gray-600 text-xs">본 방침은 2026년 10월 3일부터 적용됩니다.</p>
+          <p className="text-gray-600 text-xs">본 방침은 2026년 11월 18일부터 적용됩니다.</p>
         </div>
       </main>
     </div>
