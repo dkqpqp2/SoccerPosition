@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Plus, Undo2, Trash2, X, ChevronLeft, ChevronDown, Check, Trash, Save, Download, Wand2, Loader2, LayoutGrid, Play, Square, RotateCcw, Repeat } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
+import { useAiConsent } from "@/components/AiConsent";
 import ScrimmageSelect from "@/components/ScrimmageSelect";
 import PositionSelect from "@/components/PositionSelect";
 import { zonePosition, detectFormationName, isGoalkeeper } from "@/lib/tacticsZones";
@@ -178,6 +179,7 @@ export default function TacticsBoardPage() {
   const [savingFormation, setSavingFormation] = useState(false);
   const [aiQuestion, setAiQuestion] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const { ensureAccepted: ensureAiConsent, consentModal: aiConsentModal } = useAiConsent();
   const [aiError, setAiError] = useState("");
   const [aiExplanation, setAiExplanation] = useState("");
   const [aiExplanationOpen, setAiExplanationOpen] = useState(true);
@@ -519,6 +521,7 @@ export default function TacticsBoardPage() {
 
   async function askAI() {
     if (!aiQuestion.trim() || aiLoading) return;
+    if (!(await ensureAiConsent())) return;
     setAiLoading(true);
     setAiError("");
     try {
@@ -811,6 +814,7 @@ export default function TacticsBoardPage() {
             <p className="text-[11px] text-gray-600">피치 위를 드래그하면 화살표가 그려져요. 선수·상대 말 둘 다 드래그해서 옮길 수 있어요.</p>
 
             <div className="space-y-2 bg-gray-900/60 border border-white/10 rounded-xl p-3">
+              {aiConsentModal}
               <p className="text-xs text-gray-400 font-bold flex items-center gap-1.5"><Wand2 size={13} /> AI에게 전술 물어보기</p>
               <div className="flex gap-2">
                 <input
