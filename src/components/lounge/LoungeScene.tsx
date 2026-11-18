@@ -1,12 +1,15 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MutableRefObject } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type FormEvent, type MutableRefObject } from "react";
 import Link from "next/link";
 import * as THREE from "three";
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import TacticsSessionPanel, { type TacticsMode } from "./TacticsSessionPanel";
 import { MAX_CHAT_LENGTH, useLoungeRoom, type ChatMessage, type OtherPlayer } from "./useLoungeRoom";
 import { sameRender } from "./presenceList";
+import Character from "./LoungeCharacter";
+import { BUBBLE_MS, Label } from "./LoungeLabels";
+import { HEAD_COLORS, SPAWN_Z } from "./loungeConstants";
 import { useLeaderboard } from "./useLeaderboard";
 import HallOfFameBoard from "./HallOfFameBoard";
 import LeaderboardModal from "./LeaderboardModal";
@@ -18,8 +21,6 @@ const WALL_H = 3.6;
 const LIMIT_X = ROOM_W / 2 - 1.4; // 양옆 벽 락커 앞까지
 const LIMIT_Z_MIN = -ROOM_D / 2 + 1.4; // 뒷벽 락커 앞까지
 const LIMIT_Z_MAX = ROOM_D / 2 - 0.7;
-const SPEED = 3.8; // 초당 이동 거리
-const SPAWN_Z = 5.5; // 처음 서 있는 자리(앞쪽)
 const LOCKER_COUNT = 30; // 팀원 최대 인원만큼 (나중에는 실제 팀원 수에 맞춘다)
 // 전술 구역: 화이트보드 앞 바닥. 이 안에 들어가면 "전술판 함께 보기 / 전술 설명하기" 버튼이 뜬다.
 const ZONE = { x: 0, z: -5.2, w: 7, d: 3.2 };
@@ -41,344 +42,11 @@ function lockerSlot(i: number): { position: [number, number, number]; rotY: numb
     : { position: [ROOM_W / 2 - 0.35, 1.15, z], rotY: -Math.PI / 2 };
 }
 
-const BALL_COLORS = ["#ef4444", "#3b82f6", "#f59e0b", "#10b981", "#a855f7", "#ec4899", "#f8fafc"];
-
 function clampToRoom(x: number, z: number) {
   return {
     x: Math.min(LIMIT_X, Math.max(-LIMIT_X, x)),
     z: Math.min(LIMIT_Z_MAX, Math.max(LIMIT_Z_MIN, z)),
   };
-}
-
-// 각도 a를 b쪽으로 가장 짧은 방향으로 t만큼 돌린다
-function lerpAngle(a: number, b: number, t: number) {
-  const diff = ((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-  return a + diff * t;
-}
-
-// 축구공 무늬(흰 바탕 + 검은 오각형) 텍스처. 재질 색을 곱하면 무늬는 그대로 두고 흰 부분만 그 색이 된다.
-function makeBallTexture(): THREE.CanvasTexture {
-  const w = 512;
-  const h = 256;
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = "#1f2937";
-  const pentagon = (cx: number, cy: number, r: number, stretchX: number) => {
-    ctx.beginPath();
-    for (let i = 0; i < 5; i++) {
-      const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
-      const x = cx + Math.cos(a) * r * stretchX;
-      const y = cy + Math.sin(a) * r;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-    ctx.fill();
-  };
-  for (let i = 0; i < 5; i++) pentagon((i + 0.5) * (w / 5), h * 0.5, 24, 1);
-  for (let i = 0; i < 5; i++) {
-    pentagon((i + 1) * (w / 5), h * 0.2, 20, 1.6);
-    pentagon((i + 1) * (w / 5), h * 0.8, 20, 1.6);
-  }
-  ctx.fillRect(0, 0, w, h * 0.06);
-  ctx.fillRect(0, h * 0.94, w, h * 0.06);
-  // 얼굴이 놓이는 앞면(u=0.25 부근)은 무늬를 지우고 깨끗한 흰 바탕으로 둔다
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.ellipse(w * 0.25, h * 0.46, w * 0.16, h * 0.24, 0, 0, Math.PI * 2);
-  ctx.fill();
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 4;
-  return texture;
-}
-
-// ── 3D 공간 안의 글자표(이름표·번호표). drei의 Html은 React 19 개발 모드에서 루트 충돌 오류가 나서, 캔버스 텍스처 스프라이트로 그린다 ──
-function Label({
-  text,
-  position,
-  height = 0.3,
-  bg = "rgba(0,0,0,0.65)",
-  fg = "#ffffff",
-  onTop = false,
-}: {
-  text: string;
-  position: [number, number, number];
-  height?: number; // 월드 단위 높이(글자표 세로 크기)
-  bg?: string;
-  fg?: string;
-  onTop?: boolean; // true면 다른 물체에 가려지지 않고 항상 보인다(이름표용)
-}) {
-  const { texture, aspect } = useMemo(() => {
-    const scale = 2; // 선명하게 보이도록 2배 해상도로 그린다
-    const fontPx = 30 * scale;
-    const padX = 14 * scale;
-    const h = Math.round(fontPx * 1.55);
-    const measure = document.createElement("canvas").getContext("2d")!;
-    const font = `700 ${fontPx}px Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
-    measure.font = font;
-    const w = Math.ceil(Math.max(measure.measureText(text).width + padX * 2, h));
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = bg;
-    ctx.beginPath();
-    ctx.roundRect(0, 0, w, h, h / 2);
-    ctx.fill();
-    ctx.fillStyle = fg;
-    ctx.font = font;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(text, w / 2, h / 2 + fontPx * 0.04);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 4;
-    return { texture: tex, aspect: w / h };
-  }, [text, bg, fg]);
-  useEffect(() => () => texture.dispose(), [texture]);
-
-  return (
-    <sprite position={position} scale={[height * aspect, height, 1]} renderOrder={onTop ? 10 : 0} raycast={() => null}>
-      <spriteMaterial map={texture} transparent depthTest={!onTop} />
-    </sprite>
-  );
-}
-
-const BUBBLE_MS = 6000; // 말풍선이 떠 있는 시간
-
-// ── 말풍선 그림: 흰 둥근 상자 + 아래 꼬리, 글자 단위로 줄바꿈(최대 3줄) ──
-function makeBubbleTexture(text: string): { texture: THREE.CanvasTexture; wCss: number; hCss: number } {
-  const scale = 2;
-  const fontPx = 26 * scale;
-  const lineH = Math.round(fontPx * 1.3);
-  const padX = 16 * scale;
-  const padY = 11 * scale;
-  const tail = 12 * scale;
-  const maxTextW = 230 * scale;
-  const font = `600 ${fontPx}px Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
-
-  const measure = document.createElement("canvas").getContext("2d")!;
-  measure.font = font;
-  const lines: string[] = [];
-  let cur = "";
-  for (const ch of text) {
-    if (cur && measure.measureText(cur + ch).width > maxTextW) {
-      lines.push(cur);
-      cur = ch;
-    } else {
-      cur += ch;
-    }
-  }
-  if (cur) lines.push(cur);
-  const shown = lines.slice(0, 3).map(l => l.trim());
-  if (lines.length > 3) shown[2] = [...shown[2]].slice(0, -1).join("") + "…";
-
-  const textW = Math.max(...shown.map(l => measure.measureText(l).width));
-  const w = Math.ceil(textW + padX * 2);
-  const bodyH = shown.length * lineH + padY * 2;
-  const h = bodyH + tail;
-
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = "rgba(255,255,255,0.97)";
-  ctx.beginPath();
-  ctx.roundRect(0, 0, w, bodyH, 14 * scale);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(w / 2 - tail * 0.8, bodyH - 1);
-  ctx.lineTo(w / 2 + tail * 0.8, bodyH - 1);
-  ctx.lineTo(w / 2, h);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = "#111827";
-  ctx.font = font;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  shown.forEach((l, i) => ctx.fillText(l, w / 2, padY + lineH * (i + 0.5) + fontPx * 0.04));
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 4;
-  return { texture, wCss: w / scale, hCss: h / scale };
-}
-
-// ── 머리 위 말풍선 (이름표보다 위에, 다른 물체에 가려지지 않게) ──
-function Bubble({ text }: { text: string }) {
-  const { texture, wCss, hCss } = useMemo(() => makeBubbleTexture(text), [text]);
-  useEffect(() => () => texture.dispose(), [texture]);
-  const k = 0.0055; // 화면 픽셀 → 월드 크기
-  return (
-    <sprite position={[0, 1.82, 0]} center={[0.5, 0]} scale={[wCss * k, hCss * k, 1]} renderOrder={11} raycast={() => null}>
-      <spriteMaterial map={texture} transparent depthTest={false} />
-    </sprite>
-  );
-}
-
-// ── 캐릭터: 축구공 몸통 + 팔다리 ──
-function BallPlayer({
-  color,
-  name,
-  posRef,
-  targetRef,
-  initial = [0, SPAWN_Z],
-  bubble = null,
-}: {
-  color: string;
-  name: string;
-  posRef: MutableRefObject<THREE.Vector3>;
-  targetRef: MutableRefObject<THREE.Vector3 | null>;
-  initial?: [number, number]; // 처음 서는 자리 [x, z] — 마운트할 때 한 번만 쓰인다
-  bubble?: string | null; // 머리 위에 띄울 말풍선 글
-}) {
-  const root = useRef<THREE.Group>(null);
-  const body = useRef<THREE.Group>(null);
-  const legL = useRef<THREE.Group>(null);
-  const legR = useRef<THREE.Group>(null);
-  const armL = useRef<THREE.Group>(null);
-  const armR = useRef<THREE.Group>(null);
-  const phase = useRef(0);
-  const facing = useRef(0);
-
-  const texture = useMemo(() => makeBallTexture(), []);
-  useEffect(() => () => texture.dispose(), [texture]);
-  const limbColor = useMemo(() => new THREE.Color(color).multiplyScalar(0.72), [color]);
-
-  useFrame((state, delta) => {
-    const g = root.current;
-    if (!g) return;
-    const dt = Math.min(delta, 0.05);
-
-    // 이동: 목표 지점을 향해 일정 속도로 걷는다
-    let moving = false;
-    const target = targetRef.current;
-    if (target) {
-      const dx = target.x - g.position.x;
-      const dz = target.z - g.position.z;
-      const dist = Math.hypot(dx, dz);
-      if (dist < 0.06) {
-        targetRef.current = null;
-      } else {
-        moving = true;
-        const step = Math.min(SPEED * dt, dist);
-        g.position.x += (dx / dist) * step;
-        g.position.z += (dz / dist) * step;
-        facing.current = lerpAngle(facing.current, Math.atan2(dx, dz), 1 - Math.exp(-12 * dt));
-      }
-    }
-    g.rotation.y = facing.current;
-    posRef.current.copy(g.position);
-
-    // 애니메이션: 걷는 동안 다리·팔을 번갈아 흔들고, 몸통은 통통 튀며 앞으로 살짝 기울인다
-    if (moving) phase.current += dt * SPEED * 2.6;
-    const swing = moving ? Math.sin(phase.current) * 0.9 : 0;
-    const damp = THREE.MathUtils.damp;
-    if (legL.current) legL.current.rotation.x = damp(legL.current.rotation.x, swing, 16, dt);
-    if (legR.current) legR.current.rotation.x = damp(legR.current.rotation.x, -swing, 16, dt);
-    if (armL.current) armL.current.rotation.x = damp(armL.current.rotation.x, -swing * 0.8, 16, dt);
-    if (armR.current) armR.current.rotation.x = damp(armR.current.rotation.x, swing * 0.8, 16, dt);
-    if (body.current) {
-      const bounce = moving ? Math.abs(Math.sin(phase.current)) * 0.09 : 0;
-      body.current.position.y = damp(body.current.position.y, bounce, 14, dt);
-      body.current.rotation.x = damp(body.current.rotation.x, moving ? 0.12 : 0, 10, dt);
-      // 서 있을 때는 숨 쉬듯 아주 조금 커졌다 작아진다
-      const breath = moving ? 1 : 1 + Math.sin(state.clock.elapsedTime * 2) * 0.015;
-      body.current.scale.y = damp(body.current.scale.y, breath, 10, dt);
-    }
-  });
-
-  return (
-    <group ref={root} position={[initial[0], 0, initial[1]]}>
-      {/* 바닥 그림자 */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]} raycast={() => null}>
-        <circleGeometry args={[0.5, 24]} />
-        <meshBasicMaterial color="#000000" transparent opacity={0.28} />
-      </mesh>
-
-      <group ref={body}>
-        {/* 몸통(공) */}
-        <mesh position={[0, 0.66, 0]}>
-          <sphereGeometry args={[0.45, 32, 24]} />
-          <meshStandardMaterial map={texture} color={color} roughness={0.55} />
-        </mesh>
-        {/* 얼굴: 큰 눈(반짝이 포함) + 볼터치 + 작은 코 + 웃는 입 */}
-        {([-1, 1] as const).map(side => (
-          <group key={side} position={[side * 0.16, 0.78, 0.4]}>
-            <mesh scale={[1, 1.3, 0.55]}>
-              <sphereGeometry args={[0.075, 16, 16]} />
-              <meshBasicMaterial color="#111827" />
-            </mesh>
-            <mesh position={[0.025, 0.04, 0.045]}>
-              <sphereGeometry args={[0.026, 10, 10]} />
-              <meshBasicMaterial color="#ffffff" />
-            </mesh>
-          </group>
-        ))}
-        {([-1, 1] as const).map(side => (
-          <mesh key={side} position={[side * 0.28, 0.66, 0.34]} scale={[1.2, 0.7, 0.3]}>
-            <sphereGeometry args={[0.07, 12, 12]} />
-            <meshBasicMaterial color="#fb7185" transparent opacity={0.65} />
-          </mesh>
-        ))}
-        <mesh position={[0, 0.7, 0.445]}>
-          <sphereGeometry args={[0.03, 10, 10]} />
-          <meshBasicMaterial color="#7c2d12" />
-        </mesh>
-        <mesh position={[0, 0.63, 0.435]} rotation={[0, 0, Math.PI]}>
-          <torusGeometry args={[0.07, 0.014, 8, 20, Math.PI]} />
-          <meshBasicMaterial color="#7f1d1d" />
-        </mesh>
-        {/* 다리 */}
-        <group ref={legL} position={[-0.17, 0.3, 0]}>
-          <mesh position={[0, -0.15, 0]}>
-            <capsuleGeometry args={[0.09, 0.14, 6, 12]} />
-            <meshStandardMaterial color={limbColor} roughness={0.7} />
-          </mesh>
-          {/* 축구화 */}
-          <mesh position={[0, -0.27, 0.05]} scale={[1, 0.6, 1.5]}>
-            <sphereGeometry args={[0.105, 14, 12]} />
-            <meshStandardMaterial color="#1f2937" roughness={0.6} />
-          </mesh>
-        </group>
-        <group ref={legR} position={[0.17, 0.3, 0]}>
-          <mesh position={[0, -0.15, 0]}>
-            <capsuleGeometry args={[0.09, 0.14, 6, 12]} />
-            <meshStandardMaterial color={limbColor} roughness={0.7} />
-          </mesh>
-          <mesh position={[0, -0.27, 0.05]} scale={[1, 0.6, 1.5]}>
-            <sphereGeometry args={[0.105, 14, 12]} />
-            <meshStandardMaterial color="#1f2937" roughness={0.6} />
-          </mesh>
-        </group>
-        {/* 팔 */}
-        <group position={[-0.5, 0.74, 0]} rotation={[0, 0, 0.35]}>
-          <group ref={armL}>
-            <mesh position={[0, -0.14, 0]}>
-              <capsuleGeometry args={[0.075, 0.14, 6, 12]} />
-              <meshStandardMaterial color={limbColor} roughness={0.7} />
-            </mesh>
-          </group>
-        </group>
-        <group position={[0.5, 0.74, 0]} rotation={[0, 0, -0.35]}>
-          <group ref={armR}>
-            <mesh position={[0, -0.14, 0]}>
-              <capsuleGeometry args={[0.075, 0.14, 6, 12]} />
-              <meshStandardMaterial color={limbColor} roughness={0.7} />
-            </mesh>
-          </group>
-        </group>
-      </group>
-
-      <Label text={name} position={[0, 1.6, 0]} height={0.3} onTop />
-      {bubble && <Bubble text={bubble} />}
-    </group>
-  );
 }
 
 // ── 같은 방의 다른 사람: 받은 "출발점 + 목표 지점"대로 같은 속도로 걸어간다 ──
@@ -391,7 +59,7 @@ const RemotePlayer = memo(function RemotePlayer({ other, bubble }: { other: Othe
   useEffect(() => {
     if (other.tx !== null && other.tz !== null) targetRef.current = new THREE.Vector3(other.tx, 0, other.tz);
   }, [other.seq, other.tx, other.tz]);
-  return <BallPlayer color={other.color} name={other.name} posRef={posRef} targetRef={targetRef} initial={initial} bubble={bubble} />;
+  return <Character color={other.color} name={other.name} posRef={posRef} targetRef={targetRef} initial={initial} bubble={bubble} />;
 }, (a, b) => a.bubble === b.bubble && sameRender(a.other, b.other));
 
 // ── 개발 전용 성능 시험: 주소에 ?fake=30 을 붙이면 가상 캐릭터 30명이 방 안을 걸어 다닌다 (운영에서는 동작하지 않음) ──
@@ -403,7 +71,7 @@ function FakePlayers({ count }: { count: number }) {
       const from = randomSpot();
       const to = randomSpot();
       return {
-        key: `fake-${i}`, name: `가상${i + 1}`, color: BALL_COLORS[i % BALL_COLORS.length],
+        key: `fake-${i}`, name: `가상${i + 1}`, color: HEAD_COLORS[i % HEAD_COLORS.length],
         x: from.x, z: from.z, tx: to.x, tz: to.z, seq: 1, beat: 0, sayId: 0, sayText: "",
       };
     })
@@ -684,7 +352,7 @@ function Room({ onFloorTap, onInfo }: { onFloorTap: (x: number, z: number) => vo
 }
 
 export default function LoungeScene({ canManage }: { canManage: boolean }) {
-  const [color, setColor] = useState(BALL_COLORS[0]);
+  const [color, setColor] = useState(HEAD_COLORS[0]);
   const [inZone, setInZone] = useState(false);
   const [panel, setPanel] = useState<TacticsMode | null>(null);
   // 개발 전용: 성능 시험용 가상 캐릭터 수 (?fake=30). 운영 빌드에서는 항상 0
@@ -733,7 +401,7 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
     return () => timers.forEach(t => clearTimeout(t));
   }, []);
 
-  const room = useLoungeRoom({ initial: { color: BALL_COLORS[0], x: 0, z: SPAWN_Z }, clamp: clampToRoom, onChat: handleChat });
+  const room = useLoungeRoom({ initial: { color: HEAD_COLORS[0], x: 0, z: SPAWN_Z }, clamp: clampToRoom, onChat: handleChat });
   const [draft, setDraft] = useState("");
   const [showColors, setShowColors] = useState(false);
   const [moved, setMoved] = useState(false); // 한 번이라도 걸으면 안내 문구를 숨긴다
@@ -811,7 +479,7 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
         <ZoneMarker active={inZone} />
         <ZoneWatcher posRef={posRef} onChange={setInZone} />
         {marker && <TargetMarker key={marker.id} x={marker.x} z={marker.z} />}
-        <BallPlayer color={color} name="나" posRef={posRef} targetRef={targetRef} bubble={bubbles.me ?? null} />
+        <Character color={color} name="나" posRef={posRef} targetRef={targetRef} bubble={bubbles.me ?? null} />
         {room.others.map(o => (
           <RemotePlayer key={o.key} other={o} bubble={bubbles[o.key] ?? null} />
         ))}
@@ -871,11 +539,11 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
         <ChatLines messages={messages} />
         {showColors && (
           <div className="flex gap-2 bg-black/60 rounded-full px-3 py-2 pointer-events-auto">
-            {BALL_COLORS.map(c => (
+            {HEAD_COLORS.map(c => (
               <button
                 key={c}
                 onClick={() => { setColor(c); room.announceColor(c); }}
-                aria-label={`공 색 ${c}`}
+                aria-label={`머리색 ${c}`}
                 className={`w-7 h-7 rounded-full border-2 ${color === c ? "border-white scale-110" : "border-transparent"}`}
                 style={{ backgroundColor: c }}
               />
@@ -886,7 +554,7 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
           <button
             type="button"
             onClick={() => setShowColors(v => !v)}
-            aria-label="공 색 바꾸기"
+            aria-label="머리색 바꾸기"
             className="w-10 h-10 shrink-0 rounded-full bg-black/60 flex items-center justify-center text-lg"
           >
             🎨
