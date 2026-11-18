@@ -31,6 +31,8 @@ workflows:
     # 이때 인증서에 쓸 비공개 키가 필요하다 → Codemagic 앱 > Environment variables에 CERTIFICATE_PRIVATE_KEY (Secure) 로 등록해 둘 것.
     # (environment.ios_signing 방식은 Codemagic에 미리 올려둔 인증서·프로파일만 찾아서, 새 계정에서는 "No matching profiles found" 로 실패한다)
     environment:
+      groups:
+        - ios_signing # Codemagic 앱 > Environment variables 에서 만든 그룹 (CERTIFICATE_PRIVATE_KEY 가 들어 있음)
       vars:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         BUNDLE_ID: "com.soccerpositionmanagement.app"
