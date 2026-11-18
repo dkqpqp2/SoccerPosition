@@ -5,6 +5,7 @@ import Link from "next/link";
 import * as THREE from "three";
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import TacticsSessionPanel, { type TacticsMode } from "./TacticsSessionPanel";
+import { useLoungeRoom, type OtherPlayer } from "./useLoungeRoom";
 
 // ── 방 크기(미터 느낌의 단위) ──
 const ROOM_W = 24;
@@ -150,11 +151,13 @@ function BallPlayer({
   name,
   posRef,
   targetRef,
+  initial = [0, SPAWN_Z],
 }: {
   color: string;
   name: string;
   posRef: MutableRefObject<THREE.Vector3>;
   targetRef: MutableRefObject<THREE.Vector3 | null>;
+  initial?: [number, number]; // 처음 서는 자리 [x, z] — 마운트할 때 한 번만 쓰인다
 }) {
   const root = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
@@ -213,7 +216,7 @@ function BallPlayer({
   });
 
   return (
-    <group ref={root} position={[0, 0, SPAWN_Z]}>
+    <group ref={root} position={[initial[0], 0, initial[1]]}>
       {/* 바닥 그림자 */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]} raycast={() => null}>
         <circleGeometry args={[0.5, 24]} />
@@ -297,6 +300,18 @@ function BallPlayer({
       <Label text={name} position={[0, 1.6, 0]} height={0.3} onTop />
     </group>
   );
+}
+
+// ── 같은 방의 다른 사람: 받은 "출발점 + 목표 지점"대로 같은 속도로 걸어간다 ──
+function RemotePlayer({ other }: { other: OtherPlayer }) {
+  const initial = useRef<[number, number]>([other.x, other.z]).current; // 처음 나타난 자리 (이후 상태가 바뀌어도 고정)
+  const posRef = useRef(new THREE.Vector3(other.x, 0, other.z));
+  const targetRef = useRef<THREE.Vector3 | null>(null);
+  // 새 이동(seq가 바뀜)이 오면 목표만 바꾼다. 지금 보이는 위치에서 이어서 걸어가므로 순간이동하지 않는다.
+  useEffect(() => {
+    if (other.tx !== null && other.tz !== null) targetRef.current = new THREE.Vector3(other.tx, 0, other.tz);
+  }, [other.seq, other.tx, other.tz]);
+  return <BallPlayer color={other.color} name={other.name} posRef={posRef} targetRef={targetRef} initial={initial} />;
 }
 
 // ── 탭한 자리에 퍼지는 링 ──
@@ -548,6 +563,7 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ dist: number; zoom: number } | null>(null);
   const targetRef = useRef<THREE.Vector3 | null>(null);
+  const room = useLoungeRoom({ initial: { color: BALL_COLORS[0], x: 0, z: SPAWN_Z }, clamp: clampToRoom });
   const markerId = useRef(0);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -556,6 +572,7 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
   function handleFloorTap(x: number, z: number) {
     const p = clampToRoom(x, z);
     targetRef.current = new THREE.Vector3(p.x, 0, p.z);
+    room.announceMove({ x: posRef.current.x, z: posRef.current.z }, p); // 같은 방 사람들에게 "여기서 저기로 걸어간다"고 알림
     markerId.current += 1;
     setMarker({ x: p.x, z: p.z, id: markerId.current });
   }
@@ -606,6 +623,9 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
         <ZoneWatcher posRef={posRef} onChange={setInZone} />
         {marker && <TargetMarker key={marker.id} x={marker.x} z={marker.z} />}
         <BallPlayer color={color} name="나" posRef={posRef} targetRef={targetRef} />
+        {room.others.map(o => (
+          <RemotePlayer key={o.key} other={o} />
+        ))}
         <CameraRig posRef={posRef} zoomRef={zoomRef} />
       </Canvas>
 
@@ -613,6 +633,13 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),12px)]">
         <Link href="/dashboard" className="px-3 py-1.5 rounded-full bg-black/55 text-white text-sm font-bold">← 나가기</Link>
         <span className="px-3 py-1.5 rounded-full bg-black/55 text-emerald-300 text-xs font-bold">팀 라운지 (시험 중)</span>
+      </div>
+
+      <div className="absolute left-4 top-16 px-2.5 py-1 rounded-full bg-black/55 text-[11px] font-bold flex items-center gap-1.5">
+        <span className={`w-2 h-2 rounded-full ${room.status === "online" ? "bg-emerald-400" : room.status === "error" ? "bg-red-500" : "bg-amber-400"}`} />
+        <span className="text-white">
+          {room.status === "online" ? `${room.others.length + 1}명 접속 중` : room.status === "error" ? "연결 실패" : "연결 중…"}
+        </span>
       </div>
 
       {process.env.NODE_ENV === "development" && (
@@ -654,7 +681,7 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
           {BALL_COLORS.map(c => (
             <button
               key={c}
-              onClick={() => setColor(c)}
+              onClick={() => { setColor(c); room.announceColor(c); }}
               aria-label={`공 색 ${c}`}
               className={`w-7 h-7 rounded-full border-2 ${color === c ? "border-white scale-110" : "border-transparent"}`}
               style={{ backgroundColor: c }}
