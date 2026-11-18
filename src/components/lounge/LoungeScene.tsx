@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MutableRefObject } from "react";
 import Link from "next/link";
 import * as THREE from "three";
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import TacticsSessionPanel, { type TacticsMode } from "./TacticsSessionPanel";
-import { useLoungeRoom, type OtherPlayer } from "./useLoungeRoom";
+import { MAX_CHAT_LENGTH, useLoungeRoom, type ChatMessage, type OtherPlayer } from "./useLoungeRoom";
 
 // ── 방 크기(미터 느낌의 단위) ──
 const ROOM_W = 24;
@@ -145,6 +145,78 @@ function Label({
   );
 }
 
+const BUBBLE_MS = 6000; // 말풍선이 떠 있는 시간
+
+// ── 말풍선 그림: 흰 둥근 상자 + 아래 꼬리, 글자 단위로 줄바꿈(최대 3줄) ──
+function makeBubbleTexture(text: string): { texture: THREE.CanvasTexture; wCss: number; hCss: number } {
+  const scale = 2;
+  const fontPx = 26 * scale;
+  const lineH = Math.round(fontPx * 1.3);
+  const padX = 16 * scale;
+  const padY = 11 * scale;
+  const tail = 12 * scale;
+  const maxTextW = 230 * scale;
+  const font = `600 ${fontPx}px Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
+
+  const measure = document.createElement("canvas").getContext("2d")!;
+  measure.font = font;
+  const lines: string[] = [];
+  let cur = "";
+  for (const ch of text) {
+    if (cur && measure.measureText(cur + ch).width > maxTextW) {
+      lines.push(cur);
+      cur = ch;
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur) lines.push(cur);
+  const shown = lines.slice(0, 3).map(l => l.trim());
+  if (lines.length > 3) shown[2] = [...shown[2]].slice(0, -1).join("") + "…";
+
+  const textW = Math.max(...shown.map(l => measure.measureText(l).width));
+  const w = Math.ceil(textW + padX * 2);
+  const bodyH = shown.length * lineH + padY * 2;
+  const h = bodyH + tail;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "rgba(255,255,255,0.97)";
+  ctx.beginPath();
+  ctx.roundRect(0, 0, w, bodyH, 14 * scale);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(w / 2 - tail * 0.8, bodyH - 1);
+  ctx.lineTo(w / 2 + tail * 0.8, bodyH - 1);
+  ctx.lineTo(w / 2, h);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#111827";
+  ctx.font = font;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  shown.forEach((l, i) => ctx.fillText(l, w / 2, padY + lineH * (i + 0.5) + fontPx * 0.04));
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  return { texture, wCss: w / scale, hCss: h / scale };
+}
+
+// ── 머리 위 말풍선 (이름표보다 위에, 다른 물체에 가려지지 않게) ──
+function Bubble({ text }: { text: string }) {
+  const { texture, wCss, hCss } = useMemo(() => makeBubbleTexture(text), [text]);
+  useEffect(() => () => texture.dispose(), [texture]);
+  const k = 0.0055; // 화면 픽셀 → 월드 크기
+  return (
+    <sprite position={[0, 1.82, 0]} center={[0.5, 0]} scale={[wCss * k, hCss * k, 1]} renderOrder={11} raycast={() => null}>
+      <spriteMaterial map={texture} transparent depthTest={false} />
+    </sprite>
+  );
+}
+
 // ── 캐릭터: 축구공 몸통 + 팔다리 ──
 function BallPlayer({
   color,
@@ -152,12 +224,14 @@ function BallPlayer({
   posRef,
   targetRef,
   initial = [0, SPAWN_Z],
+  bubble = null,
 }: {
   color: string;
   name: string;
   posRef: MutableRefObject<THREE.Vector3>;
   targetRef: MutableRefObject<THREE.Vector3 | null>;
   initial?: [number, number]; // 처음 서는 자리 [x, z] — 마운트할 때 한 번만 쓰인다
+  bubble?: string | null; // 머리 위에 띄울 말풍선 글
 }) {
   const root = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
@@ -298,12 +372,13 @@ function BallPlayer({
       </group>
 
       <Label text={name} position={[0, 1.6, 0]} height={0.3} onTop />
+      {bubble && <Bubble text={bubble} />}
     </group>
   );
 }
 
 // ── 같은 방의 다른 사람: 받은 "출발점 + 목표 지점"대로 같은 속도로 걸어간다 ──
-function RemotePlayer({ other }: { other: OtherPlayer }) {
+function RemotePlayer({ other, bubble }: { other: OtherPlayer; bubble: string | null }) {
   const initial = useRef<[number, number]>([other.x, other.z]).current; // 처음 나타난 자리 (이후 상태가 바뀌어도 고정)
   const posRef = useRef(new THREE.Vector3(other.x, 0, other.z));
   const targetRef = useRef<THREE.Vector3 | null>(null);
@@ -311,7 +386,29 @@ function RemotePlayer({ other }: { other: OtherPlayer }) {
   useEffect(() => {
     if (other.tx !== null && other.tz !== null) targetRef.current = new THREE.Vector3(other.tx, 0, other.tz);
   }, [other.seq, other.tx, other.tz]);
-  return <BallPlayer color={other.color} name={other.name} posRef={posRef} targetRef={targetRef} initial={initial} />;
+  return <BallPlayer color={other.color} name={other.name} posRef={posRef} targetRef={targetRef} initial={initial} bubble={bubble} />;
+}
+
+// ── 화면 아래 최근 대화 (최근 20초 안의 것 최대 3줄) ──
+function ChatLines({ messages }: { messages: ChatMessage[] }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!messages.length) return;
+    const t = setInterval(() => setNow(Date.now()), 2000);
+    return () => clearInterval(t);
+  }, [messages.length]);
+  const recent = messages.filter(m => now - m.at < 20000).slice(-3);
+  if (!recent.length) return null;
+  return (
+    <div className="w-full max-w-sm flex flex-col items-start gap-1 pointer-events-none">
+      {recent.map(m => (
+        <div key={m.id} className="px-3 py-1 rounded-2xl bg-black/60 text-sm text-white max-w-full break-words">
+          <span className={`font-bold mr-1.5 ${m.mine ? "text-emerald-300" : "text-sky-300"}`}>{m.mine ? "나" : m.name}</span>
+          {m.text}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // ── 탭한 자리에 퍼지는 링 ──
@@ -563,13 +660,54 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ dist: number; zoom: number } | null>(null);
   const targetRef = useRef<THREE.Vector3 | null>(null);
-  const room = useLoungeRoom({ initial: { color: BALL_COLORS[0], x: 0, z: SPAWN_Z }, clamp: clampToRoom });
+
+  // 채팅: 최근 대화 목록 + 머리 위 말풍선(사람별, 일정 시간 뒤 사라짐). 내 말풍선 칸은 "me"
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [bubbles, setBubbles] = useState<Record<string, string>>({});
+  const bubbleTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const handleChat = useCallback((m: ChatMessage) => {
+    setMessages(prev => [...prev.slice(-49), m]);
+    const slot = m.mine ? "me" : m.key;
+    setBubbles(prev => ({ ...prev, [slot]: m.text }));
+    const old = bubbleTimers.current.get(slot);
+    if (old) clearTimeout(old);
+    bubbleTimers.current.set(
+      slot,
+      setTimeout(() => {
+        setBubbles(prev => {
+          const next = { ...prev };
+          delete next[slot];
+          return next;
+        });
+        bubbleTimers.current.delete(slot);
+      }, BUBBLE_MS)
+    );
+  }, []);
+  useEffect(() => {
+    const timers = bubbleTimers.current;
+    return () => timers.forEach(t => clearTimeout(t));
+  }, []);
+
+  const room = useLoungeRoom({ initial: { color: BALL_COLORS[0], x: 0, z: SPAWN_Z }, clamp: clampToRoom, onChat: handleChat });
+  const [draft, setDraft] = useState("");
+  const [showColors, setShowColors] = useState(false);
+  const [moved, setMoved] = useState(false); // 한 번이라도 걸으면 안내 문구를 숨긴다
   const markerId = useRef(0);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
+  function handleSend(e: FormEvent) {
+    e.preventDefault();
+    const result = room.say(draft);
+    if (result === "ok") setDraft("");
+    else if (result === "profanity") handleInfo("부적절한 표현이 들어 있어요");
+    else if (result === "rate") handleInfo("조금 천천히 보내 주세요");
+    else if (result === "offline") handleInfo("아직 연결 중이에요");
+  }
+
   function handleFloorTap(x: number, z: number) {
+    setMoved(true);
     const p = clampToRoom(x, z);
     targetRef.current = new THREE.Vector3(p.x, 0, p.z);
     room.announceMove({ x: posRef.current.x, z: posRef.current.z }, p); // 같은 방 사람들에게 "여기서 저기로 걸어간다"고 알림
@@ -622,9 +760,9 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
         <ZoneMarker active={inZone} />
         <ZoneWatcher posRef={posRef} onChange={setInZone} />
         {marker && <TargetMarker key={marker.id} x={marker.x} z={marker.z} />}
-        <BallPlayer color={color} name="나" posRef={posRef} targetRef={targetRef} />
+        <BallPlayer color={color} name="나" posRef={posRef} targetRef={targetRef} bubble={bubbles.me ?? null} />
         {room.others.map(o => (
-          <RemotePlayer key={o.key} other={o} />
+          <RemotePlayer key={o.key} other={o} bubble={bubbles[o.key] ?? null} />
         ))}
         <CameraRig posRef={posRef} zoomRef={zoomRef} />
       </Canvas>
@@ -657,9 +795,9 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
         <div className="absolute left-1/2 -translate-x-1/2 top-24 px-4 py-2 rounded-xl bg-black/75 text-white text-sm font-medium max-w-[80%] text-center">{toast}</div>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 px-4 pb-[max(env(safe-area-inset-bottom),16px)] flex flex-col items-center gap-3">
+      <div className="absolute bottom-0 left-0 right-0 px-4 pb-[max(env(safe-area-inset-bottom),16px)] flex flex-col items-center gap-2.5 pointer-events-none">
         {inZone && !panel && (
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-2 pointer-events-auto">
             <p className="text-emerald-300 text-xs font-bold bg-black/55 px-3 py-1 rounded-full">전술 구역</p>
             <div className="flex gap-2">
               {asManager && (
@@ -676,18 +814,48 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
             </div>
           </div>
         )}
-        <p className="text-gray-300 text-xs bg-black/45 px-3 py-1 rounded-full">바닥을 탭하면 그곳으로 걸어가요</p>
-        <div className="flex gap-2 bg-black/55 rounded-full px-3 py-2">
-          {BALL_COLORS.map(c => (
-            <button
-              key={c}
-              onClick={() => { setColor(c); room.announceColor(c); }}
-              aria-label={`공 색 ${c}`}
-              className={`w-7 h-7 rounded-full border-2 ${color === c ? "border-white scale-110" : "border-transparent"}`}
-              style={{ backgroundColor: c }}
-            />
-          ))}
-        </div>
+        {!moved && <p className="text-gray-300 text-xs bg-black/45 px-3 py-1 rounded-full">바닥을 탭하면 그곳으로 걸어가요</p>}
+        <ChatLines messages={messages} />
+        {showColors && (
+          <div className="flex gap-2 bg-black/60 rounded-full px-3 py-2 pointer-events-auto">
+            {BALL_COLORS.map(c => (
+              <button
+                key={c}
+                onClick={() => { setColor(c); room.announceColor(c); }}
+                aria-label={`공 색 ${c}`}
+                className={`w-7 h-7 rounded-full border-2 ${color === c ? "border-white scale-110" : "border-transparent"}`}
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+        )}
+        <form onSubmit={handleSend} className="w-full max-w-sm flex items-center gap-2 pointer-events-auto">
+          <button
+            type="button"
+            onClick={() => setShowColors(v => !v)}
+            aria-label="공 색 바꾸기"
+            className="w-10 h-10 shrink-0 rounded-full bg-black/60 flex items-center justify-center text-lg"
+          >
+            🎨
+          </button>
+          {/* 글자 크기 16px: 그보다 작으면 iPhone이 입력창을 누를 때 화면을 확대해 버린다 */}
+          <input
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            maxLength={MAX_CHAT_LENGTH}
+            placeholder="생각을 남겨보세요"
+            enterKeyHint="send"
+            autoComplete="off"
+            className="flex-1 min-w-0 h-10 rounded-full bg-black/60 text-white text-base px-4 placeholder:text-gray-400 outline-none focus:ring-1 focus:ring-white/30"
+          />
+          <button
+            type="submit"
+            disabled={!draft.trim()}
+            className="h-10 px-4 shrink-0 rounded-full bg-emerald-500 text-black font-bold text-sm disabled:opacity-40"
+          >
+            전송
+          </button>
+        </form>
       </div>
     </div>
   );
