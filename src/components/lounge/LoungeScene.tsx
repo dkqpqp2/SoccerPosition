@@ -6,6 +6,9 @@ import * as THREE from "three";
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import TacticsSessionPanel, { type TacticsMode } from "./TacticsSessionPanel";
 import { MAX_CHAT_LENGTH, useLoungeRoom, type ChatMessage, type OtherPlayer } from "./useLoungeRoom";
+import { useLeaderboard } from "./useLeaderboard";
+import HallOfFameBoard from "./HallOfFameBoard";
+import LeaderboardModal from "./LeaderboardModal";
 
 // ── 방 크기(미터 느낌의 단위) ──
 const ROOM_W = 24;
@@ -601,9 +604,9 @@ function Room({ onFloorTap, onInfo }: { onFloorTap: (x: number, z: number) => vo
         <Label text="전술 화이트보드" position={[0, 1.55, 0.14]} height={0.34} bg="#3f7f5c" fg="#ffffff" />
       </group>
 
-      {/* 오른쪽 앞: 게시판 (세워 둔 보드) */}
+      {/* 왼쪽 앞: 게시판 (세워 둔 보드) */}
       <group
-        position={[8.5, 0, 2.2]}
+        position={[-8.5, 0, 2.2]}
         onClick={(e) => {
           if (e.delta > 8) return;
           e.stopPropagation();
@@ -650,6 +653,8 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
   const [color, setColor] = useState(BALL_COLORS[0]);
   const [inZone, setInZone] = useState(false);
   const [panel, setPanel] = useState<TacticsMode | null>(null);
+  const leaderboard = useLeaderboard(); // 득점왕·도움왕·참석왕 (명예의 전당 보드)
+  const [showBoard, setShowBoard] = useState(false);
   // 관리자급(감독·코치·관리자 등)이면 "전술 설명하기"가 보인다. 개발 중에는 아래 칩으로 관리자/팀원을 바꿔 볼 수 있다.
   const [asManager, setAsManager] = useState(canManage);
   const [marker, setMarker] = useState<{ x: number; z: number; id: number } | null>(null);
@@ -757,6 +762,12 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
         <pointLight position={[-6, 3.2, -2]} intensity={14} distance={16} color="#fde68a" />
         <pointLight position={[6, 3.2, -2]} intensity={14} distance={16} color="#fde68a" />
         <Room onFloorTap={handleFloorTap} onInfo={handleInfo} />
+        <HallOfFameBoard
+          position={[8.4, 0, 1.2]}
+          data={leaderboard.data}
+          status={leaderboard.status}
+          onTap={() => { leaderboard.refreshIfStale(); setShowBoard(true); }}
+        />
         <ZoneMarker active={inZone} />
         <ZoneWatcher posRef={posRef} onChange={setInZone} />
         {marker && <TargetMarker key={marker.id} x={marker.x} z={marker.z} />}
@@ -790,6 +801,7 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
       )}
 
       {panel && <TacticsSessionPanel mode={panel} onClose={() => setPanel(null)} />}
+      {showBoard && <LeaderboardModal data={leaderboard.data} status={leaderboard.status} onClose={() => setShowBoard(false)} />}
 
       {toast && (
         <div className="absolute left-1/2 -translate-x-1/2 top-24 px-4 py-2 rounded-xl bg-black/75 text-white text-sm font-medium max-w-[80%] text-center">{toast}</div>
