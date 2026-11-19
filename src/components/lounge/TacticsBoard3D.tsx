@@ -191,7 +191,7 @@ function Chair({ index, onTap }: { index: number; onTap: (index: number) => void
  * 방 한가운데의 전술판과 그 앞에 반원으로 놓인 의자.
  * 판에는 지금 설명 중인 내용이 그대로 보인다(설명하는 사람이 없으면 안내 문구). 판을 탭하면 onTap, 의자를 탭하면 onChairTap.
  */
-export default function TacticsCorner({ board, presenterName, onTap, onChairTap }: { board: BoardSnapshot | null; presenterName: string | null; onTap: () => void; onChairTap: (index: number) => void }) {
+export default function TacticsCorner({ board, presenterName, showLabel = true, onTap, onChairTap }: { board: BoardSnapshot | null; presenterName: string | null; showLabel?: boolean; onTap: () => void; onChairTap: (index: number) => void }) {
   const centerY = BOARD_BOTTOM + BOARD_H / 2;
   return (
     <group>
@@ -218,13 +218,16 @@ export default function TacticsCorner({ board, presenterName, onTap, onChairTap 
           </mesh>
           <BoardScreen board={board} />
         </group>
-        <Label
-          text={presenterName ? `🎤 ${presenterName}님 설명 중` : "전술판"}
-          position={[0, BOARD_BOTTOM + BOARD_H + 0.35, 0.1]}
-          height={0.34}
-          bg={presenterName ? "#059669" : "#3f7f5c"}
-          fg="#ffffff"
-        />
+        {/* 앉아서 볼 때는 카메라가 판에 바짝 붙어 라벨이 화면 위 버튼과 겹치므로 숨긴다 */}
+        {showLabel && (
+          <Label
+            text={presenterName ? `🎤 ${presenterName}님 설명 중` : "전술판"}
+            position={[0, BOARD_BOTTOM + BOARD_H + 0.35, 0.1]}
+            height={0.34}
+            bg={presenterName ? "#059669" : "#3f7f5c"}
+            fg="#ffffff"
+          />
+        )}
       </group>
       {Array.from({ length: CHAIR_COUNT }, (_, i) => <Chair key={i} index={i} onTap={onChairTap} />)}
     </group>

@@ -653,7 +653,7 @@ export default function LoungeScene({
           status={leaderboard.status}
           onTap={() => { leaderboard.refreshIfStale(); setShowBoard(true); }}
         />
-        <TacticsCorner board={shownBoard} presenterName={shownPresenter} onTap={() => setPanel(p => p ?? "watch")} onChairTap={sitOnChair} />
+        <TacticsCorner board={shownBoard} presenterName={shownPresenter} showLabel={!isChairSeat(mySeat)} onTap={() => setPanel(p => p ?? "watch")} onChairTap={sitOnChair} />
         <ZoneMarker active={inZone} />
         <ZoneWatcher posRef={posRef} onChange={setInZone} />
         {marker && <TargetMarker key={marker.id} x={marker.x} z={marker.z} />}
@@ -725,18 +725,26 @@ export default function LoungeScene({
       )}
 
       <div className="absolute bottom-0 left-0 right-0 px-4 pb-[max(env(safe-area-inset-bottom),16px)] flex flex-col items-center gap-2.5 pointer-events-none">
-        {/* 누가 전술을 설명 중이면 어디에 있든 알려 주고, 눌러서 바로 보러 갈 수 있게 한다 */}
-        {!panel && !isChairSeat(mySeat) && room.presenters.length > 0 && (
-          <button
-            onClick={() => setPanel("watch")}
-            className="pointer-events-auto px-3.5 py-2 rounded-full bg-emerald-500 text-black text-xs font-black shadow-lg"
-          >
-            🎤 {room.presenters[0].name}님이 전술 설명 중 · 보러 가기
-          </button>
+        {/* 누가 전술을 설명 중이면 어디에 있든 알려 준다. 앉아서 보면 의자까지 걸어가 판 앞에서 보고, 크게 보기는 2D 화면을 연다.
+            전술 구역 안에서는 아래 구역 버튼이 같은 일을 하므로 겹쳐서 보여 주지 않는다. */}
+        {!panel && !inZone && !isChairSeat(mySeat) && room.presenters.length > 0 && (
+          <div className="flex flex-col items-center gap-2 pointer-events-auto">
+            <p className="text-emerald-200 text-xs font-bold bg-black/60 px-3 py-1 rounded-full">🎤 {room.presenters[0].name}님이 전술 설명 중</p>
+            <div className="flex gap-2">
+              <button onClick={sitOnNearestChair} className="bg-emerald-500 text-black font-black text-sm px-4 py-2.5 rounded-xl shadow-lg">
+                🪑 앉아서 보기
+              </button>
+              <button onClick={() => setPanel("watch")} className="bg-gray-800 text-white border border-white/15 font-black text-sm px-4 py-2.5 rounded-xl shadow-lg">
+                🔍 크게 보기
+              </button>
+            </div>
+          </div>
         )}
         {isChairSeat(mySeat) && !panel && (
           <div className="flex flex-col items-center gap-2 pointer-events-auto">
-            <p className="text-gray-300 text-xs bg-black/55 px-3 py-1 rounded-full">핀치로 판에 가까이 · 멀리 볼 수 있어요</p>
+            <p className="text-gray-300 text-xs bg-black/55 px-3 py-1 rounded-full">
+              {shownPresenter ? `🎤 ${shownPresenter}님 설명 중 · 핀치로 확대` : "핀치로 판에 가까이 · 멀리 볼 수 있어요"}
+            </p>
             <div className="flex gap-2">
               <button onClick={() => setPanel("watch")} className="bg-gray-800 text-white border border-white/15 font-black text-sm px-4 py-2.5 rounded-xl shadow-lg">
                 🔍 크게 보기
@@ -749,7 +757,9 @@ export default function LoungeScene({
         )}
         {inZone && !panel && !isChairSeat(mySeat) && (
           <div className="flex flex-col items-center gap-2 pointer-events-auto">
-            <p className="text-emerald-300 text-xs font-bold bg-black/55 px-3 py-1 rounded-full">전술 구역</p>
+            <p className="text-emerald-300 text-xs font-bold bg-black/55 px-3 py-1 rounded-full">
+              {room.presenters.length > 0 ? `전술 구역 · 🎤 ${room.presenters[0].name}님 설명 중` : "전술 구역"}
+            </p>
             <div className="flex flex-wrap justify-center gap-2">
               <button onClick={sitOnNearestChair} className="bg-emerald-500 text-black font-black text-sm px-4 py-2.5 rounded-xl shadow-lg">
                 🪑 앉아서 보기
