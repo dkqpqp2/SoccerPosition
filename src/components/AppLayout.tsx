@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import {
   Home, Users, HeartPulse, LayoutGrid, Calendar, Target, FileText,
   Vote, Wallet, BarChart3, MessageCircle, Clapperboard, Handshake,
-  User, Bell, Lightbulb, X, Swords, PenTool, Share2, Shirt, type LucideIcon,
+  User, Bell, Lightbulb, X, Swords, PenTool, Share2, Shirt, DoorOpen, type LucideIcon,
 } from "lucide-react";
 import SpmLogo from "@/components/SpmLogo";
 import InAppUpdateBanner from "@/components/InAppUpdateBanner";
@@ -24,7 +24,7 @@ export interface HelpContent {
   items: HelpItem[];
 }
 
-const NAV_ITEMS: { path: string; icon: LucideIcon; label: string; managerOnly?: boolean; leaderOnly?: boolean; adminOnly?: boolean; ownerOnlyHidden?: boolean; group?: string }[] = [
+const NAV_ITEMS: { path: string; icon: LucideIcon; label: string; managerOnly?: boolean; leaderOnly?: boolean; adminOnly?: boolean; ownerOnlyHidden?: boolean; loungeOnly?: boolean; group?: string }[] = [
   { path: "/dashboard", icon: Home, label: "홈", group: "팀" },
   { path: "/members", icon: Users, label: "팀원 관리" },
   { path: "/status", icon: HeartPulse, label: "팀 현황" },
@@ -38,6 +38,7 @@ const NAV_ITEMS: { path: string; icon: LucideIcon; label: string; managerOnly?: 
   { path: "/votes", icon: Vote, label: "투표", group: "커뮤니티" },
   { path: "/board", icon: MessageCircle, label: "게시판" },
   { path: "/videos", icon: Clapperboard, label: "영상 추천" },
+  { path: "/lounge", icon: DoorOpen, label: "팀 라운지", loungeOnly: true },
   { path: "/dues", icon: Wallet, label: "회비 관리", group: "관리" },
   { path: "/uniforms", icon: Shirt, label: "유니폼 관리", leaderOnly: true },
   { path: "/stats", icon: BarChart3, label: "팀 통계" },
@@ -54,6 +55,7 @@ let sidebarCache: {
   isOwner: boolean;
   userRole: string | null;
   teamId: string | null;
+  loungeEnabled: boolean;
 } | null = null;
 
 // 모바일 하단 탭바는 그룹 단위(팀/경기/커뮤니티/관리)로 묶어서 표시
@@ -89,6 +91,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
   const [isOwner, setIsOwner] = useState(() => sidebarCache?.isOwner ?? false);
   const [userRole, setUserRole] = useState<string | null>(() => sidebarCache?.userRole ?? null);
   const [teamId, setTeamId] = useState<string | null>(() => sidebarCache?.teamId ?? null);
+  const [loungeEnabled, setLoungeEnabled] = useState(() => sidebarCache?.loungeEnabled ?? false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   useEffect(() => { setOpenGroup(null); }, [pathname]);
@@ -108,13 +111,15 @@ export default function AppLayout({ children, title, helpContent }: { children: 
       const isOwner = !!d.is_owner;
       const userRole = d.role ?? null;
       const teamId = d.team_id ?? null;
+      const loungeEnabled = !!d.lounge_enabled;
       setTeamName(teamName);
       setTeamLogoUrl(teamLogoUrl);
       setAvgAge(avgAge);
       setIsOwner(isOwner);
       setUserRole(userRole);
       setTeamId(teamId);
-      sidebarCache = { teamName, teamLogoUrl, avgAge, isOwner, userRole, teamId };
+      setLoungeEnabled(loungeEnabled);
+      sidebarCache = { teamName, teamLogoUrl, avgAge, isOwner, userRole, teamId, loungeEnabled };
     }).catch(() => {});
     fetch("/api/matching/requests").then(r => r.json()).then((data: { status: string }[]) => {
       if (Array.isArray(data)) setPendingMatches(data.filter(r => r.status === "pending").length);
@@ -183,6 +188,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
             if (item.leaderOnly && !canLeadNav) return false;
             if (item.ownerOnlyHidden && !isOwner) return false;
             if (item.path === "/board" && !boardAllowed) return false;
+            if (item.loungeOnly && !loungeEnabled) return false;
             return true;
           }).map((item, idx) => {
             const active = pathname === item.path || (item.path !== "/dashboard" && pathname.startsWith(item.path));
@@ -384,6 +390,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
           if (item.leaderOnly && !canLeadNav) return false;
           if (item.ownerOnlyHidden && !isOwner) return false;
           if (item.path === "/board" && !boardAllowed) return false;
+          if (item.loungeOnly && !loungeEnabled) return false;
           return true;
         });
         const groups = groupNavItems(visibleItems);

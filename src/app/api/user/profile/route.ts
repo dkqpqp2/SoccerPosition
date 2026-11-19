@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUserAndTeam, getUserRole } from "@/lib/team";
+import { isLoungeEnabled } from "@/lib/lounge";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -80,6 +81,8 @@ export async function GET() {
     uniform_info: teamData?.uniform_info ?? null,
     role: role ?? null,
     avg_age,
+    // 팀 라운지 메뉴 표시 여부 (허용 팀 목록은 서버 환경변수라 여기서 판단해서 내려준다)
+    lounge_enabled: isLoungeEnabled(teamId),
   });
 }
 
