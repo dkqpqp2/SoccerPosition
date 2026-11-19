@@ -5,11 +5,12 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 // Realtime(Presence)만 쓰고 DB 테이블은 건드리지 않는다 — 방 채널 이름은 /api/lounge/session이 서버에서 계산해 내려준다.
 import { supabaseClient } from "@/lib/supabaseClient";
 import { containsProfanity } from "@/lib/profanity";
-import { mergeOthers } from "./presenceList";
+import { collectNewSays, mergeOthers, type Say } from "./presenceList";
 import { isValidSeat } from "./loungeConstants";
 
 export const MAX_CHAT_LENGTH = 80;
 const CHAT_MIN_INTERVAL_MS = 1000; // 연속 전송 최소 간격
+const MAX_SAYS_CARRIED = 3; // 접속 상태에 함께 싣는 최근 메시지 수
 
 export type PresenceState = {
   name: string;
@@ -23,7 +24,7 @@ export type PresenceState = {
   beat: number; // 15초마다 1씩 증가하는 "살아 있어요" 신호 — 갑자기 꺼진 사람을 받는 쪽이 걸러내는 용도
   // 채팅: 보낸 사람 본인의 접속 상태에 실어 보낸다 → Supabase가 상태는 그 사람의 키로만 쓰게 막아 주므로 다른 사람 이름으로 위조할 수 없다.
   sayId: number; // 메시지를 보낼 때마다 1씩 증가 (받는 쪽이 새 메시지를 알아채는 용도)
-  sayText: string;
+  says: Say[]; // 최근에 보낸 메시지 몇 개(오래된 것부터). 하나만 싣으면 전송이 합쳐질 때 앞 메시지가 사라진다
 };
 
 export type ChatMessage = { id: string; key: string; name: string; text: string; mine: boolean; at: number };
@@ -36,6 +37,7 @@ const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const HEARTBEAT_MS = 15_000; // 내 "살아 있어요" 신호 간격
 const STALE_MS = 45_000; // 이만큼 신호가 없으면 목록에서 뺀다 (탭을 갑자기 닫은 사람 등)
 const PRUNE_CHECK_MS = 5_000;
+const MAX_RETRIES = 6; // 이만큼 연달아 실패하면 화면에 "연결 실패"를 보여 준다(그 뒤에도 계속 시도한다)
 
 // 다른 사람이 보낸 값은 믿지 않는다: 숫자·색·이름을 검사하고 범위를 맞춘다
 function sanitize(raw: unknown, clamp: (x: number, z: number) => { x: number; z: number }): PresenceState | null {
@@ -60,7 +62,16 @@ function sanitize(raw: unknown, clamp: (x: number, z: number) => { x: number; z:
     seat: isValidSeat(r.seat) ? r.seat : null,
     beat: num(r.beat) ?? 0,
     sayId: num(r.sayId) ?? 0,
-    sayText: typeof r.sayText === "string" ? r.sayText.slice(0, MAX_CHAT_LENGTH) : "",
+    says: Array.isArray(r.says)
+      ? r.says
+          .slice(-MAX_SAYS_CARRIED)
+          .map((s: unknown): Say | null => {
+            const o = s as Record<string, unknown> | null;
+            const id = o ? num(o.id) : null;
+            return id !== null && typeof o?.text === "string" ? { id, text: o.text.slice(0, MAX_CHAT_LENGTH) } : null;
+          })
+          .filter((s): s is Say => s !== null)
+      : [],
   };
 }
 
@@ -144,24 +155,56 @@ export function useLoungeRoom(opts: {
     const onPageHide = () => { void channelRef.current?.untrack(); };
     window.addEventListener("pagehide", onPageHide);
 
-    (async () => {
+    // ── 접속과 재접속 ──
+    // 탭이 오래 가려지거나(앱을 뒤로 보냄) 네트워크가 끊기면 서버가 채널을 닫는데, 라이브러리는 닫힌 채널을 다시 붙여 주지 않는다.
+    // 그대로 두면 화면에는 "접속 중"이 남아 있고 채팅은 조용히 막히므로, 끊김을 감지하면 새 채널로 다시 붙는다.
+    let channelName: string | null = null;
+    let retry = 0;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let hiddenAt = 0;
+    let connectId = 0; // 오래된 시도의 결과가 새 시도를 덮어쓰지 않게 하는 번호
+
+    const scheduleReconnect = () => {
+      if (cancelled || reconnectTimer) return;
+      retry += 1;
+      setStatus(retry > MAX_RETRIES ? "error" : "connecting");
+      const delay = Math.min(15_000, 1_500 * 2 ** (retry - 1)); // 1.5초, 3초, 6초 … 최대 15초
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        void connect();
+      }, delay);
+    };
+
+    const connect = async () => {
+      const id = ++connectId;
       try {
-        const res = await fetch("/api/lounge/session");
-        if (!res.ok) throw new Error(`session ${res.status}`);
-        const { channel: channelName, me } = (await res.json()) as { channel: string; me: { name: string } };
-        if (cancelled) return;
-        setMyName(me.name);
+        // 방 이름과 내 이름은 처음 한 번만 서버에서 받는다
+        if (channelName === null) {
+          const res = await fetch("/api/lounge/session");
+          if (!res.ok) throw new Error(`session ${res.status}`);
+          const json = (await res.json()) as { channel: string; me: { name: string } };
+          if (cancelled || id !== connectId) return;
+          channelName = json.channel;
+          setMyName(json.me.name);
+          const init = initialRef.current;
+          stateRef.current = { name: json.me.name, color: init.color, x: init.x, z: init.z, tx: null, tz: null, seq: 0, seat: null, beat: 0, sayId: 0, says: [] };
+        }
+        if (cancelled || id !== connectId) return;
 
-        const init = initialRef.current;
-        stateRef.current = { name: me.name, color: init.color, x: init.x, z: init.z, tx: null, tz: null, seq: 0, seat: null, beat: 0, sayId: 0, sayText: "" };
+        readyRef.current = false;
+        seen.clear(); // 다시 붙은 뒤 받는 상태는 전부 "방금 본 것"으로 취급해서, 끊긴 사이 낡은 기록 때문에 사람들이 가려지지 않게 한다
+        const old = channel;
+        const ch = supabaseClient.channel(channelName, { config: { presence: { key: myKey.current } } });
+        channel = ch;
+        channelRef.current = ch;
 
-        channel = supabaseClient.channel(channelName, { config: { presence: { key: myKey.current } } });
-        channelRef.current = channel;
-
-        channel.on("presence", { event: "sync" }, () => {
-          const raw = channel!.presenceState<PresenceState>();
+        let synced = false; // 이 접속에서 첫 동기화를 받았는지
+        ch.on("presence", { event: "sync" }, () => {
+          const raw = ch.presenceState<PresenceState>();
           const list: OtherPlayer[] = [];
           const now = Date.now();
+          const baseline = !synced; // 내가 막 들어온 첫 동기화: 이미 있던 사람들의 마지막 메시지는 "예전 것"이다
+          synced = true;
           for (const [key, metas] of Object.entries(raw)) {
             if (key === myKey.current) continue;
             const meta = metas[metas.length - 1];
@@ -171,46 +214,71 @@ export function useLoungeRoom(opts: {
             const sig = `${clean.seq}:${clean.beat}:${clean.color}`;
             if (seen.get(key)?.sig !== sig) seen.set(key, { sig, at: now });
 
-            // 새 채팅 감지: 처음 본 사람의 마지막 메시지는 "예전 것"일 수 있어서 보여주지 않고 번호만 기억한다
-            const prevSay = seenSay.get(key);
-            if (prevSay === undefined) {
-              seenSay.set(key, clean.sayId);
-            } else if (clean.sayId > prevSay) {
-              seenSay.set(key, clean.sayId);
+            // 새 채팅 감지: 상태에 실린 최근 메시지 중 내가 아직 못 본 것만 번호순으로 보여준다 (규칙은 collectNewSays 참고).
+            // 다시 접속한 사람은 이전에 본 번호(seenSay)를 기억하고 있어서 같은 메시지가 두 번 뜨지 않는다.
+            const { emit, nextSeen } = collectNewSays(seenSay.get(key), baseline, clean.sayId, clean.says);
+            seenSay.set(key, nextSeen);
+            for (const s of emit) {
               // 받는 쪽에서도 한 번 더 거른다 (수정된 앱이 필터를 건너뛰고 보내도 화면에는 안 나온다)
-              if (clean.sayText && !containsProfanity(clean.sayText)) {
-                onChatRef.current?.({ id: `${key}:${clean.sayId}`, key, name: clean.name, text: clean.sayText, mine: false, at: now });
+              if (s.text && !containsProfanity(s.text)) {
+                onChatRef.current?.({ id: `${key}:${s.id}`, key, name: clean.name, text: s.text, mine: false, at: now });
               }
             }
             list.push({ ...clean, key });
           }
           for (const key of [...seen.keys()]) if (!list.some(o => o.key === key)) seen.delete(key);
-          for (const key of [...seenSay.keys()]) if (!list.some(o => o.key === key)) seenSay.delete(key);
+          // seenSay는 사람이 잠깐 사라졌다 돌아와도 지우지 않는다(다시 접속한 사람의 옛 메시지가 새것으로 보이지 않도록). 접속마다 키가 새로 생기니 크기는 작다.
           allOthersRef.current = list;
           publish();
         });
 
-        channel.subscribe(async (s) => {
-          if (cancelled) return;
+        ch.subscribe(async s => {
+          if (cancelled || ch !== channel) return; // 이미 교체된 낡은 채널의 신호는 무시
           if (s === "SUBSCRIBED") {
+            retry = 0;
             readyRef.current = true;
             setStatus("online");
             lastSent.current = Date.now();
-            if (stateRef.current) await channel!.track(stateRef.current);
-          } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") {
+            if (stateRef.current) await ch.track(stateRef.current); // 끊기기 전의 내 상태(위치·자리·색)를 그대로 다시 알린다
+          } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT" || s === "CLOSED") {
             readyRef.current = false;
-            setStatus("error");
-          } else if (s === "CLOSED") {
-            readyRef.current = false;
+            scheduleReconnect();
           }
         });
+
+        if (old) void supabaseClient.removeChannel(old);
       } catch {
-        if (!cancelled) setStatus("error");
+        if (!cancelled) scheduleReconnect();
       }
-    })();
+    };
+
+    // 화면이 다시 보이거나 인터넷이 돌아오면: 연결이 끊겼으면 기다리지 않고 바로, 20초 넘게 가려져 있었다면 살아 있어 보여도 한 번 새로 붙는다
+    const onWake = () => {
+      if (cancelled) return;
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+        return;
+      }
+      const hiddenLong = hiddenAt > 0 && Date.now() - hiddenAt > 20_000;
+      hiddenAt = 0;
+      if (readyRef.current && !hiddenLong) return;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      retry = 0;
+      void connect();
+    };
+    document.addEventListener("visibilitychange", onWake);
+    window.addEventListener("online", onWake);
+
+    void connect();
 
     return () => {
       cancelled = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      document.removeEventListener("visibilitychange", onWake);
+      window.removeEventListener("online", onWake);
       clearInterval(pruneTimer);
       clearInterval(beatTimer);
       window.removeEventListener("pagehide", onPageHide);
@@ -256,11 +324,15 @@ export function useLoungeRoom(opts: {
     const now = Date.now();
     if (now - lastSayAt.current < CHAT_MIN_INTERVAL_MS) return "rate";
     lastSayAt.current = now;
-    stateRef.current = { ...prev, sayId: prev.sayId + 1, sayText: text };
-    flush();
-    onChatRef.current?.({ id: `me:${prev.sayId + 1}`, key: myKey.current, name: prev.name, text, mine: true, at: now });
+    const nextId = prev.sayId + 1;
+    // 최근 메시지 3개를 함께 실어 보낸다: 전송이 합쳐지거나 받는 쪽이 한두 번 놓쳐도 빠진 메시지를 채울 수 있다
+    stateRef.current = { ...prev, sayId: nextId, says: [...prev.says, { id: nextId, text }].slice(-MAX_SAYS_CARRIED) };
+    // 이동 전송처럼 모아서 보내지 않고 바로 보낸다 (가려진 탭에서는 타이머가 늦어져 앞 메시지가 뒤 메시지에 덮이기 쉽다)
+    lastSent.current = now;
+    if (channelRef.current) void channelRef.current.track(stateRef.current);
+    onChatRef.current?.({ id: `me:${nextId}`, key: myKey.current, name: prev.name, text, mine: true, at: now });
     return "ok";
-  }, [flush]);
+  }, []);
 
   return { status, others, myName, myKey: myKeyState, announceMove, announceColor, say };
 }

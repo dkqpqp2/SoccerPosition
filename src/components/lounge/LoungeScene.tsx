@@ -7,6 +7,7 @@ import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import TacticsSessionPanel, { type TacticsMode } from "./TacticsSessionPanel";
 import { MAX_CHAT_LENGTH, useLoungeRoom, type ChatMessage, type OtherPlayer } from "./useLoungeRoom";
 import { sameRender, seatRival } from "./presenceList";
+import ChatPanel from "./ChatPanel";
 import Character from "./LoungeCharacter";
 import { BUBBLE_MS, Label } from "./LoungeLabels";
 import { BENCH_CENTERS, BENCH_LENGTH, HEAD_COLORS, SEATS_PER_BENCH, SPAWN_Z, seatPosition } from "./loungeConstants";
@@ -72,7 +73,7 @@ function FakePlayers({ count }: { count: number }) {
       const to = randomSpot();
       return {
         key: `fake-${i}`, name: `가상${i + 1}`, color: HEAD_COLORS[i % HEAD_COLORS.length],
-        x: from.x, z: from.z, tx: to.x, tz: to.z, seq: 1, seat: null, beat: 0, sayId: 0, sayText: "",
+        x: from.x, z: from.z, tx: to.x, tz: to.z, seq: 1, seat: null, beat: 0, sayId: 0, says: [],
       };
     })
   );
@@ -391,11 +392,17 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
   const targetRef = useRef<THREE.Vector3 | null>(null);
 
   // 채팅: 최근 대화 목록 + 머리 위 말풍선(사람별, 일정 시간 뒤 사라짐). 내 말풍선 칸은 "me"
+  // messages는 이 화면의 메모리에만 있다(DB에 저장하지 않음) → 화면을 나가면 사라진다. 대화창에서 처음부터 볼 수 있게 넉넉히 200개까지 들고 있는다.
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [showChat, setShowChat] = useState(false); // 대화창이 열려 있는지
+  const [unread, setUnread] = useState(0); // 대화창이 닫혀 있는 동안 도착한 남의 메시지 수
+  const chatOpenRef = useRef(false);
+  chatOpenRef.current = showChat;
   const [bubbles, setBubbles] = useState<Record<string, string>>({});
   const bubbleTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const handleChat = useCallback((m: ChatMessage) => {
-    setMessages(prev => [...prev.slice(-49), m]);
+    setMessages(prev => [...prev.slice(-199), m]);
+    if (!m.mine && !chatOpenRef.current) setUnread(n => n + 1);
     const slot = m.mine ? "me" : m.key;
     setBubbles(prev => ({ ...prev, [slot]: m.text }));
     const old = bubbleTimers.current.get(slot);
@@ -569,6 +576,7 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
         </button>
       )}
 
+      {showChat && <ChatPanel messages={messages} onClose={() => setShowChat(false)} />}
       {panel && <TacticsSessionPanel mode={panel} onClose={() => setPanel(null)} />}
       {showBoard && <LeaderboardModal data={leaderboard.data} status={leaderboard.status} onClose={() => setShowBoard(false)} />}
 
@@ -595,8 +603,8 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
             </div>
           </div>
         )}
-        {!moved && <p className="text-gray-300 text-xs bg-black/45 px-3 py-1 rounded-full">바닥을 탭하면 그곳으로 걸어가요</p>}
-        <ChatLines messages={messages} />
+        {!moved && !showChat && <p className="text-gray-300 text-xs bg-black/45 px-3 py-1 rounded-full">바닥을 탭하면 그곳으로 걸어가요</p>}
+        {!showChat && <ChatLines messages={messages} />}
         {showColors && (
           <div className="flex gap-2 bg-black/60 rounded-full px-3 py-2 pointer-events-auto">
             {HEAD_COLORS.map(c => (
@@ -618,6 +626,19 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
             className="w-10 h-10 shrink-0 rounded-full bg-black/60 flex items-center justify-center text-lg"
           >
             🎨
+          </button>
+          <button
+            type="button"
+            onClick={() => { setShowChat(v => !v); setUnread(0); }}
+            aria-label={showChat ? "대화창 닫기" : `대화창 열기${unread > 0 ? ` (안 읽은 대화 ${unread}개)` : ""}`}
+            className={`relative w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-lg ${showChat ? "bg-emerald-500" : "bg-black/60"}`}
+          >
+            💬
+            {unread > 0 && !showChat && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">
+                {unread > 99 ? "99+" : unread}
+              </span>
+            )}
           </button>
           {/* 글자 크기 16px: 그보다 작으면 iPhone이 입력창을 누를 때 화면을 확대해 버린다 */}
           <input

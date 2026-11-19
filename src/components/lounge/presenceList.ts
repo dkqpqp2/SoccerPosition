@@ -20,6 +20,23 @@ export function sameRender(a: RenderFields, b: RenderFields): boolean {
   return a.name === b.name && a.color === b.color && a.x === b.x && a.z === b.z && a.tx === b.tx && a.tz === b.tz && a.seq === b.seq && a.seat === b.seat;
 }
 
+export type Say = { id: number; text: string };
+
+/**
+ * 한 사람의 접속 상태에서 "내가 아직 못 본 새 메시지"를 골라낸다.
+ * 접속 상태에는 그 사람의 최근 메시지 몇 개(says)가 실려 있어서, 전송이 합쳐지거나 한두 번 놓쳐도 빠진 것을 채울 수 있다.
+ * - lastSeen: 이 사람에 대해 내가 이미 본 마지막 번호(처음 보는 사람이면 undefined)
+ * - baseline: 내가 막 접속해서 받은 첫 동기화인지. 그때 이미 있던 사람의 메시지는 "예전 것"이라 보여주지 않고 번호만 기억한다.
+ *   그 뒤에 처음 보이는 사람은 새로 접속한 사람이라 번호가 0부터 시작하므로, 메시지가 있으면 방금 보낸 것이다.
+ * 돌려주는 값: emit(보여줄 메시지, 번호순), nextSeen(이제 기억할 마지막 번호)
+ */
+export function collectNewSays(lastSeen: number | undefined, baseline: boolean, sayId: number, says: Say[]): { emit: Say[]; nextSeen: number } {
+  if (lastSeen === undefined && baseline) return { emit: [], nextSeen: sayId };
+  const from = lastSeen ?? 0;
+  const emit = says.filter(s => s.id > from).sort((a, b) => a.id - b.id);
+  return { emit, nextSeen: Math.max(from, sayId, ...emit.map(s => s.id)) };
+}
+
 /**
  * 같은 자리를 거의 동시에 고른 경우 누가 양보할지 정한다.
  * 내 자리(mySeat)에 이미 다른 사람이 앉으려 하고 있고 그 사람의 접속 키가 나보다 작으면, 그 사람이 자리를 갖고 나는 양보한다.
