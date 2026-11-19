@@ -11,7 +11,10 @@ import { formatRemaining, msUntilExpiry } from "./roomTime";
 import ChatPanel from "./ChatPanel";
 import Character from "./LoungeCharacter";
 import { BUBBLE_MS, Label } from "./LoungeLabels";
-import { BENCH_CENTERS, BENCH_LENGTH, HEAD_COLORS, PRESENTER_SPOT, SEATS_PER_BENCH, SPAWN_Z, seatPosition } from "./loungeConstants";
+import {
+  BENCH_CENTERS, BENCH_LENGTH, BENCH_SEAT_COUNT, BOARD_BOTTOM, BOARD_CENTER, BOARD_H, CHAIR_COUNT, CHAIR_RADIUS, CHAIR_SEAT_BASE,
+  HEAD_COLORS, PRESENTER_SPOT, SEATS_PER_BENCH, SPAWN_Z, chairSlot, isChairSeat, seatPosition,
+} from "./loungeConstants";
 import TacticsCorner from "./TacticsBoard3D";
 import type { BoardSnapshot } from "@/lib/tacticsBoard";
 import { useLeaderboard } from "./useLeaderboard";
@@ -185,17 +188,36 @@ function ZoneWatcher({ posRef, onChange }: { posRef: MutableRefObject<THREE.Vect
   return null;
 }
 
-// ── 내 캐릭터를 따라가는 카메라 ──
-function CameraRig({ posRef, zoomRef }: { posRef: MutableRefObject<THREE.Vector3>; zoomRef: MutableRefObject<number> }) {
+// ── 카메라: 평소에는 내 캐릭터를 따라가고, 전술판 앞 의자에 앉으면 판이 크게 보이는 자리로 옮겨 간다 ──
+// 앉아서 볼 때는 내 캐릭터를 내 화면에서만 숨기고(다른 사람에게는 앉아 있는 모습이 그대로 보인다), 앉은 사람의 눈높이에서 판을 본다.
+const SEAT_VIEW_BACK = 1.5; // 의자 뒤로 물러나는 거리 (판 전체가 화면에 들어오도록)
+const SEAT_VIEW_HEIGHT = 1.55;
+const SEAT_VIEW_LOOK_Y = BOARD_BOTTOM + BOARD_H / 2 - 0.2; // 판의 가운데 높이쯤을 바라본다
+const SEAT_VIEW_SIDE_BLEND = 0.45; // 옆쪽 의자일수록 판이 비스듬해 보이므로 정면 쪽으로 이만큼 당겨 본다
+
+function CameraRig({ posRef, zoomRef, seatRef }: { posRef: MutableRefObject<THREE.Vector3>; zoomRef: MutableRefObject<number>; seatRef: MutableRefObject<number | null> }) {
   const look = useRef(new THREE.Vector3(0, 0.8, SPAWN_Z));
   const desired = useRef(new THREE.Vector3());
+  const desiredLook = useRef(new THREE.Vector3());
   useFrame(({ camera }, delta) => {
     const k = 1 - Math.exp(-4 * Math.min(delta, 0.05));
-    const p = posRef.current;
-    // zoom이 클수록 카메라가 멀어진다(축소). 핀치·휠로 바뀐다.
-    desired.current.set(p.x, 6.2 * zoomRef.current, p.z + 7.2 * zoomRef.current);
+    const seat = seatRef.current;
+    if (isChairSeat(seat) && seat - CHAIR_SEAT_BASE < CHAIR_COUNT) {
+      // 의자 쪽에서 판을 바라보는 자리. 핀치·휠로 판에 가까이/멀리 갈 수 있다.
+      const theta = chairSlot(seat - CHAIR_SEAT_BASE).rotY * SEAT_VIEW_SIDE_BLEND;
+      const r = CHAIR_RADIUS + SEAT_VIEW_BACK;
+      desiredLook.current.set(BOARD_CENTER.x, SEAT_VIEW_LOOK_Y, BOARD_CENTER.z);
+      desired.current.set(BOARD_CENTER.x + r * Math.sin(theta), SEAT_VIEW_HEIGHT, BOARD_CENTER.z + r * Math.cos(theta));
+      const f = Math.min(1.35, Math.max(0.55, zoomRef.current / ZOOM_DEFAULT));
+      desired.current.sub(desiredLook.current).multiplyScalar(f).add(desiredLook.current);
+    } else {
+      const p = posRef.current;
+      // zoom이 클수록 카메라가 멀어진다(축소). 핀치·휠로 바뀐다.
+      desired.current.set(p.x, 6.2 * zoomRef.current, p.z + 7.2 * zoomRef.current);
+      desiredLook.current.set(p.x, 0.8, p.z - 0.4);
+    }
     camera.position.lerp(desired.current, k);
-    look.current.lerp(new THREE.Vector3(p.x, 0.8, p.z - 0.4), k);
+    look.current.lerp(desiredLook.current, k);
     camera.lookAt(look.current);
   });
   return null;
@@ -464,12 +486,15 @@ export default function LoungeScene({
     await room.notifyRoomClosed(); // 안에 있는 다른 사람들에게 바로 알린다(최대 1초)
     onClosed();
   }
-  const [mySeat, setMySeat] = useState<number | null>(null); // 내가 앉은(앉으러 가는) 벤치 자리
+  const [mySeat, setMySeat] = useState<number | null>(null); // 내가 앉은(앉으러 가는) 벤치·의자 자리
+  const mySeatRef = useRef<number | null>(null); // 카메라가 매 프레임 읽는 값
+  mySeatRef.current = mySeat;
 
   // 같은 자리를 거의 동시에 고른 경우: 접속 키가 작은 쪽이 자리를 갖고, 큰 쪽(나)은 일어나서 벤치 앞으로 나온다.
   // 두 사람이 같은 규칙으로 판단하므로 따로 메시지를 주고받지 않아도 한 명만 양보한다.
   useEffect(() => {
-    if (mySeat === null || !seatRival(room.others, mySeat, room.myKey)) return;
+    // 벤치 자리만 한 명씩 앉을 수 있다. 의자는 겹쳐 앉아도 되므로 양보하지 않는다.
+    if (mySeat === null || mySeat >= BENCH_SEAT_COUNT || !seatRival(room.others, mySeat, room.myKey)) return;
     setMySeat(null);
     const sp = seatPosition(mySeat);
     const out = clampToRoom(sp.x, sp.z + 1.3);
@@ -546,6 +571,40 @@ export default function LoungeScene({
     setMarker({ x: p.x, z: p.z, id: markerId.current });
   }
 
+  // 전술판 앞 의자에 앉으러 간다(겹쳐 앉아도 되므로 자리가 차 있어도 상관없다). 앉으면 카메라가 판 쪽으로 옮겨 간다.
+  function sitOnChair(chairIndex: number) {
+    setMoved(true);
+    const seat = CHAIR_SEAT_BASE + chairIndex;
+    const p = seatPosition(seat);
+    setMySeat(seat);
+    targetRef.current = new THREE.Vector3(p.x, 0, p.z);
+    room.announceMove({ x: posRef.current.x, z: posRef.current.z }, p, seat);
+  }
+
+  function sitOnNearestChair() {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < CHAIR_COUNT; i++) {
+      const c = chairSlot(i);
+      const d = Math.hypot(c.x - posRef.current.x, c.z - posRef.current.z);
+      if (d < bestDist) {
+        best = i;
+        bestDist = d;
+      }
+    }
+    sitOnChair(best);
+  }
+
+  // 일어나서 판 쪽으로 한 걸음 나온다
+  function standUp() {
+    if (mySeat === null) return;
+    const sp = seatPosition(mySeat);
+    const dx = BOARD_CENTER.x - sp.x;
+    const dz = BOARD_CENTER.z - sp.z;
+    const len = Math.hypot(dx, dz) || 1;
+    walkTo(sp.x + (dx / len) * 1.2, sp.z + (dz / len) * 1.2);
+  }
+
   function handleInfo(msg: string) {
     setToast(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -594,16 +653,16 @@ export default function LoungeScene({
           status={leaderboard.status}
           onTap={() => { leaderboard.refreshIfStale(); setShowBoard(true); }}
         />
-        <TacticsCorner board={shownBoard} presenterName={shownPresenter} onTap={() => setPanel(p => p ?? "watch")} />
+        <TacticsCorner board={shownBoard} presenterName={shownPresenter} onTap={() => setPanel(p => p ?? "watch")} onChairTap={sitOnChair} />
         <ZoneMarker active={inZone} />
         <ZoneWatcher posRef={posRef} onChange={setInZone} />
         {marker && <TargetMarker key={marker.id} x={marker.x} z={marker.z} />}
-        <Character color={color} name="나" posRef={posRef} targetRef={targetRef} bubble={bubbles.me ?? null} seat={mySeat} />
+        <Character color={color} name="나" posRef={posRef} targetRef={targetRef} bubble={bubbles.me ?? null} seat={mySeat} hidden={isChairSeat(mySeat)} />
         {room.others.map(o => (
           <RemotePlayer key={o.key} other={o} bubble={bubbles[o.key] ?? null} />
         ))}
         {fakeCount > 0 && <FakePlayers count={fakeCount} />}
-        <CameraRig posRef={posRef} zoomRef={zoomRef} />
+        <CameraRig posRef={posRef} zoomRef={zoomRef} seatRef={mySeatRef} />
       </Canvas>
 
       {/* 화면 위 UI */}
@@ -667,7 +726,7 @@ export default function LoungeScene({
 
       <div className="absolute bottom-0 left-0 right-0 px-4 pb-[max(env(safe-area-inset-bottom),16px)] flex flex-col items-center gap-2.5 pointer-events-none">
         {/* 누가 전술을 설명 중이면 어디에 있든 알려 주고, 눌러서 바로 보러 갈 수 있게 한다 */}
-        {!panel && room.presenters.length > 0 && (
+        {!panel && !isChairSeat(mySeat) && room.presenters.length > 0 && (
           <button
             onClick={() => setPanel("watch")}
             className="pointer-events-auto px-3.5 py-2 rounded-full bg-emerald-500 text-black text-xs font-black shadow-lg"
@@ -675,21 +734,34 @@ export default function LoungeScene({
             🎤 {room.presenters[0].name}님이 전술 설명 중 · 보러 가기
           </button>
         )}
-        {inZone && !panel && (
+        {isChairSeat(mySeat) && !panel && (
+          <div className="flex flex-col items-center gap-2 pointer-events-auto">
+            <p className="text-gray-300 text-xs bg-black/55 px-3 py-1 rounded-full">핀치로 판에 가까이 · 멀리 볼 수 있어요</p>
+            <div className="flex gap-2">
+              <button onClick={() => setPanel("watch")} className="bg-gray-800 text-white border border-white/15 font-black text-sm px-4 py-2.5 rounded-xl shadow-lg">
+                🔍 크게 보기
+              </button>
+              <button onClick={standUp} className="bg-emerald-500 text-black font-black text-sm px-4 py-2.5 rounded-xl shadow-lg">
+                🧍 일어나기
+              </button>
+            </div>
+          </div>
+        )}
+        {inZone && !panel && !isChairSeat(mySeat) && (
           <div className="flex flex-col items-center gap-2 pointer-events-auto">
             <p className="text-emerald-300 text-xs font-bold bg-black/55 px-3 py-1 rounded-full">전술 구역</p>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap justify-center gap-2">
+              <button onClick={sitOnNearestChair} className="bg-emerald-500 text-black font-black text-sm px-4 py-2.5 rounded-xl shadow-lg">
+                🪑 앉아서 보기
+              </button>
+              <button onClick={() => setPanel("watch")} className="bg-gray-800 text-white border border-white/15 font-black text-sm px-4 py-2.5 rounded-xl shadow-lg">
+                🔍 크게 보기
+              </button>
               {asManager && (
-                <button onClick={startPresenting} className="bg-emerald-500 text-black font-black text-sm px-4 py-2.5 rounded-xl shadow-lg">
+                <button onClick={startPresenting} className="bg-gray-800 text-white border border-white/15 font-black text-sm px-4 py-2.5 rounded-xl shadow-lg">
                   🎤 전술 설명하기
                 </button>
               )}
-              <button
-                onClick={() => setPanel("watch")}
-                className={`font-black text-sm px-4 py-2.5 rounded-xl shadow-lg ${asManager ? "bg-gray-800 text-white border border-white/15" : "bg-emerald-500 text-black"}`}
-              >
-                👀 {asManager ? "함께 보기" : "전술판 함께 보기"}
-              </button>
             </div>
           </div>
         )}

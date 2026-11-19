@@ -4,9 +4,9 @@ import { useRef, type MutableRefObject } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { Bubble, Label } from "./LoungeLabels";
-import { SPAWN_Z, SPEED, lerpAngle } from "./loungeConstants";
+import { SPAWN_Z, SPEED, lerpAngle, seatDrop, seatFacing } from "./loungeConstants";
 
-const SIT_DROP = 0.38; // 앉을 때 몸이 내려가는 높이 (엉덩이가 벤치 윗면 높이 0.57에 닿도록)
+const DEFAULT_SIT_DROP = 0.38; // 앉을 때 몸이 내려가는 기본 높이 (자리 종류별 값은 loungeConstants의 seatDrop)
 const INK = "#141b2d"; // 윤곽선·팔다리의 진한 남색
 const JERSEY = "#3f7f5c"; // 몸(유니폼) 색 — 나중에 팀 색으로 바꿀 수 있다
 
@@ -77,6 +77,7 @@ export default function Character({
   initial = [0, SPAWN_Z],
   bubble = null,
   seat = null,
+  hidden = false,
 }: {
   color: string; // 머리색
   name: string;
@@ -85,10 +86,12 @@ export default function Character({
   initial?: [number, number]; // 처음 서는 자리 [x, z] — 마운트할 때 한 번만 쓰인다
   bubble?: string | null; // 머리 위에 띄울 말풍선 글
   seat?: number | null; // 앉을(앉은) 벤치 자리. 값이 있고 목표 지점에 도착하면 앉는다. null이면 선다
+  hidden?: boolean; // true면 화면에서 숨긴다(앉아서 판을 볼 때 내 머리가 시야를 가리지 않게). 위치·동작 계산은 그대로 계속한다
 }) {
   const s = getShared();
   const seatRef = useRef(seat);
   seatRef.current = seat; // useFrame 안에서 항상 최신 값을 읽도록
+  const dropRef = useRef(DEFAULT_SIT_DROP); // 마지막으로 앉았던 자리의 내려가는 높이 (일어나는 동안에도 같은 값을 쓴다)
   const sitBlend = useRef(0); // 0 = 서 있음 ~ 1 = 완전히 앉음
   const tagG = useRef<THREE.Group>(null); // 이름표·말풍선 묶음 (앉으면 같이 내려간다)
   const root = useRef<THREE.Group>(null);
@@ -123,9 +126,11 @@ export default function Character({
         facing.current = lerpAngle(facing.current, Math.atan2(dx, dz), 1 - Math.exp(-12 * dt));
       }
     }
-    // 자리가 정해져 있고 도착했으면(걷는 중이 아니면) 앉는다. 앉는 동안은 정면(+z, 카메라 쪽)을 본다.
-    const seated = seatRef.current !== null && !moving;
-    if (seated) facing.current = lerpAngle(facing.current, 0, 1 - Math.exp(-10 * dt));
+    // 자리가 정해져 있고 도착했으면(걷는 중이 아니면) 앉는다. 앉는 동안은 그 자리가 보는 방향(벤치는 카메라 쪽, 의자는 전술판)을 본다.
+    const seatNo = seatRef.current;
+    if (seatNo !== null) dropRef.current = seatDrop(seatNo);
+    const seated = seatNo !== null && !moving;
+    if (seated) facing.current = lerpAngle(facing.current, seatFacing(seatNo), 1 - Math.exp(-10 * dt));
     g.rotation.y = facing.current;
     posRef.current.copy(g.position);
 
@@ -143,7 +148,7 @@ export default function Character({
     if (armR.current) armR.current.rotation.x = damp(armR.current.rotation.x, lerp(swing * 0.8, -0.5, sit), 16, dt);
     if (bodyG.current) {
       const bounce = moving ? Math.abs(Math.sin(phase.current)) * 0.08 : 0;
-      bodyG.current.position.y = damp(bodyG.current.position.y, bounce + SIT_DROP * sit, 14, dt);
+      bodyG.current.position.y = damp(bodyG.current.position.y, bounce + dropRef.current * sit, 14, dt);
       bodyG.current.rotation.x = damp(bodyG.current.rotation.x, moving ? 0.1 : 0, 10, dt);
       // 서 있거나 앉아 있을 때는 숨 쉬듯 아주 조금 커졌다 작아진다
       const breath = moving ? 1 : 1 + Math.sin(state.clock.elapsedTime * 2) * 0.012;
@@ -153,11 +158,11 @@ export default function Character({
       const roll = moving ? Math.sin(phase.current) * 0.07 : Math.sin(state.clock.elapsedTime * 1.3) * 0.02;
       headG.current.rotation.z = damp(headG.current.rotation.z, roll, 12, dt);
     }
-    if (tagG.current) tagG.current.position.y = SIT_DROP * sit;
+    if (tagG.current) tagG.current.position.y = dropRef.current * sit;
   });
 
   return (
-    <group ref={root} position={[initial[0], 0, initial[1]]}>
+    <group ref={root} position={[initial[0], 0, initial[1]]} visible={!hidden}>
       {/* 바닥 그림자 */}
       <mesh geometry={s.shadow} material={s.shadowMat} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]} raycast={() => null} dispose={null} />
 

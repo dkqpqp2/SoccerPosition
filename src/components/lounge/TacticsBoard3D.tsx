@@ -167,23 +167,31 @@ const CHAIR_MAT = {
   frame: new THREE.MeshStandardMaterial({ color: "#374151", roughness: 0.6 }),
 };
 
-function Chair({ index }: { index: number }) {
+function Chair({ index, onTap }: { index: number; onTap: (index: number) => void }) {
   const s = chairSlot(index);
-  // 의자의 앞(−z 쪽)이 판 가운데를 향한다. 등받이는 바깥(+z 쪽)에 있다.
+  // 의자의 앞(−z 쪽)이 판 가운데를 향한다. 등받이는 바깥(+z 쪽)에 있다. 탭하면 그 의자에 앉으러 간다.
   return (
-    <group position={[s.x, 0, s.z]} rotation={[0, s.rotY, 0]}>
-      <mesh geometry={CHAIR_GEO.seat} material={CHAIR_MAT.seat} position={[0, 0.46, 0]} dispose={null} raycast={() => null} />
-      <mesh geometry={CHAIR_GEO.back} material={CHAIR_MAT.seat} position={[0, 0.8, 0.28]} dispose={null} raycast={() => null} />
-      <mesh geometry={CHAIR_GEO.post} material={CHAIR_MAT.frame} position={[0, 0.21, 0]} dispose={null} raycast={() => null} />
+    <group
+      position={[s.x, 0, s.z]}
+      rotation={[0, s.rotY, 0]}
+      onClick={e => {
+        if (e.delta > 8) return;
+        e.stopPropagation();
+        onTap(index);
+      }}
+    >
+      <mesh geometry={CHAIR_GEO.seat} material={CHAIR_MAT.seat} position={[0, 0.46, 0]} dispose={null} />
+      <mesh geometry={CHAIR_GEO.back} material={CHAIR_MAT.seat} position={[0, 0.8, 0.28]} dispose={null} />
+      <mesh geometry={CHAIR_GEO.post} material={CHAIR_MAT.frame} position={[0, 0.21, 0]} dispose={null} />
     </group>
   );
 }
 
 /**
  * 방 한가운데의 전술판과 그 앞에 반원으로 놓인 의자.
- * 판에는 지금 설명 중인 내용이 그대로 보인다(설명하는 사람이 없으면 안내 문구). 판을 탭하면 onTap.
+ * 판에는 지금 설명 중인 내용이 그대로 보인다(설명하는 사람이 없으면 안내 문구). 판을 탭하면 onTap, 의자를 탭하면 onChairTap.
  */
-export default function TacticsCorner({ board, presenterName, onTap }: { board: BoardSnapshot | null; presenterName: string | null; onTap: () => void }) {
+export default function TacticsCorner({ board, presenterName, onTap, onChairTap }: { board: BoardSnapshot | null; presenterName: string | null; onTap: () => void; onChairTap: (index: number) => void }) {
   const centerY = BOARD_BOTTOM + BOARD_H / 2;
   return (
     <group>
@@ -218,7 +226,7 @@ export default function TacticsCorner({ board, presenterName, onTap }: { board: 
           fg="#ffffff"
         />
       </group>
-      {Array.from({ length: CHAIR_COUNT }, (_, i) => <Chair key={i} index={i} />)}
+      {Array.from({ length: CHAIR_COUNT }, (_, i) => <Chair key={i} index={i} onTap={onChairTap} />)}
     </group>
   );
 }
