@@ -132,6 +132,7 @@ function BoardPicker({ otherPresenter, onPick, onCancel }: { otherPresenter: Pre
 function PresentView({ presenters, onSetTactic, onClose }: { presenters: Presenter[]; onSetTactic: (b: BoardSnapshot | null) => void; onClose: () => void }) {
   const [board, setBoard] = useState<BoardSnapshot | null>(null);
   const [picking, setPicking] = useState(true);
+  const [tool, setTool] = useState<"draw" | "move">("draw"); // 선 긋기 중에는 선수가 고정된다. 선수를 옮기려면 '선수 이동'
   const [lineType, setLineType] = useState<LineType>("move");
   const [lineMode, setLineMode] = useState<LineMode>("curve");
   const startRef = useRef<BoardSnapshot | null>(null); // "처음 배치"로 되돌리는 용도
@@ -165,11 +166,15 @@ function PresentView({ presenters, onSetTactic, onClose }: { presenters: Present
       ) : (
         <>
           <div className="px-3 pt-2 flex flex-wrap items-center gap-1.5">
-            {(["move", "pass"] as LineType[]).map(t => (
-              <button key={t} onClick={() => setLineType(t)} className={btn(lineType === t)} style={lineType === t ? { borderColor: LINE_COLORS[t], color: LINE_COLORS[t] } : undefined}>
-                {LINE_LABELS[t]}
-              </button>
-            ))}
+            {(["move", "pass"] as LineType[]).map(t => {
+              const active = tool === "draw" && lineType === t;
+              return (
+                <button key={t} onClick={() => { setTool("draw"); setLineType(t); }} className={btn(active)} style={active ? { borderColor: LINE_COLORS[t], color: LINE_COLORS[t] } : undefined}>
+                  {LINE_LABELS[t]}
+                </button>
+              );
+            })}
+            <button onClick={() => setTool("move")} className={btn(tool === "move")}>✋ 선수 이동</button>
             <span className="w-px h-5 bg-white/10 mx-0.5" />
             <button onClick={() => setLineMode("curve")} className={btn(lineMode === "curve")}>곡선</button>
             <button onClick={() => setLineMode("straight")} className={btn(lineMode === "straight")}>직선</button>
@@ -179,9 +184,11 @@ function PresentView({ presenters, onSetTactic, onClose }: { presenters: Present
             <button onClick={() => startRef.current && apply(startRef.current)} className={btn(false)}>처음 배치로</button>
             <button onClick={() => setPicking(true)} className={btn(false)}>판 바꾸기</button>
           </div>
-          <p className="px-4 pt-1.5 text-gray-500 text-[11px]">선수를 끌어 옮기고, 빈 곳을 끌어 선을 그리면 보는 사람에게 바로 보여요.</p>
+          <p className="px-4 pt-1.5 text-gray-500 text-[11px]">
+            {tool === "draw" ? "선을 그을 땐 선수가 그 자리에 고정돼요. 선수를 옮기려면 ✋ 선수 이동을 누르세요." : "선수를 끌어 옮기세요. 선을 그리려면 움직임·패스를 누르세요."} 하는 대로 보는 사람에게 바로 보여요.
+          </p>
           <PitchFrame>
-            <TacticsPitch tokens={board.tokens} arrows={board.arrows} editable lineType={lineType} lineMode={lineMode} onChange={(tokens, arrows) => apply({ ...board, tokens, arrows })} />
+            <TacticsPitch tokens={board.tokens} arrows={board.arrows} editable tool={tool} lineType={lineType} lineMode={lineMode} onChange={(tokens, arrows) => apply({ ...board, tokens, arrows })} />
           </PitchFrame>
         </>
       )}

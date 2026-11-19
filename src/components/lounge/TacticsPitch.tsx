@@ -36,14 +36,17 @@ function newId() {
 }
 
 /**
- * 전술판 그림. editable이면 선수를 끌어 옮기고 빈 곳을 끌어 화살표를 그린다(설명하는 사람),
- * 아니면 보기만 한다(관람하는 사람). 그림 모양은 전술판 페이지와 같다.
+ * 전술판 그림. editable이면 설명하는 사람이 고친다, 아니면 보기만 한다(관람하는 사람). 그림 모양은 전술판 페이지와 같다.
+ * 고치는 방법은 tool로 정한다:
+ *  - "draw": 선수는 그 자리에 고정되고, 어디서 끌든(선수 위에서 시작해도) 화살표가 그려진다.
+ *  - "move": 선수를 끌어 옮긴다. 선은 그려지지 않는다.
  * 상태는 부모가 들고 있다: 바뀔 때마다 onChange로 새 선수·화살표를 알려 준다.
  */
 export default function TacticsPitch({
   tokens,
   arrows,
   editable = false,
+  tool = "draw",
   lineType = "move",
   lineMode = "curve",
   onChange,
@@ -51,6 +54,7 @@ export default function TacticsPitch({
   tokens: Token[];
   arrows: Arrow[];
   editable?: boolean;
+  tool?: "draw" | "move";
   lineType?: LineType;
   lineMode?: LineMode;
   onChange?: (tokens: Token[], arrows: Arrow[]) => void;
@@ -67,7 +71,7 @@ export default function TacticsPitch({
   }
 
   function onPointerDown(e: React.PointerEvent) {
-    if (!editable || draggingId) return;
+    if (!editable || tool !== "draw" || draggingId) return;
     const { x, y } = point(e);
     setDraft({ x1: x, y1: y, x2: x, y2: y });
   }
@@ -159,13 +163,14 @@ export default function TacticsPitch({
           <div
             key={t.id}
             onPointerDown={e => {
-              if (!editable) return;
+              // 선 긋기 중에는 선수를 잡지 않는다 — 이벤트가 판으로 올라가서 이 자리에서 시작하는 선이 그려진다
+              if (!editable || tool !== "move") return;
               e.stopPropagation();
               setDraggingId(t.id);
             }}
             className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center rounded-full shadow-lg font-black leading-none text-center ${
               t.team === "ball" ? "w-6 h-6" : "w-8 h-8 border-2 text-[10px] px-0.5"
-            } ${t.team === "opp" ? "bg-white border-gray-300 text-gray-900" : ""} ${editable ? "cursor-grab active:cursor-grabbing" : ""}`}
+            } ${t.team === "opp" ? "bg-white border-gray-300 text-gray-900" : ""} ${editable && tool === "move" ? "cursor-grab active:cursor-grabbing" : ""}`}
             style={{
               left: `${t.x}%`,
               top: `${t.y}%`,
