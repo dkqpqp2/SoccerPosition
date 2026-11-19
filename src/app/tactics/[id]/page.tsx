@@ -155,6 +155,8 @@ export default function TacticsBoardPage() {
   const [arrowDrag, setArrowDrag] = useState<{ id: string; lastX: number; lastY: number } | null>(null);
   const [lineMode, setLineMode] = useState<LineMode>("curve");
   const [lineType, setLineType] = useState<LineType>("move");
+  // 선 긋기 중에는 선수가 그 자리에 고정된다(선수 위에서 시작해도 선이 그려진다). 선수를 옮기거나 고르려면 '선수 이동'
+  const [tool, setTool] = useState<"draw" | "move">("draw");
 
   const [playing, setPlaying] = useState(false);
   const [animPos, setAnimPos] = useState<Record<string, { x: number; y: number }> | null>(null);
@@ -201,6 +203,7 @@ export default function TacticsBoardPage() {
   function handlePitchPointerDown(e: React.PointerEvent) {
     if (!editable || playing || draggingId || arrowDrag) return;
     setSelectedTokenId(null);
+    if (tool !== "draw") return;
     const { x, y } = pointFromEvent(e);
     setDraft({ x1: x, y1: y, x2: x, y2: y });
   }
@@ -698,21 +701,32 @@ export default function TacticsBoardPage() {
               ))}
             </div>
 
-            <div className="flex items-center gap-2">
-              <p className="text-xs text-gray-500 shrink-0">선 종류</p>
+            <div className="flex items-center flex-wrap gap-2">
+              <p className="text-xs text-gray-500 shrink-0">도구</p>
               {(["move", "pass"] as LineType[]).map(t => (
                 <button
                   key={t}
-                  onClick={() => setLineType(t)}
+                  onClick={() => { setTool("draw"); setLineType(t); setSelectedTokenId(null); }}
                   className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
-                    lineType === t ? "bg-white/15 text-white" : "bg-gray-900 text-gray-500 hover:text-gray-300"
+                    tool === "draw" && lineType === t ? "bg-white/15 text-white" : "bg-gray-900 text-gray-500 hover:text-gray-300"
                   }`}
                 >
                   <span className="w-2.5 h-2.5 rounded-full" style={{ background: LINE_COLORS[t] }} />
                   {LINE_LABELS[t]}
                 </button>
               ))}
+              <button
+                onClick={() => setTool("move")}
+                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+                  tool === "move" ? "bg-white/15 text-white" : "bg-gray-900 text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                ✋ 선수 이동
+              </button>
             </div>
+            <p className="text-[11px] text-gray-600 -mt-1">
+              {tool === "draw" ? "선을 그을 땐 선수가 그 자리에 고정돼요. 선수를 옮기거나 고르려면 ✋ 선수 이동을 누르세요." : "선수를 끌어 옮기거나 탭해서 고를 수 있어요. 선을 그리려면 움직임·패스를 누르세요."}
+            </p>
 
             <div className="flex items-center flex-wrap gap-2">
               <button
@@ -753,8 +767,6 @@ export default function TacticsBoardPage() {
                 <Trash2 size={14} /> 화살표 지우기
               </button>
             </div>
-
-            <p className="text-[11px] text-gray-600">피치 위를 드래그하면 화살표가 그려져요. 선수·상대 말 둘 다 드래그해서 옮길 수 있어요.</p>
 
             <div className="space-y-2 bg-gray-900/60 border border-white/10 rounded-xl p-3">
               {aiConsentModal}
@@ -941,11 +953,11 @@ export default function TacticsBoardPage() {
             return (
             <div
               key={t.id}
-              onPointerDown={e => { if (editable && !playing) { e.stopPropagation(); dragOriginRef.current = { id: t.id, x: t.x, y: t.y }; setDraggingId(t.id); } }}
+              onPointerDown={e => { if (editable && !playing && tool === "move") { e.stopPropagation(); dragOriginRef.current = { id: t.id, x: t.x, y: t.y }; setDraggingId(t.id); } }}
               className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center rounded-full shadow-lg font-black leading-none text-center ${
                 t.team === "ball" ? "w-6 h-6" : "w-8 h-8 border-2 text-[10px] px-0.5"
               } ${t.team === "opp" ? "bg-white border-gray-300 text-gray-900" : ""
-              } ${editable && !playing ? "cursor-grab active:cursor-grabbing" : ""} ${selectedTokenId === t.id ? "ring-2 ring-yellow-300" : ""}`}
+              } ${editable && !playing && tool === "move" ? "cursor-grab active:cursor-grabbing" : ""} ${selectedTokenId === t.id ? "ring-2 ring-yellow-300" : ""}`}
               style={{
                 left: `${(animPos?.[t.id] ?? t).x}%`,
                 top: `${(animPos?.[t.id] ?? t).y}%`,
