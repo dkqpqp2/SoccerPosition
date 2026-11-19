@@ -80,13 +80,17 @@ function sanitize(raw: unknown, clamp: (x: number, z: number) => { x: number; z:
  * 위치는 계속 보내지 않고 "탭할 때"만 보낸다(출발점 + 목표 지점). 받는 쪽이 같은 속도로 걸어가는 모습을 그린다.
  */
 export function useLoungeRoom(opts: {
+  channelName: string; // 방 채널 이름(서버가 방마다 계산해서 알려 준 것)
+  meName: string; // 방에서 보일 내 이름
   initial: { color: string; x: number; z: number };
   clamp: (x: number, z: number) => { x: number; z: number };
   onChat?: (m: ChatMessage) => void; // 새 채팅(내 것 포함)이 생길 때마다 호출
+  onRoomSignal?: () => void; // 누가 "방을 닫았다"고 알렸을 때 호출 (서버에 방 상태를 다시 확인하는 용도)
 }) {
   const [status, setStatus] = useState<RoomStatus>("connecting");
   const [others, setOthers] = useState<OtherPlayer[]>([]);
-  const [myName, setMyName] = useState<string | null>(null);
+  const onRoomSignalRef = useRef(opts.onRoomSignal);
+  onRoomSignalRef.current = opts.onRoomSignal;
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const myKey = useRef<string>("");
@@ -158,7 +162,7 @@ export function useLoungeRoom(opts: {
     // ── 접속과 재접속 ──
     // 탭이 오래 가려지거나(앱을 뒤로 보냄) 네트워크가 끊기면 서버가 채널을 닫는데, 라이브러리는 닫힌 채널을 다시 붙여 주지 않는다.
     // 그대로 두면 화면에는 "접속 중"이 남아 있고 채팅은 조용히 막히므로, 끊김을 감지하면 새 채널로 다시 붙는다.
-    let channelName: string | null = null;
+    const channelName = opts.channelName; // 방마다 다른 채널. 이 훅은 방이 바뀌면 새로 마운트된다(LoungeGate가 key로 보장)
     let retry = 0;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let hiddenAt = 0;
@@ -178,16 +182,10 @@ export function useLoungeRoom(opts: {
     const connect = async () => {
       const id = ++connectId;
       try {
-        // 방 이름과 내 이름은 처음 한 번만 서버에서 받는다
-        if (channelName === null) {
-          const res = await fetch("/api/lounge/session");
-          if (!res.ok) throw new Error(`session ${res.status}`);
-          const json = (await res.json()) as { channel: string; me: { name: string } };
-          if (cancelled || id !== connectId) return;
-          channelName = json.channel;
-          setMyName(json.me.name);
+        // 내 첫 상태는 처음 한 번만 만든다(다시 붙을 때는 끊기기 전 상태를 그대로 이어서 쓴다)
+        if (stateRef.current === null) {
           const init = initialRef.current;
-          stateRef.current = { name: json.me.name, color: init.color, x: init.x, z: init.z, tx: null, tz: null, seq: 0, seat: null, beat: 0, sayId: 0, says: [] };
+          stateRef.current = { name: opts.meName, color: init.color, x: init.x, z: init.z, tx: null, tz: null, seq: 0, seat: null, beat: 0, sayId: 0, says: [] };
         }
         if (cancelled || id !== connectId) return;
 
@@ -197,6 +195,9 @@ export function useLoungeRoom(opts: {
         const ch = supabaseClient.channel(channelName, { config: { presence: { key: myKey.current } } });
         channel = ch;
         channelRef.current = ch;
+
+        // 누가 방을 닫았다고 알리면 서버에 다시 물어 확인한다(알림 자체는 믿지 않는다 — 가짜 알림이어도 서버 확인만 한 번 더 할 뿐)
+        ch.on("broadcast", { event: "room-closed" }, () => onRoomSignalRef.current?.());
 
         let synced = false; // 이 접속에서 첫 동기화를 받았는지
         ch.on("presence", { event: "sync" }, () => {
@@ -334,5 +335,16 @@ export function useLoungeRoom(opts: {
     return "ok";
   }, []);
 
-  return { status, others, myName, myKey: myKeyState, announceMove, announceColor, say };
+  /** 방을 닫은 직후, 안에 있는 다른 사람들에게 바로 알린다(최대 1초만 기다림). 알림을 못 받아도 그쪽은 주기적으로 서버를 확인하므로 곧 알게 된다. */
+  const notifyRoomClosed = useCallback(async () => {
+    const ch = channelRef.current;
+    if (!ch || !readyRef.current) return;
+    try {
+      await Promise.race([ch.send({ type: "broadcast", event: "room-closed", payload: {} }), new Promise(resolve => setTimeout(resolve, 1000))]);
+    } catch {
+      /* 못 보내도 괜찮다 */
+    }
+  }, []);
+
+  return { status, others, myKey: myKeyState, announceMove, announceColor, say, notifyRoomClosed };
 }

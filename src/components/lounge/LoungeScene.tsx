@@ -7,6 +7,7 @@ import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import TacticsSessionPanel, { type TacticsMode } from "./TacticsSessionPanel";
 import { MAX_CHAT_LENGTH, useLoungeRoom, type ChatMessage, type OtherPlayer } from "./useLoungeRoom";
 import { sameRender, seatRival } from "./presenceList";
+import { formatRemaining, msUntilExpiry } from "./roomTime";
 import ChatPanel from "./ChatPanel";
 import Character from "./LoungeCharacter";
 import { BUBBLE_MS, Label } from "./LoungeLabels";
@@ -368,7 +369,25 @@ function Room({
   );
 }
 
-export default function LoungeScene({ canManage }: { canManage: boolean }) {
+export default function LoungeScene({
+  canManage,
+  meName,
+  channelName,
+  expiresAt,
+  clockOffset: offsetMs,
+  onRequestClose,
+  onClosed,
+  onRoomSignal,
+}: {
+  canManage: boolean; // 방을 닫을 수 있는 관리자급인지(서버가 판단한 값)
+  meName: string; // 방에서 보일 내 이름
+  channelName: string; // 이 방의 실시간 채널(방마다 다름)
+  expiresAt: string; // 방이 닫히는 시각(ISO)
+  clockOffset: number; // 서버 시각 − 내 시각(ms): 남은 시간 계산용
+  onRequestClose: () => Promise<boolean>; // 서버에 방 닫기 요청(성공하면 true)
+  onClosed: () => void; // 내가 방을 닫았을 때 종료 화면으로
+  onRoomSignal: () => void; // 누가 방을 닫았다고 알렸을 때 서버에 방 상태 확인
+}) {
   const [color, setColor] = useState(HEAD_COLORS[0]);
   const [inZone, setInZone] = useState(false);
   const [panel, setPanel] = useState<TacticsMode | null>(null);
@@ -424,7 +443,36 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
     return () => timers.forEach(t => clearTimeout(t));
   }, []);
 
-  const room = useLoungeRoom({ initial: { color: HEAD_COLORS[0], x: 0, z: SPAWN_Z }, clamp: clampToRoom, onChat: handleChat });
+  const room = useLoungeRoom({
+    channelName,
+    meName,
+    initial: { color: HEAD_COLORS[0], x: 0, z: SPAWN_Z },
+    clamp: clampToRoom,
+    onChat: handleChat,
+    onRoomSignal,
+  });
+
+  // 남은 시간 표시(30초마다 갱신)와 방 닫기 확인 창
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const remainingMs = msUntilExpiry(expiresAt, offsetMs, nowTick);
+  const [showClose, setShowClose] = useState(false);
+  const [closing, setClosing] = useState(false);
+  async function handleCloseRoom() {
+    setClosing(true);
+    const ok = await onRequestClose();
+    if (!ok) {
+      setClosing(false);
+      setShowClose(false);
+      handleInfo("방을 닫지 못했어요. 잠시 뒤 다시 시도해 주세요");
+      return;
+    }
+    await room.notifyRoomClosed(); // 안에 있는 다른 사람들에게 바로 알린다(최대 1초)
+    onClosed();
+  }
   const [mySeat, setMySeat] = useState<number | null>(null); // 내가 앉은(앉으러 가는) 벤치 자리
 
   // 같은 자리를 거의 동시에 고른 경우: 접속 키가 작은 쪽이 자리를 갖고, 큰 쪽(나)은 일어나서 벤치 앞으로 나온다.
@@ -557,7 +605,9 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
       {/* 화면 위 UI */}
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),12px)]">
         <Link href="/dashboard" className="px-3 py-1.5 rounded-full bg-black/55 text-white text-sm font-bold">← 나가기</Link>
-        <span className="px-3 py-1.5 rounded-full bg-black/55 text-emerald-300 text-xs font-bold">팀 라운지 (시험 중)</span>
+        <span className={`px-3 py-1.5 rounded-full bg-black/55 text-xs font-bold ${remainingMs < 10 * 60_000 ? "text-amber-300" : "text-emerald-300"}`}>
+          ⏳ {formatRemaining(remainingMs)} 남음
+        </span>
       </div>
 
       <div className="absolute left-4 top-16 px-2.5 py-1 rounded-full bg-black/55 text-[11px] font-bold flex items-center gap-1.5">
@@ -567,13 +617,40 @@ export default function LoungeScene({ canManage }: { canManage: boolean }) {
         </span>
       </div>
 
-      {process.env.NODE_ENV === "development" && (
-        <button
-          onClick={() => setAsManager(v => !v)}
-          className="absolute right-4 top-16 px-2.5 py-1 rounded-full bg-fuchsia-600/80 text-white text-[11px] font-bold"
-        >
-          개발용: {asManager ? "관리자로" : "팀원으로"} 보기
-        </button>
+      <div className="absolute right-4 top-16 flex flex-col items-end gap-1.5">
+        {process.env.NODE_ENV === "development" && (
+          <button
+            onClick={() => setAsManager(v => !v)}
+            className="px-2.5 py-1 rounded-full bg-fuchsia-600/80 text-white text-[11px] font-bold"
+          >
+            개발용: {asManager ? "관리자로" : "팀원으로"} 보기
+          </button>
+        )}
+        {asManager && (
+          <button
+            onClick={() => setShowClose(true)}
+            className="px-2.5 py-1 rounded-full bg-black/55 text-red-300 text-[11px] font-bold"
+          >
+            방 닫기
+          </button>
+        )}
+      </div>
+
+      {showClose && (
+        <div className="absolute inset-0 z-[60] bg-black/70 flex items-center justify-center px-5" onPointerDown={e => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" aria-label="라운지 닫기" className="bg-gray-900 border border-white/10 rounded-2xl p-5 w-full max-w-sm">
+            <h2 className="text-white font-black text-base mb-2">라운지를 닫을까요?</h2>
+            <p className="text-gray-300 text-sm leading-relaxed mb-4">
+              지금 들어와 있는 모든 사람이 바로 나가게 되고, 나눈 대화도 사라져요. 다시 열면 새 방이 만들어져요.
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setShowClose(false)} disabled={closing} className="flex-1 bg-gray-800 text-gray-300 font-medium py-2.5 rounded-xl text-sm">취소</button>
+              <button onClick={() => void handleCloseRoom()} disabled={closing} className="flex-1 bg-red-500 hover:bg-red-400 text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-60">
+                {closing ? "닫는 중…" : "닫기"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showChat && <ChatPanel messages={messages} onClose={() => setShowChat(false)} />}
