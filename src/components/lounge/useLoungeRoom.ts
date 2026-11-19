@@ -7,6 +7,7 @@ import { supabaseClient } from "@/lib/supabaseClient";
 import { containsProfanity } from "@/lib/profanity";
 import { collectNewSays, mergeOthers, type Say } from "./presenceList";
 import { isValidSeat } from "./loungeConstants";
+import { compactBoard, sanitizeBoard, type BoardSnapshot } from "@/lib/tacticsBoard";
 
 export const MAX_CHAT_LENGTH = 80;
 const CHAT_MIN_INTERVAL_MS = 1000; // 연속 전송 최소 간격
@@ -25,18 +26,25 @@ export type PresenceState = {
   // 채팅: 보낸 사람 본인의 접속 상태에 실어 보낸다 → Supabase가 상태는 그 사람의 키로만 쓰게 막아 주므로 다른 사람 이름으로 위조할 수 없다.
   sayId: number; // 메시지를 보낼 때마다 1씩 증가 (받는 쪽이 새 메시지를 알아채는 용도)
   says: Say[]; // 최근에 보낸 메시지 몇 개(오래된 것부터). 하나만 싣으면 전송이 합쳐질 때 앞 메시지가 사라진다
+  // 전술 설명 중이면 지금 보여 주는 전술판. 이것도 내 접속 상태에 실어서, 나중에 들어온 사람도 접속과 동시에 현재 판을 받는다.
+  tac: { v: number; board: BoardSnapshot } | null; // v: 판이 바뀔 때마다 1씩 증가
 };
+
+/** 지금 전술을 설명 중인 사람 */
+export type Presenter = { key: string; name: string; v: number; board: BoardSnapshot };
 
 export type ChatMessage = { id: string; key: string; name: string; text: string; mine: boolean; at: number };
 export type SayResult = "ok" | "empty" | "profanity" | "rate" | "offline";
 
-export type OtherPlayer = PresenceState & { key: string };
+// 전술판은 크기가 커서 캐릭터 목록(OtherPlayer)에는 넣지 않는다 — 판이 바뀔 때마다 30명 캐릭터가 다시 계산되지 않도록 Presenter로 따로 넘긴다.
+export type OtherPlayer = Omit<PresenceState, "tac"> & { key: string };
 export type RoomStatus = "connecting" | "online" | "error";
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const HEARTBEAT_MS = 15_000; // 내 "살아 있어요" 신호 간격
 const STALE_MS = 45_000; // 이만큼 신호가 없으면 목록에서 뺀다 (탭을 갑자기 닫은 사람 등)
 const PRUNE_CHECK_MS = 5_000;
+const TAC_MIN_GAP_MS = 200; // 전술판 변경 전송 최소 간격 (판 하나가 몇 KB라 위치 전송보다 덜 자주 보낸다)
 const MAX_RETRIES = 6; // 이만큼 연달아 실패하면 화면에 "연결 실패"를 보여 준다(그 뒤에도 계속 시도한다)
 
 // 다른 사람이 보낸 값은 믿지 않는다: 숫자·색·이름을 검사하고 범위를 맞춘다
@@ -72,6 +80,11 @@ function sanitize(raw: unknown, clamp: (x: number, z: number) => { x: number; z:
           })
           .filter((s): s is Say => s !== null)
       : [],
+    tac: (() => {
+      const board = sanitizeBoard((r.tac as Record<string, unknown> | null | undefined)?.board);
+      const v = num((r.tac as Record<string, unknown> | null | undefined)?.v);
+      return board && v !== null ? { v, board } : null;
+    })(),
   };
 }
 
@@ -89,6 +102,7 @@ export function useLoungeRoom(opts: {
 }) {
   const [status, setStatus] = useState<RoomStatus>("connecting");
   const [others, setOthers] = useState<OtherPlayer[]>([]);
+  const [presenters, setPresenters] = useState<Presenter[]>([]);
   const onRoomSignalRef = useRef(opts.onRoomSignal);
   onRoomSignalRef.current = opts.onRoomSignal;
 
@@ -105,6 +119,9 @@ export function useLoungeRoom(opts: {
   const seenRef = useRef(new Map<string, { sig: string; at: number }>());
   const allOthersRef = useRef<OtherPlayer[]>([]);
   const visibleRef = useRef<OtherPlayer[]>([]); // 지금 화면에 넘겨 준 목록 (모양이 안 바뀌면 같은 목록을 유지한다)
+  const allPresentersRef = useRef<Presenter[]>([]); // 접속 상태에 전술판을 싣고 있는 사람들 (오래 안 보인 사람은 publish에서 거른다)
+  const visiblePresentersRef = useRef<Presenter[]>([]);
+  const tacVRef = useRef(0); // 내가 전술판을 바꿀 때마다 1씩 증가 (재접속·설명 재시작에도 줄어들지 않게 상태와 따로 둔다)
   const seenSayRef = useRef(new Map<string, number>()); // 사람별로 이미 본 마지막 메시지 번호
   const lastSayAt = useRef(0);
   const onChatRef = useRef(opts.onChat);
@@ -115,7 +132,7 @@ export function useLoungeRoom(opts: {
     const ch = channelRef.current;
     const state = stateRef.current;
     if (!ch || !state || !readyRef.current) return;
-    const wait = 100 - (Date.now() - lastSent.current);
+    const wait = (state.tac ? TAC_MIN_GAP_MS : 100) - (Date.now() - lastSent.current);
     const send = () => {
       timerRef.current = null;
       lastSent.current = Date.now();
@@ -140,9 +157,23 @@ export function useLoungeRoom(opts: {
       const visible = allOthersRef.current.filter(o => now - (seen.get(o.key)?.at ?? now) < STALE_MS);
       // "살아 있어요" 신호처럼 화면 모양이 안 바뀌는 변화는 React에 알리지 않는다 (30명이 다시 계산되는 것을 막는다)
       const merged = mergeOthers(visibleRef.current, visible);
-      if (merged === visibleRef.current) return;
-      visibleRef.current = merged;
-      setOthers(merged);
+      if (merged !== visibleRef.current) {
+        visibleRef.current = merged;
+        setOthers(merged);
+      }
+      // 설명 중인 사람 목록: 같은 사람·같은 판(v)이면 이전 객체를 그대로 써서 화면이 다시 그려지지 않게 한다
+      const livePresenters = allPresentersRef.current.filter(p => now - (seen.get(p.key)?.at ?? now) < STALE_MS);
+      const prevP = visiblePresentersRef.current;
+      const sameP = livePresenters.length === prevP.length && livePresenters.every((p, i) => prevP[i].key === p.key && prevP[i].v === p.v && prevP[i].name === p.name);
+      if (!sameP) {
+        const prevByKey = new Map(prevP.map(p => [p.key, p]));
+        const nextP = livePresenters.map(p => {
+          const old = prevByKey.get(p.key);
+          return old && old.v === p.v && old.name === p.name ? old : p;
+        });
+        visiblePresentersRef.current = nextP;
+        setPresenters(nextP);
+      }
     };
     const pruneTimer = setInterval(publish, PRUNE_CHECK_MS);
 
@@ -185,7 +216,7 @@ export function useLoungeRoom(opts: {
         // 내 첫 상태는 처음 한 번만 만든다(다시 붙을 때는 끊기기 전 상태를 그대로 이어서 쓴다)
         if (stateRef.current === null) {
           const init = initialRef.current;
-          stateRef.current = { name: opts.meName, color: init.color, x: init.x, z: init.z, tx: null, tz: null, seq: 0, seat: null, beat: 0, sayId: 0, says: [] };
+          stateRef.current = { name: opts.meName, color: init.color, x: init.x, z: init.z, tx: null, tz: null, seq: 0, seat: null, beat: 0, sayId: 0, says: [], tac: null };
         }
         if (cancelled || id !== connectId) return;
 
@@ -203,6 +234,7 @@ export function useLoungeRoom(opts: {
         ch.on("presence", { event: "sync" }, () => {
           const raw = ch.presenceState<PresenceState>();
           const list: OtherPlayer[] = [];
+          const presenterList: Presenter[] = [];
           const now = Date.now();
           const baseline = !synced; // 내가 막 들어온 첫 동기화: 이미 있던 사람들의 마지막 메시지는 "예전 것"이다
           synced = true;
@@ -212,7 +244,7 @@ export function useLoungeRoom(opts: {
             const clean = sanitize(meta, clampRef.current);
             if (!clean) continue;
             // 이동·색·살아 있음 신호 중 하나라도 달라졌으면 "방금 움직임이 있었다"고 기록
-            const sig = `${clean.seq}:${clean.beat}:${clean.color}`;
+            const sig = `${clean.seq}:${clean.beat}:${clean.color}:${clean.tac?.v ?? 0}`;
             if (seen.get(key)?.sig !== sig) seen.set(key, { sig, at: now });
 
             // 새 채팅 감지: 상태에 실린 최근 메시지 중 내가 아직 못 본 것만 번호순으로 보여준다 (규칙은 collectNewSays 참고).
@@ -225,11 +257,14 @@ export function useLoungeRoom(opts: {
                 onChatRef.current?.({ id: `${key}:${s.id}`, key, name: clean.name, text: s.text, mine: false, at: now });
               }
             }
-            list.push({ ...clean, key });
+            const { tac, ...player } = clean;
+            list.push({ ...player, key });
+            if (tac) presenterList.push({ key, name: clean.name, v: tac.v, board: tac.board });
           }
           for (const key of [...seen.keys()]) if (!list.some(o => o.key === key)) seen.delete(key);
           // seenSay는 사람이 잠깐 사라졌다 돌아와도 지우지 않는다(다시 접속한 사람의 옛 메시지가 새것으로 보이지 않도록). 접속마다 키가 새로 생기니 크기는 작다.
           allOthersRef.current = list;
+          allPresentersRef.current = presenterList.sort((a, b) => (a.key < b.key ? -1 : 1));
           publish();
         });
 
@@ -287,7 +322,10 @@ export function useLoungeRoom(opts: {
       seenSay.clear();
       allOthersRef.current = [];
       visibleRef.current = [];
+      allPresentersRef.current = [];
+      visiblePresentersRef.current = [];
       setOthers([]);
+      setPresenters([]);
       readyRef.current = false;
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = null;
@@ -335,6 +373,24 @@ export function useLoungeRoom(opts: {
     return "ok";
   }, []);
 
+  /**
+   * 전술 설명 중인 판을 방 전체에 알린다. null이면 설명을 끝낸 것.
+   * 접속 상태에 실어 보내므로 DB에는 저장되지 않고, 나중에 들어온 사람도 접속하면 바로 현재 판을 받는다.
+   * 변경이 잦으면 모아서 보낸다(마지막 판은 반드시 전송).
+   */
+  const setTactic = useCallback((board: BoardSnapshot | null) => {
+    const prev = stateRef.current;
+    if (!prev) return;
+    if (board === null) {
+      if (!prev.tac) return;
+      stateRef.current = { ...prev, tac: null };
+    } else {
+      tacVRef.current += 1;
+      stateRef.current = { ...prev, tac: { v: tacVRef.current, board: compactBoard(board) } };
+    }
+    flush();
+  }, [flush]);
+
   /** 방을 닫은 직후, 안에 있는 다른 사람들에게 바로 알린다(최대 1초만 기다림). 알림을 못 받아도 그쪽은 주기적으로 서버를 확인하므로 곧 알게 된다. */
   const notifyRoomClosed = useCallback(async () => {
     const ch = channelRef.current;
@@ -346,5 +402,5 @@ export function useLoungeRoom(opts: {
     }
   }, []);
 
-  return { status, others, myKey: myKeyState, announceMove, announceColor, say, notifyRoomClosed };
+  return { status, others, presenters, myKey: myKeyState, announceMove, announceColor, say, setTactic, notifyRoomClosed };
 }

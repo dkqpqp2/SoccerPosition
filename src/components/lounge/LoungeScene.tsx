@@ -654,7 +654,18 @@ export default function LoungeScene({
       )}
 
       {showChat && <ChatPanel messages={messages} onClose={() => setShowChat(false)} />}
-      {panel && <TacticsSessionPanel mode={panel} onClose={() => setPanel(null)} />}
+      {panel && <TacticsSessionPanel mode={panel} presenters={room.presenters} messages={messages} onSetTactic={room.setTactic} onClose={() => setPanel(null)} />}
+      {/* 누가 전술을 설명 중이면 어디에 있든 알려 주고, 눌러서 바로 보러 갈 수 있게 한다 */}
+      {!panel && room.presenters.length > 0 && (
+        <div className="absolute left-0 right-0 top-28 flex justify-center px-4 pointer-events-none">
+          <button
+            onClick={() => setPanel("watch")}
+            className="pointer-events-auto px-3.5 py-2 rounded-full bg-emerald-500 text-black text-xs font-black shadow-lg"
+          >
+            🎤 {room.presenters[0].name}님이 전술 설명 중 · 보러 가기
+          </button>
+        </div>
+      )}
       {showBoard && <LeaderboardModal data={leaderboard.data} status={leaderboard.status} onClose={() => setShowBoard(false)} />}
 
       {toast && (
@@ -680,8 +691,8 @@ export default function LoungeScene({
             </div>
           </div>
         )}
-        {!moved && !showChat && <p className="text-gray-300 text-xs bg-black/45 px-3 py-1 rounded-full">바닥을 탭하면 그곳으로 걸어가요</p>}
-        {!showChat && <ChatLines messages={messages} />}
+        {!moved && !showChat && !panel && <p className="text-gray-300 text-xs bg-black/45 px-3 py-1 rounded-full">바닥을 탭하면 그곳으로 걸어가요</p>}
+        {!showChat && !panel && <ChatLines messages={messages} />}
         {showColors && (
           <div className="flex gap-2 bg-black/60 rounded-full px-3 py-2 pointer-events-auto">
             {HEAD_COLORS.map(c => (

@@ -21,7 +21,7 @@ export default function ChatPanel({ messages, onClose }: { messages: ChatMessage
 
   return (
     <div
-      className="absolute inset-x-4 mx-auto max-w-sm z-40 flex flex-col rounded-2xl bg-gray-900/95 border border-white/10 shadow-2xl h-[46vh] max-h-[420px]"
+      className="absolute inset-x-4 mx-auto max-w-sm z-[55] flex flex-col rounded-2xl bg-gray-900/95 border border-white/10 shadow-2xl h-[46vh] max-h-[420px]"
       // 바닥을 탭하면 걷는 화면이라, 이 창 위의 터치·휠이 뒤의 3D(걷기·카메라 확대)로 번지지 않게 막는다
       style={{ bottom: "calc(max(env(safe-area-inset-bottom), 16px) + 52px)" }}
       onPointerDown={e => e.stopPropagation()}

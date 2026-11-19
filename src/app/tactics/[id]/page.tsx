@@ -9,41 +9,7 @@ import ScrimmageSelect from "@/components/ScrimmageSelect";
 import PositionSelect from "@/components/PositionSelect";
 import { zonePosition, detectFormationName, isGoalkeeper } from "@/lib/tacticsZones";
 import { FORMATIONS, PositionSlot } from "@/lib/formations";
-
-type LineMode = "curve" | "straight";
-type LineType = "move" | "pass";
-
-const LINE_COLORS: Record<LineType, string> = { move: "#f87171", pass: "#60a5fa" };
-const LINE_LABELS: Record<LineType, string> = { move: "움직임", pass: "패스" };
-
-interface Arrow {
-  id: string;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  mode: LineMode;
-  type: LineType;
-}
-
-interface Token {
-  id: string;
-  x: number;
-  y: number;
-  team: "us" | "opp" | "ball";
-  label?: string;
-  pos?: string; // 포지션 코드(GK/CB/CM/ST 등) — label이 선수 이름으로 바뀌어도 색상 구분용으로 유지
-  posManual?: boolean; // 사용자가 직접 고른 포지션이면 true — 드래그해도 구역에 따라 자동으로 안 바뀜
-}
-
-// assign 페이지와 동일한 포지션별 색상 규칙 (GK 주황 / 수비 파랑 / 공격 빨강 / 미드필드 초록)
-function positionColor(pos?: string) {
-  const p = (pos ?? "").toUpperCase();
-  if (p === "GK") return { bg: "#f59e0b", border: "#fbbf24", color: "#111827" };
-  if (/^(CB|LB|RB|LWB|RWB|SW|DC|DL|DR|WB|FB)/.test(p)) return { bg: "#3b82f6", border: "#60a5fa", color: "#ffffff" };
-  if (/^(ST|CF|SS|LW|RW|LF|RF|FW|ATT|WG|CW)/.test(p)) return { bg: "#ef4444", border: "#f87171", color: "#ffffff" };
-  return { bg: "#10b981", border: "#34d399", color: "#111827" };
-}
+import { type Arrow, type LineMode, type LineType, type Token, LINE_COLORS, LINE_LABELS, positionColor, arrowPath, arrowLabelPos } from "@/lib/tacticsBoard";
 
 interface AssignmentSummary {
   id: string;
@@ -297,29 +263,6 @@ export default function TacticsBoardPage() {
   function removeArrow(arrowId: string) {
     setArrows(prev => prev.filter(a => a.id !== arrowId));
     setDirty(true);
-  }
-
-  function controlPoint(a: { x1: number; y1: number; x2: number; y2: number }) {
-    const mx = (a.x1 + a.x2) / 2;
-    const my = (a.y1 + a.y2) / 2;
-    const dx = a.x2 - a.x1;
-    const dy = a.y2 - a.y1;
-    const len = Math.hypot(dx, dy) || 1;
-    const offset = len * 0.2;
-    return { cx: mx + (-dy / len) * offset, cy: my + (dx / len) * offset };
-  }
-
-  function arrowPath(a: { x1: number; y1: number; x2: number; y2: number; mode: LineMode }) {
-    if (a.mode === "straight") return `M ${a.x1} ${a.y1} L ${a.x2} ${a.y2}`;
-    const { cx, cy } = controlPoint(a);
-    return `M ${a.x1} ${a.y1} Q ${cx} ${cy} ${a.x2} ${a.y2}`;
-  }
-
-  // 화살표 번호 라벨을 놓을 위치 — 직선은 중점, 곡선은 베지어 곡선의 실제 중점(t=0.5)
-  function arrowLabelPos(a: { x1: number; y1: number; x2: number; y2: number; mode: LineMode }) {
-    if (a.mode === "straight") return { x: (a.x1 + a.x2) / 2, y: (a.y1 + a.y2) / 2 };
-    const { cx, cy } = controlPoint(a);
-    return { x: 0.25 * a.x1 + 0.5 * cx + 0.25 * a.x2, y: 0.25 * a.y1 + 0.5 * cy + 0.25 * a.y2 };
   }
 
   // 같은 번호의 움직임·패스를 한 단계로 묶음. 움직임은 시작점에서 가장 가까운 선수(이전 단계 이동 결과 기준)가 따라가고,
