@@ -11,7 +11,9 @@ import { formatRemaining, msUntilExpiry } from "./roomTime";
 import ChatPanel from "./ChatPanel";
 import Character from "./LoungeCharacter";
 import { BUBBLE_MS, Label } from "./LoungeLabels";
-import { BENCH_CENTERS, BENCH_LENGTH, HEAD_COLORS, SEATS_PER_BENCH, SPAWN_Z, seatPosition } from "./loungeConstants";
+import { BENCH_CENTERS, BENCH_LENGTH, HEAD_COLORS, PRESENTER_SPOT, SEATS_PER_BENCH, SPAWN_Z, seatPosition } from "./loungeConstants";
+import TacticsCorner from "./TacticsBoard3D";
+import type { BoardSnapshot } from "@/lib/tacticsBoard";
 import { useLeaderboard } from "./useLeaderboard";
 import HallOfFameBoard from "./HallOfFameBoard";
 import LeaderboardModal from "./LeaderboardModal";
@@ -24,8 +26,8 @@ const LIMIT_X = ROOM_W / 2 - 1.4; // 양옆 벽 락커 앞까지
 const LIMIT_Z_MIN = -ROOM_D / 2 + 1.4; // 뒷벽 락커 앞까지
 const LIMIT_Z_MAX = ROOM_D / 2 - 0.7;
 const LOCKER_COUNT = 30; // 팀원 최대 인원만큼 (나중에는 실제 팀원 수에 맞춘다)
-// 전술 구역: 화이트보드 앞 바닥. 이 안에 들어가면 "전술판 함께 보기 / 전술 설명하기" 버튼이 뜬다.
-const ZONE = { x: 0, z: -5.2, w: 7, d: 3.2 };
+// 전술 구역: 방 한가운데 전술판과 그 앞 의자가 있는 바닥. 이 안에 들어가면 "전술판 함께 보기 / 전술 설명하기" 버튼이 뜬다.
+const ZONE = { x: 0, z: 0.9, w: 7, d: 4.8 };
 const ZOOM_DEFAULT = 1.4;
 const ZOOM_MIN = 0.7;
 const ZOOM_MAX = 2.2;
@@ -287,33 +289,12 @@ function Room({
         <Locker key={i} index={i} onInfo={onInfo} />
       ))}
 
-      {/* 뒷벽 가운데: 전술 화이트보드 */}
-      <group
-        position={[0, 1.95, -ROOM_D / 2 + 0.15]}
-        onClick={(e) => {
-          if (e.delta > 8) return;
-          e.stopPropagation();
-          onInfo("전술 화이트보드 — 곧 전술판이 연결돼요");
-        }}
-      >
-        <mesh>
-          <boxGeometry args={[4.8, 2.4, 0.1]} />
-          <meshStandardMaterial color="#e5e7eb" roughness={0.4} />
+      {/* 뒷벽 가운데: 빈 벽 판 (전술판은 방 한가운데로 옮겼다) */}
+      <group position={[0, 1.95, -ROOM_D / 2 + 0.15]}>
+        <mesh raycast={() => null}>
+          <boxGeometry args={[4.8, 1.2, 0.1]} />
+          <meshStandardMaterial color="#111827" roughness={0.7} />
         </mesh>
-        <mesh position={[0, 0, 0.055]}>
-          <planeGeometry args={[4.6, 2.2]} />
-          <meshStandardMaterial color="#166534" roughness={0.6} />
-        </mesh>
-        {/* 보드 위 경기장 선 */}
-        <mesh position={[0, 0, 0.06]}>
-          <ringGeometry args={[0.35, 0.4, 32]} />
-          <meshBasicMaterial color="#f0fdf4" />
-        </mesh>
-        <mesh position={[0, 0, 0.06]}>
-          <planeGeometry args={[0.05, 2.2]} />
-          <meshBasicMaterial color="#f0fdf4" />
-        </mesh>
-        <Label text="전술 화이트보드" position={[0, 1.55, 0.14]} height={0.34} bg="#3f7f5c" fg="#ffffff" />
       </group>
 
       {/* 왼쪽 앞: 게시판 (세워 둔 보드) */}
@@ -452,6 +433,16 @@ export default function LoungeScene({
     onRoomSignal,
   });
 
+  // 중앙 전술판에 보여 줄 판: 내가 설명 중이면 내 판, 아니면 설명 중인 사람의 판
+  const [myBoard, setMyBoard] = useState<BoardSnapshot | null>(null);
+  const roomSetTactic = room.setTactic;
+  const setTactic = useCallback((b: BoardSnapshot | null) => {
+    setMyBoard(b);
+    roomSetTactic(b);
+  }, [roomSetTactic]);
+  const shownBoard = myBoard ?? room.presenters[0]?.board ?? null;
+  const shownPresenter = myBoard ? meName : room.presenters[0]?.name ?? null;
+
   // 남은 시간 표시(30초마다 갱신)와 방 닫기 확인 창
   const [nowTick, setNowTick] = useState(() => Date.now());
   useEffect(() => {
@@ -505,14 +496,26 @@ export default function LoungeScene({
     else if (result === "offline") handleInfo("아직 연결 중이에요");
   }
 
-  function handleFloorTap(x: number, z: number) {
+  // 내 캐릭터를 그 자리로 걸어가게 하고(앉아 있었다면 일어난다), 같은 방 사람들에게 "여기서 저기로 걸어간다"고 알린다
+  function walkTo(x: number, z: number) {
     setMoved(true);
-    setMySeat(null); // 앉아 있었다면 일어난다
+    setMySeat(null);
     const p = clampToRoom(x, z);
     targetRef.current = new THREE.Vector3(p.x, 0, p.z);
-    room.announceMove({ x: posRef.current.x, z: posRef.current.z }, p, null); // 같은 방 사람들에게 "여기서 저기로 걸어간다"고 알림
+    room.announceMove({ x: posRef.current.x, z: posRef.current.z }, p, null);
+    return p;
+  }
+
+  function handleFloorTap(x: number, z: number) {
+    const p = walkTo(x, z);
     markerId.current += 1;
     setMarker({ x: p.x, z: p.z, id: markerId.current });
+  }
+
+  // 전술을 설명하러 갈 때는 판을 가리지 않게 판 옆 자리로 걸어간다
+  function startPresenting() {
+    walkTo(PRESENTER_SPOT.x, PRESENTER_SPOT.z);
+    setPanel("present");
   }
 
   // 벤치를 탭하면: 그 벤치에서 (남이 안 앉은) 탭한 곳에 가장 가까운 자리로 걸어가 앉는다
@@ -591,6 +594,7 @@ export default function LoungeScene({
           status={leaderboard.status}
           onTap={() => { leaderboard.refreshIfStale(); setShowBoard(true); }}
         />
+        <TacticsCorner board={shownBoard} presenterName={shownPresenter} onTap={() => setPanel(p => p ?? "watch")} />
         <ZoneMarker active={inZone} />
         <ZoneWatcher posRef={posRef} onChange={setInZone} />
         {marker && <TargetMarker key={marker.id} x={marker.x} z={marker.z} />}
@@ -654,18 +658,7 @@ export default function LoungeScene({
       )}
 
       {showChat && <ChatPanel messages={messages} onClose={() => setShowChat(false)} />}
-      {panel && <TacticsSessionPanel mode={panel} presenters={room.presenters} messages={messages} onSetTactic={room.setTactic} onClose={() => setPanel(null)} />}
-      {/* 누가 전술을 설명 중이면 어디에 있든 알려 주고, 눌러서 바로 보러 갈 수 있게 한다 */}
-      {!panel && room.presenters.length > 0 && (
-        <div className="absolute left-0 right-0 top-28 flex justify-center px-4 pointer-events-none">
-          <button
-            onClick={() => setPanel("watch")}
-            className="pointer-events-auto px-3.5 py-2 rounded-full bg-emerald-500 text-black text-xs font-black shadow-lg"
-          >
-            🎤 {room.presenters[0].name}님이 전술 설명 중 · 보러 가기
-          </button>
-        </div>
-      )}
+      {panel && <TacticsSessionPanel mode={panel} presenters={room.presenters} messages={messages} onSetTactic={setTactic} onClose={() => setPanel(null)} />}
       {showBoard && <LeaderboardModal data={leaderboard.data} status={leaderboard.status} onClose={() => setShowBoard(false)} />}
 
       {toast && (
@@ -673,12 +666,21 @@ export default function LoungeScene({
       )}
 
       <div className="absolute bottom-0 left-0 right-0 px-4 pb-[max(env(safe-area-inset-bottom),16px)] flex flex-col items-center gap-2.5 pointer-events-none">
+        {/* 누가 전술을 설명 중이면 어디에 있든 알려 주고, 눌러서 바로 보러 갈 수 있게 한다 */}
+        {!panel && room.presenters.length > 0 && (
+          <button
+            onClick={() => setPanel("watch")}
+            className="pointer-events-auto px-3.5 py-2 rounded-full bg-emerald-500 text-black text-xs font-black shadow-lg"
+          >
+            🎤 {room.presenters[0].name}님이 전술 설명 중 · 보러 가기
+          </button>
+        )}
         {inZone && !panel && (
           <div className="flex flex-col items-center gap-2 pointer-events-auto">
             <p className="text-emerald-300 text-xs font-bold bg-black/55 px-3 py-1 rounded-full">전술 구역</p>
             <div className="flex gap-2">
               {asManager && (
-                <button onClick={() => setPanel("present")} className="bg-emerald-500 text-black font-black text-sm px-4 py-2.5 rounded-xl shadow-lg">
+                <button onClick={startPresenting} className="bg-emerald-500 text-black font-black text-sm px-4 py-2.5 rounded-xl shadow-lg">
                   🎤 전술 설명하기
                 </button>
               )}
