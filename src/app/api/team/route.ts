@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getUserAndTeam, getUserRole } from "@/lib/team";
+import { isLoungeEnabled } from "@/lib/lounge";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -47,6 +48,7 @@ export async function GET() {
     my_role: myRole,
     is_owner: myRole === "owner",
     can_manage: myRole === "owner" || myRole === "manager" || myRole === "coach" || myRole === "president",
+    lounge_enabled: isLoungeEnabled(teamId),
     members: members ?? [],
   });
 }
