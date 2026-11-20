@@ -9,41 +9,7 @@ import ScrimmageSelect from "@/components/ScrimmageSelect";
 import PositionSelect from "@/components/PositionSelect";
 import { zonePosition, detectFormationName, isGoalkeeper } from "@/lib/tacticsZones";
 import { FORMATIONS, PositionSlot } from "@/lib/formations";
-
-type LineMode = "curve" | "straight";
-type LineType = "move" | "pass";
-
-const LINE_COLORS: Record<LineType, string> = { move: "#f87171", pass: "#60a5fa" };
-const LINE_LABELS: Record<LineType, string> = { move: "움직임", pass: "패스" };
-
-interface Arrow {
-  id: string;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  mode: LineMode;
-  type: LineType;
-}
-
-interface Token {
-  id: string;
-  x: number;
-  y: number;
-  team: "us" | "opp" | "ball";
-  label?: string;
-  pos?: string; // 포지션 코드(GK/CB/CM/ST 등) — label이 선수 이름으로 바뀌어도 색상 구분용으로 유지
-  posManual?: boolean; // 사용자가 직접 고른 포지션이면 true — 드래그해도 구역에 따라 자동으로 안 바뀜
-}
-
-// assign 페이지와 동일한 포지션별 색상 규칙 (GK 주황 / 수비 파랑 / 공격 빨강 / 미드필드 초록)
-function positionColor(pos?: string) {
-  const p = (pos ?? "").toUpperCase();
-  if (p === "GK") return { bg: "#f59e0b", border: "#fbbf24", color: "#111827" };
-  if (/^(CB|LB|RB|LWB|RWB|SW|DC|DL|DR|WB|FB)/.test(p)) return { bg: "#3b82f6", border: "#60a5fa", color: "#ffffff" };
-  if (/^(ST|CF|SS|LW|RW|LF|RF|FW|ATT|WG|CW)/.test(p)) return { bg: "#ef4444", border: "#f87171", color: "#ffffff" };
-  return { bg: "#10b981", border: "#34d399", color: "#111827" };
-}
+import { type Arrow, type LineMode, type LineType, type Token, LINE_COLORS, LINE_LABELS, positionColor, arrowPath, arrowLabelPos } from "@/lib/tacticsBoard";
 
 interface AssignmentSummary {
   id: string;
@@ -189,6 +155,8 @@ export default function TacticsBoardPage() {
   const [arrowDrag, setArrowDrag] = useState<{ id: string; lastX: number; lastY: number } | null>(null);
   const [lineMode, setLineMode] = useState<LineMode>("curve");
   const [lineType, setLineType] = useState<LineType>("move");
+  // 선 긋기 중에는 선수가 그 자리에 고정된다(선수 위에서 시작해도 선이 그려진다). 선수를 옮기거나 고르려면 '선수 이동'
+  const [tool, setTool] = useState<"draw" | "move">("draw");
 
   const [playing, setPlaying] = useState(false);
   const [animPos, setAnimPos] = useState<Record<string, { x: number; y: number }> | null>(null);
@@ -235,6 +203,7 @@ export default function TacticsBoardPage() {
   function handlePitchPointerDown(e: React.PointerEvent) {
     if (!editable || playing || draggingId || arrowDrag) return;
     setSelectedTokenId(null);
+    if (tool !== "draw") return;
     const { x, y } = pointFromEvent(e);
     setDraft({ x1: x, y1: y, x2: x, y2: y });
   }
@@ -297,29 +266,6 @@ export default function TacticsBoardPage() {
   function removeArrow(arrowId: string) {
     setArrows(prev => prev.filter(a => a.id !== arrowId));
     setDirty(true);
-  }
-
-  function controlPoint(a: { x1: number; y1: number; x2: number; y2: number }) {
-    const mx = (a.x1 + a.x2) / 2;
-    const my = (a.y1 + a.y2) / 2;
-    const dx = a.x2 - a.x1;
-    const dy = a.y2 - a.y1;
-    const len = Math.hypot(dx, dy) || 1;
-    const offset = len * 0.2;
-    return { cx: mx + (-dy / len) * offset, cy: my + (dx / len) * offset };
-  }
-
-  function arrowPath(a: { x1: number; y1: number; x2: number; y2: number; mode: LineMode }) {
-    if (a.mode === "straight") return `M ${a.x1} ${a.y1} L ${a.x2} ${a.y2}`;
-    const { cx, cy } = controlPoint(a);
-    return `M ${a.x1} ${a.y1} Q ${cx} ${cy} ${a.x2} ${a.y2}`;
-  }
-
-  // 화살표 번호 라벨을 놓을 위치 — 직선은 중점, 곡선은 베지어 곡선의 실제 중점(t=0.5)
-  function arrowLabelPos(a: { x1: number; y1: number; x2: number; y2: number; mode: LineMode }) {
-    if (a.mode === "straight") return { x: (a.x1 + a.x2) / 2, y: (a.y1 + a.y2) / 2 };
-    const { cx, cy } = controlPoint(a);
-    return { x: 0.25 * a.x1 + 0.5 * cx + 0.25 * a.x2, y: 0.25 * a.y1 + 0.5 * cy + 0.25 * a.y2 };
   }
 
   // 같은 번호의 움직임·패스를 한 단계로 묶음. 움직임은 시작점에서 가장 가까운 선수(이전 단계 이동 결과 기준)가 따라가고,
@@ -755,21 +701,32 @@ export default function TacticsBoardPage() {
               ))}
             </div>
 
-            <div className="flex items-center gap-2">
-              <p className="text-xs text-gray-500 shrink-0">선 종류</p>
+            <div className="flex items-center flex-wrap gap-2">
+              <p className="text-xs text-gray-500 shrink-0">도구</p>
               {(["move", "pass"] as LineType[]).map(t => (
                 <button
                   key={t}
-                  onClick={() => setLineType(t)}
+                  onClick={() => { setTool("draw"); setLineType(t); setSelectedTokenId(null); }}
                   className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
-                    lineType === t ? "bg-white/15 text-white" : "bg-gray-900 text-gray-500 hover:text-gray-300"
+                    tool === "draw" && lineType === t ? "bg-white/15 text-white" : "bg-gray-900 text-gray-500 hover:text-gray-300"
                   }`}
                 >
                   <span className="w-2.5 h-2.5 rounded-full" style={{ background: LINE_COLORS[t] }} />
                   {LINE_LABELS[t]}
                 </button>
               ))}
+              <button
+                onClick={() => setTool("move")}
+                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+                  tool === "move" ? "bg-white/15 text-white" : "bg-gray-900 text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                ✋ 선수 이동
+              </button>
             </div>
+            <p className="text-[11px] text-gray-600 -mt-1">
+              {tool === "draw" ? "선을 그을 땐 선수가 그 자리에 고정돼요. 선수를 옮기거나 고르려면 ✋ 선수 이동을 누르세요." : "선수를 끌어 옮기거나 탭해서 고를 수 있어요. 선을 그리려면 움직임·패스를 누르세요."}
+            </p>
 
             <div className="flex items-center flex-wrap gap-2">
               <button
@@ -810,8 +767,6 @@ export default function TacticsBoardPage() {
                 <Trash2 size={14} /> 화살표 지우기
               </button>
             </div>
-
-            <p className="text-[11px] text-gray-600">피치 위를 드래그하면 화살표가 그려져요. 선수·상대 말 둘 다 드래그해서 옮길 수 있어요.</p>
 
             <div className="space-y-2 bg-gray-900/60 border border-white/10 rounded-xl p-3">
               {aiConsentModal}
@@ -998,11 +953,11 @@ export default function TacticsBoardPage() {
             return (
             <div
               key={t.id}
-              onPointerDown={e => { if (editable && !playing) { e.stopPropagation(); dragOriginRef.current = { id: t.id, x: t.x, y: t.y }; setDraggingId(t.id); } }}
+              onPointerDown={e => { if (editable && !playing && tool === "move") { e.stopPropagation(); dragOriginRef.current = { id: t.id, x: t.x, y: t.y }; setDraggingId(t.id); } }}
               className={`absolute transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center rounded-full shadow-lg font-black leading-none text-center ${
                 t.team === "ball" ? "w-6 h-6" : "w-8 h-8 border-2 text-[10px] px-0.5"
               } ${t.team === "opp" ? "bg-white border-gray-300 text-gray-900" : ""
-              } ${editable && !playing ? "cursor-grab active:cursor-grabbing" : ""} ${selectedTokenId === t.id ? "ring-2 ring-yellow-300" : ""}`}
+              } ${editable && !playing && tool === "move" ? "cursor-grab active:cursor-grabbing" : ""} ${selectedTokenId === t.id ? "ring-2 ring-yellow-300" : ""}`}
               style={{
                 left: `${(animPos?.[t.id] ?? t).x}%`,
                 top: `${(animPos?.[t.id] ?? t).y}%`,

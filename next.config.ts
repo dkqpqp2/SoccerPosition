@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/:section(dashboard|members|matches|assign|formations|feedback|mypage|admin|tactics|stats|votes|dues|scrimmage|scrimmage-league|board|videos|matching|status|share|join)/:path*",
+        source: "/:section(dashboard|members|matches|assign|formations|feedback|mypage|admin|tactics|stats|votes|dues|scrimmage|scrimmage-league|board|videos|matching|status|share|join|lounge)/:path*",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
     ];
