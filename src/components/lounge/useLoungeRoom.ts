@@ -27,11 +27,17 @@ export type PresenceState = {
   sayId: number; // 메시지를 보낼 때마다 1씩 증가 (받는 쪽이 새 메시지를 알아채는 용도)
   says: Say[]; // 최근에 보낸 메시지 몇 개(오래된 것부터). 하나만 싣으면 전송이 합쳐질 때 앞 메시지가 사라진다
   // 전술 설명 중이면 지금 보여 주는 전술판. 이것도 내 접속 상태에 실어서, 나중에 들어온 사람도 접속과 동시에 현재 판을 받는다.
-  tac: { v: number; board: BoardSnapshot } | null; // v: 판이 바뀔 때마다 1씩 증가
+  tac: { v: number; board: BoardSnapshot; play?: Play } | null; // v: 판이 바뀔 때마다 1씩 증가
 };
 
+/**
+ * 전술판 재생 신호. 설명하는 사람이 재생/정지를 누를 때마다 n이 1씩 늘고, run이 true면 "지금부터 재생", false면 "처음 위치로".
+ * 받는 쪽은 n이 달라진 걸 보고 각자 화면에서 같은 판으로 같은 재생을 돌린다(판 자체는 이미 접속 상태로 받고 있다).
+ */
+export type Play = { n: number; run: boolean };
+
 /** 지금 전술을 설명 중인 사람 */
-export type Presenter = { key: string; name: string; v: number; board: BoardSnapshot };
+export type Presenter = { key: string; name: string; v: number; board: BoardSnapshot; play: Play | null };
 
 export type ChatMessage = { id: string; key: string; name: string; text: string; mine: boolean; at: number };
 export type SayResult = "ok" | "empty" | "profanity" | "rate" | "offline";
@@ -81,9 +87,13 @@ function sanitize(raw: unknown, clamp: (x: number, z: number) => { x: number; z:
           .filter((s): s is Say => s !== null)
       : [],
     tac: (() => {
-      const board = sanitizeBoard((r.tac as Record<string, unknown> | null | undefined)?.board);
-      const v = num((r.tac as Record<string, unknown> | null | undefined)?.v);
-      return board && v !== null ? { v, board } : null;
+      const t = r.tac as Record<string, unknown> | null | undefined;
+      const board = sanitizeBoard(t?.board);
+      const v = num(t?.v);
+      if (!board || v === null) return null;
+      const pl = t?.play as Record<string, unknown> | null | undefined;
+      const n = pl ? num(pl.n) : null;
+      return { v, board, ...(n !== null ? { play: { n, run: pl?.run === true } } : {}) };
     })(),
   };
 }
@@ -121,6 +131,7 @@ export function useLoungeRoom(opts: {
   const visibleRef = useRef<OtherPlayer[]>([]); // 지금 화면에 넘겨 준 목록 (모양이 안 바뀌면 같은 목록을 유지한다)
   const allPresentersRef = useRef<Presenter[]>([]); // 접속 상태에 전술판을 싣고 있는 사람들 (오래 안 보인 사람은 publish에서 거른다)
   const visiblePresentersRef = useRef<Presenter[]>([]);
+  const playNRef = useRef(0); // 재생/정지 신호 번호 (설명을 껐다 켜도 줄어들지 않게 상태와 따로 둔다)
   const tacVRef = useRef(0); // 내가 전술판을 바꿀 때마다 1씩 증가 (재접속·설명 재시작에도 줄어들지 않게 상태와 따로 둔다)
   const seenSayRef = useRef(new Map<string, number>()); // 사람별로 이미 본 마지막 메시지 번호
   const lastSayAt = useRef(0);
@@ -161,15 +172,18 @@ export function useLoungeRoom(opts: {
         visibleRef.current = merged;
         setOthers(merged);
       }
-      // 설명 중인 사람 목록: 같은 사람·같은 판(v)이면 이전 객체를 그대로 써서 화면이 다시 그려지지 않게 한다
+      // 설명 중인 사람 목록: 같은 사람·같은 판(v)·같은 재생 신호면 이전 객체를 그대로 써서 화면이 다시 그려지지 않게 한다
+      // (재생 신호가 달라졌을 때는 꼭 알려야 한다 — 판은 그대로여도 보는 사람이 재생을 시작해야 하므로)
       const livePresenters = allPresentersRef.current.filter(p => now - (seen.get(p.key)?.at ?? now) < STALE_MS);
       const prevP = visiblePresentersRef.current;
-      const sameP = livePresenters.length === prevP.length && livePresenters.every((p, i) => prevP[i].key === p.key && prevP[i].v === p.v && prevP[i].name === p.name);
+      const samePresenter = (a: Presenter, b: Presenter) =>
+        a.key === b.key && a.v === b.v && a.name === b.name && a.play?.n === b.play?.n && a.play?.run === b.play?.run;
+      const sameP = livePresenters.length === prevP.length && livePresenters.every((p, i) => samePresenter(prevP[i], p));
       if (!sameP) {
         const prevByKey = new Map(prevP.map(p => [p.key, p]));
         const nextP = livePresenters.map(p => {
           const old = prevByKey.get(p.key);
-          return old && old.v === p.v && old.name === p.name ? old : p;
+          return old && samePresenter(old, p) ? old : p;
         });
         visiblePresentersRef.current = nextP;
         setPresenters(nextP);
@@ -244,7 +258,7 @@ export function useLoungeRoom(opts: {
             const clean = sanitize(meta, clampRef.current);
             if (!clean) continue;
             // 이동·색·살아 있음 신호 중 하나라도 달라졌으면 "방금 움직임이 있었다"고 기록
-            const sig = `${clean.seq}:${clean.beat}:${clean.color}:${clean.tac?.v ?? 0}`;
+            const sig = `${clean.seq}:${clean.beat}:${clean.color}:${clean.tac?.v ?? 0}:${clean.tac?.play?.n ?? 0}`;
             if (seen.get(key)?.sig !== sig) seen.set(key, { sig, at: now });
 
             // 새 채팅 감지: 상태에 실린 최근 메시지 중 내가 아직 못 본 것만 번호순으로 보여준다 (규칙은 collectNewSays 참고).
@@ -259,7 +273,7 @@ export function useLoungeRoom(opts: {
             }
             const { tac, ...player } = clean;
             list.push({ ...player, key });
-            if (tac) presenterList.push({ key, name: clean.name, v: tac.v, board: tac.board });
+            if (tac) presenterList.push({ key, name: clean.name, v: tac.v, board: tac.board, play: tac.play ?? null });
           }
           for (const key of [...seen.keys()]) if (!list.some(o => o.key === key)) seen.delete(key);
           // seenSay는 사람이 잠깐 사라졌다 돌아와도 지우지 않는다(다시 접속한 사람의 옛 메시지가 새것으로 보이지 않도록). 접속마다 키가 새로 생기니 크기는 작다.
@@ -386,8 +400,18 @@ export function useLoungeRoom(opts: {
       stateRef.current = { ...prev, tac: null };
     } else {
       tacVRef.current += 1;
-      stateRef.current = { ...prev, tac: { v: tacVRef.current, board: compactBoard(board) } };
+      // 판을 고쳐도 마지막 재생 신호는 그대로 둔다 — 받는 쪽은 n이 달라질 때만 재생하므로 같은 번호는 다시 재생되지 않는다
+      stateRef.current = { ...prev, tac: { v: tacVRef.current, board: compactBoard(board), ...(prev.tac?.play ? { play: prev.tac.play } : {}) } };
     }
+    flush();
+  }, [flush]);
+
+  /** 설명 중인 판의 재생(run=true)·처음 위치로(run=false)를 방 전체에 알린다. 설명 중이 아니면 아무 일도 하지 않는다. */
+  const setPlay = useCallback((run: boolean) => {
+    const prev = stateRef.current;
+    if (!prev?.tac) return;
+    playNRef.current += 1;
+    stateRef.current = { ...prev, tac: { ...prev.tac, play: { n: playNRef.current, run } } };
     flush();
   }, [flush]);
 
@@ -402,5 +426,5 @@ export function useLoungeRoom(opts: {
     }
   }, []);
 
-  return { status, others, presenters, myKey: myKeyState, announceMove, announceColor, say, setTactic, notifyRoomClosed };
+  return { status, others, presenters, myKey: myKeyState, announceMove, announceColor, say, setTactic, setPlay, notifyRoomClosed };
 }

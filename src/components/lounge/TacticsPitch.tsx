@@ -5,6 +5,7 @@ import {
   arrowLabelPos, arrowPath, LINE_COLORS, MAX_ARROWS, positionColor,
   type Arrow, type LineMode, type LineType, type Token,
 } from "@/lib/tacticsBoard";
+import type { Positions } from "@/lib/tacticsPlayback";
 
 // 이모지는 기기마다 모양이 달라서 체크무늬 축구공을 SVG로 직접 그린다 (전술판 페이지와 같은 모양)
 const pentagon = (cx: number, cy: number, r: number, rotDeg: number) =>
@@ -41,6 +42,8 @@ function newId() {
  *  - "draw": 선수는 그 자리에 고정되고, 어디서 끌든(선수 위에서 시작해도) 화살표가 그려진다.
  *  - "move": 선수를 끌어 옮긴다. 선은 그려지지 않는다.
  * 상태는 부모가 들고 있다: 바뀔 때마다 onChange로 새 선수·화살표를 알려 준다.
+ * positions는 재생 중인 위치(말 id → 좌표)다. 있으면 판의 위치 대신 이 위치에 그린다.
+ * onRemoveToken을 주면 상대·공에 지우기(✕) 버튼이 생긴다(고칠 수 있을 때만).
  */
 export default function TacticsPitch({
   tokens,
@@ -49,6 +52,8 @@ export default function TacticsPitch({
   tool = "draw",
   lineType = "move",
   lineMode = "curve",
+  positions = null,
+  onRemoveToken,
   onChange,
 }: {
   tokens: Token[];
@@ -57,6 +62,8 @@ export default function TacticsPitch({
   tool?: "draw" | "move";
   lineType?: LineType;
   lineMode?: LineMode;
+  positions?: Positions | null;
+  onRemoveToken?: (id: string) => void;
   onChange?: (tokens: Token[], arrows: Arrow[]) => void;
 }) {
   const pitchRef = useRef<HTMLDivElement>(null);
@@ -172,13 +179,25 @@ export default function TacticsPitch({
               t.team === "ball" ? "w-6 h-6" : "w-8 h-8 border-2 text-[10px] px-0.5"
             } ${t.team === "opp" ? "bg-white border-gray-300 text-gray-900" : ""} ${editable && tool === "move" ? "cursor-grab active:cursor-grabbing" : ""}`}
             style={{
-              left: `${t.x}%`,
-              top: `${t.y}%`,
+              left: `${(positions?.[t.id] ?? t).x}%`,
+              top: `${(positions?.[t.id] ?? t).y}%`,
+              // 재생 중에는 프레임 사이를 부드럽게 이어 준다(끌어서 옮길 때는 손가락을 바로 따라가야 하므로 적용하지 않는다)
+              ...(positions ? { transition: "left 70ms linear, top 70ms linear" } : {}),
               ...(t.team === "ball" ? { zIndex: 5 } : {}),
               ...(pc ? { background: pc.bg, borderColor: pc.border, color: pc.color } : {}),
             }}
           >
             {t.team === "ball" ? <BallIcon size={24} /> : t.label}
+            {editable && onRemoveToken && (t.team === "opp" || t.team === "ball") && (
+              <button
+                onPointerDown={e => e.stopPropagation()}
+                onClick={() => onRemoveToken(t.id)}
+                aria-label="지우기"
+                className="absolute -top-2.5 -right-2.5 w-5 h-5 rounded-full bg-gray-900 border border-white/25 text-gray-300 flex items-center justify-center text-[10px] leading-none font-bold"
+              >
+                ✕
+              </button>
+            )}
           </div>
         );
       })}

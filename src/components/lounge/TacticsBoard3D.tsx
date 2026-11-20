@@ -8,6 +8,7 @@ import {
 } from "@/lib/tacticsBoard";
 import { BOARD_BOTTOM, BOARD_CENTER, BOARD_H, BOARD_W, CHAIR_COUNT, chairSlot } from "./loungeConstants";
 import { Label } from "./LoungeLabels";
+import { applyPositions, usePlayback, type PlaybackStore } from "./boardPlayback";
 
 // 전술판 그림을 그리는 캔버스 크기 (세로로 긴 5:7)
 const TEX_W = 640;
@@ -130,8 +131,11 @@ function drawBoard(ctx: CanvasRenderingContext2D, board: BoardSnapshot | null) {
   }
 }
 
-// 판 앞면: 캔버스 그림을 입힌 평면. board가 바뀔 때만 다시 그린다.
-function BoardScreen({ board }: { board: BoardSnapshot | null }) {
+// 판 앞면: 캔버스 그림을 입힌 평면. board가 바뀔 때(재생 중에는 위치가 바뀔 때마다)만 다시 그린다.
+// 재생 위치는 여기서만 구독한다 — 재생 중에도 라운지 장면 전체는 다시 그려지지 않는다.
+function BoardScreen({ board: baseBoard, playback }: { board: BoardSnapshot | null; playback: PlaybackStore }) {
+  const { positions } = usePlayback(playback);
+  const board = useMemo(() => (baseBoard ? applyPositions(baseBoard, positions) : null), [baseBoard, positions]);
   const { canvas, texture } = useMemo(() => {
     const canvas = document.createElement("canvas");
     canvas.width = TEX_W;
@@ -191,7 +195,7 @@ function Chair({ index, onTap }: { index: number; onTap: (index: number) => void
  * 방 한가운데의 전술판과 그 앞에 반원으로 놓인 의자.
  * 판에는 지금 설명 중인 내용이 그대로 보인다(설명하는 사람이 없으면 안내 문구). 판을 탭하면 onTap, 의자를 탭하면 onChairTap.
  */
-export default function TacticsCorner({ board, presenterName, showLabel = true, onTap, onChairTap }: { board: BoardSnapshot | null; presenterName: string | null; showLabel?: boolean; onTap: () => void; onChairTap: (index: number) => void }) {
+export default function TacticsCorner({ board, playback, presenterName, showLabel = true, onTap, onChairTap }: { board: BoardSnapshot | null; playback: PlaybackStore; presenterName: string | null; showLabel?: boolean; onTap: () => void; onChairTap: (index: number) => void }) {
   const centerY = BOARD_BOTTOM + BOARD_H / 2;
   return (
     <group>
@@ -216,7 +220,7 @@ export default function TacticsCorner({ board, presenterName, showLabel = true, 
             <boxGeometry args={[BOARD_W, BOARD_H, 0.1]} />
             <meshStandardMaterial color="#e5e7eb" roughness={0.4} />
           </mesh>
-          <BoardScreen board={board} />
+          <BoardScreen board={board} playback={playback} />
         </group>
         {/* 앉아서 볼 때는 카메라가 판에 바짝 붙어 라벨이 화면 위 버튼과 겹치므로 숨긴다 */}
         {showLabel && (

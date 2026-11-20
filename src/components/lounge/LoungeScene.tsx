@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState, type FormEvent, type MutableRefObject } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MutableRefObject } from "react";
 import Link from "next/link";
 import * as THREE from "three";
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
@@ -16,6 +16,7 @@ import {
   HEAD_COLORS, PRESENTER_SPOT, SEATS_PER_BENCH, SPAWN_Z, chairSlot, isChairSeat, seatPosition,
 } from "./loungeConstants";
 import TacticsCorner from "./TacticsBoard3D";
+import { createPlaybackStore } from "./boardPlayback";
 import type { BoardSnapshot } from "@/lib/tacticsBoard";
 import { useLeaderboard } from "./useLeaderboard";
 import HallOfFameBoard from "./HallOfFameBoard";
@@ -457,13 +458,58 @@ export default function LoungeScene({
 
   // 중앙 전술판에 보여 줄 판: 내가 설명 중이면 내 판, 아니면 설명 중인 사람의 판
   const [myBoard, setMyBoard] = useState<BoardSnapshot | null>(null);
+  // 판 재생: 상태를 React 밖에 두고 3D 판·패널이 각자 구독한다(재생 중 매 프레임 장면 전체가 다시 그려지지 않게)
+  const playback = useMemo(() => createPlaybackStore(), []);
+  useEffect(() => () => playback.dispose(), [playback]);
+
   const roomSetTactic = room.setTactic;
+  const roomSetPlay = room.setPlay;
   const setTactic = useCallback((b: BoardSnapshot | null) => {
+    playback.reset(); // 판을 고치거나 내리면 재생하다 만 위치를 걷어 실제 판이 보이게
     setMyBoard(b);
     roomSetTactic(b);
-  }, [roomSetTactic]);
+  }, [playback, roomSetTactic]);
+  // 내가 설명하는 사람일 때: 재생하면 나도 보고, 방 전체에 재생 신호를 보낸다
+  const startPlay = useCallback((b: BoardSnapshot) => {
+    if (playback.start(b)) roomSetPlay(true);
+  }, [playback, roomSetPlay]);
+  const resetPlay = useCallback(() => {
+    playback.reset();
+    roomSetPlay(false);
+  }, [playback, roomSetPlay]);
   const shownBoard = myBoard ?? room.presenters[0]?.board ?? null;
   const shownPresenter = myBoard ? meName : room.presenters[0]?.name ?? null;
+
+  // 보는 사람일 때: 설명하는 사람의 재생 신호(번호가 바뀜)를 보고 내 화면에서도 같은 재생을 돌린다.
+  // 그 사람을 처음 봤을 때 이미 있던 신호는 지난 재생이라 틀지 않는다(재생 정보가 없었다면 기준은 0 — 이후 첫 재생은 틀어야 한다).
+  // 신호 번호는 그대로인데 판이 바뀌면(설명하는 사람이 고침) 재생 흔적을 걷는다.
+  const lead = room.presenters[0] ?? null;
+  const leadKey = lead?.key ?? null;
+  const leadV = lead?.v ?? 0;
+  const leadN = lead?.play?.n ?? null;
+  const leadRun = lead?.play?.run ?? false;
+  const leadBoardRef = useRef<BoardSnapshot | null>(null);
+  leadBoardRef.current = lead?.board ?? null;
+  const seenPlayN = useRef<Map<string, number>>(new Map());
+  const presentingMine = myBoard !== null;
+  useEffect(() => {
+    if (presentingMine) return; // 내가 설명 중이면 내 재생이 우선
+    if (!leadKey) { playback.reset(); return; }
+    const seen = seenPlayN.current;
+    if (!seen.has(leadKey)) {
+      seen.set(leadKey, leadN ?? 0);
+      playback.reset();
+      return;
+    }
+    if (leadN !== null && leadN !== seen.get(leadKey)) {
+      seen.set(leadKey, leadN);
+      const b = leadBoardRef.current;
+      if (leadRun && b) playback.start(b);
+      else playback.reset();
+      return;
+    }
+    playback.reset();
+  }, [playback, presentingMine, leadKey, leadV, leadN, leadRun]);
 
   // 남은 시간 표시(30초마다 갱신)와 방 닫기 확인 창
   const [nowTick, setNowTick] = useState(() => Date.now());
@@ -653,7 +699,7 @@ export default function LoungeScene({
           status={leaderboard.status}
           onTap={() => { leaderboard.refreshIfStale(); setShowBoard(true); }}
         />
-        <TacticsCorner board={shownBoard} presenterName={shownPresenter} showLabel={!isChairSeat(mySeat)} onTap={() => setPanel(p => p ?? "watch")} onChairTap={sitOnChair} />
+        <TacticsCorner board={shownBoard} playback={playback} presenterName={shownPresenter} showLabel={!isChairSeat(mySeat)} onTap={() => setPanel(p => p ?? "watch")} onChairTap={sitOnChair} />
         <ZoneMarker active={inZone} />
         <ZoneWatcher posRef={posRef} onChange={setInZone} />
         {marker && <TargetMarker key={marker.id} x={marker.x} z={marker.z} />}
@@ -717,7 +763,7 @@ export default function LoungeScene({
       )}
 
       {showChat && <ChatPanel messages={messages} onClose={() => setShowChat(false)} />}
-      {panel && <TacticsSessionPanel mode={panel} presenters={room.presenters} messages={messages} onSetTactic={setTactic} onClose={() => setPanel(null)} />}
+      {panel && <TacticsSessionPanel mode={panel} presenters={room.presenters} messages={messages} playback={playback} onSetTactic={setTactic} onPlay={startPlay} onResetPlay={resetPlay} onClose={() => setPanel(null)} />}
       {showBoard && <LeaderboardModal data={leaderboard.data} status={leaderboard.status} onClose={() => setShowBoard(false)} />}
 
       {toast && (
