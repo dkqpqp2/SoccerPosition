@@ -57,22 +57,37 @@ export default function LoungeHomeCard() {
 
   const remaining = room ? msUntilExpiry(room.expiresAt, offset, now) : 0;
 
-  // 열린 방이 있다 → 바로 들어가는 카드
+  // 열린 방이 있다 → 경기 카드처럼 정보 + 남은 시간 배지 + 들어가기 버튼
   if (room && remaining > 0) {
     return (
-      <button
-        onClick={() => router.push("/lounge")}
-        className="w-full bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 flex items-center gap-3 text-left"
-      >
-        <DoorOpen size={20} className="text-emerald-400 shrink-0" strokeWidth={1.75} />
-        <div className="flex-1 min-w-0">
-          <p className="font-bold text-emerald-300 text-sm">팀 라운지가 열렸어요</p>
-          <p className="text-xs text-gray-400 mt-0.5 truncate">
-            {room.createdByName ? `${room.createdByName}님이 열었어요 · ` : ""}남은 시간 {formatRemaining(remaining)}
-          </p>
+      <div className="bg-gray-900 rounded-lg border border-emerald-500/30 overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3">
+          <div className="min-w-0">
+            <p className="text-[10px] text-gray-600 uppercase tracking-widest mb-0.5">팀 라운지</p>
+            <p className="text-sm font-bold text-white flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+              </span>
+              라운지가 열렸어요
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5 truncate">
+              {room.createdByName ? `${room.createdByName}님이 열었어요` : "팀원들이 모이는 중이에요"}
+            </p>
+          </div>
+          <span className="text-sm font-black px-3 py-1.5 rounded-xl shrink-0 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            {formatRemaining(remaining)} 남음
+          </span>
         </div>
-        <span className="text-emerald-400 text-xs font-bold shrink-0">들어가기 →</span>
-      </button>
+        <div className="px-4 pb-4">
+          <button
+            onClick={() => router.push("/lounge")}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-bold transition-colors"
+          >
+            <DoorOpen size={16} strokeWidth={2} /> 라운지 들어가기
+          </button>
+        </div>
+      </div>
     );
   }
 
