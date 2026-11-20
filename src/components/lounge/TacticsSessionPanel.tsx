@@ -2,13 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FORMATIONS } from "@/lib/formations";
-import { LINE_COLORS, LINE_LABELS, sanitizeBoard, type BoardSnapshot, type LineMode, type LineType } from "@/lib/tacticsBoard";
+import { LINE_COLORS, LINE_LABELS, MAX_TOKENS, sanitizeBoard, type BoardSnapshot, type LineMode, type LineType } from "@/lib/tacticsBoard";
 import TacticsPitch from "./TacticsPitch";
+import { usePlayback, type PlaybackStore } from "./boardPlayback";
 import type { ChatMessage, Presenter } from "./useLoungeRoom";
 
 export type TacticsMode = "present" | "watch";
 
 const SOCCER_FORMATIONS = Object.keys(FORMATIONS).filter(k => FORMATIONS[k].type === "soccer");
+
+const newId = () => Math.random().toString(36).slice(2, 10);
 
 function boardFromFormation(name: string): BoardSnapshot {
   const f = FORMATIONS[name] ?? FORMATIONS[SOCCER_FORMATIONS[0]];
@@ -129,7 +132,15 @@ function BoardPicker({ otherPresenter, onPick, onCancel }: { otherPresenter: Pre
 }
 
 // ── 설명하는 사람 화면 ──
-function PresentView({ presenters, onSetTactic, onClose }: { presenters: Presenter[]; onSetTactic: (b: BoardSnapshot | null) => void; onClose: () => void }) {
+function PresentView({ presenters, playback, onSetTactic, onPlay, onResetPlay, onClose }: {
+  presenters: Presenter[];
+  playback: PlaybackStore;
+  onSetTactic: (b: BoardSnapshot | null) => void;
+  onPlay: (b: BoardSnapshot) => void;
+  onResetPlay: () => void;
+  onClose: () => void;
+}) {
+  const { playing, positions } = usePlayback(playback);
   const [board, setBoard] = useState<BoardSnapshot | null>(null);
   const [picking, setPicking] = useState(true);
   const [tool, setTool] = useState<"draw" | "move">("draw"); // 선 긋기 중에는 선수가 고정된다. 선수를 옮기려면 '선수 이동'
@@ -156,6 +167,36 @@ function PresentView({ presenters, onSetTactic, onClose }: { presenters: Present
     onClose();
   }
 
+  // 상대·공 추가와 삭제 (전술판 페이지와 같은 규칙: 상대는 우리 인원수까지, 공은 하나)
+  const usCount = board ? board.tokens.filter(t => t.team === "us").length : 0;
+  const oppCount = board ? board.tokens.filter(t => t.team === "opp").length : 0;
+  const hasBall = board ? board.tokens.some(t => t.team === "ball") : false;
+  const canAddOpp = !!board && !playing && board.tokens.length < MAX_TOKENS && (usCount === 0 || oppCount < usCount);
+  const canAddBall = !!board && !playing && !hasBall && board.tokens.length < MAX_TOKENS;
+  // 우리 팀과 인원수가 같은 포메이션만 상대 포메이션 후보로 보여 준다
+  const oppFormations = Object.keys(FORMATIONS).filter(k => (usCount ? FORMATIONS[k].slots.length === usCount : FORMATIONS[k].type === "soccer"));
+
+  function addOpponent() {
+    if (!board || !canAddOpp) return;
+    apply({ ...board, tokens: [...board.tokens, { id: newId(), x: 50, y: 50, team: "opp" }] });
+  }
+  function addBall() {
+    if (!board || !canAddBall) return;
+    apply({ ...board, tokens: [...board.tokens, { id: newId(), x: 50, y: 50, team: "ball" }] });
+  }
+  function setOpponentFormation(name: string) {
+    const slots = FORMATIONS[name]?.slots;
+    if (!board || !slots || playing) return;
+    const keep = board.tokens.filter(t => t.team !== "opp");
+    if (keep.length + slots.length > MAX_TOKENS) return;
+    // 상대는 반대편을 보고 서 있으므로 위아래를 뒤집는다
+    apply({ ...board, tokens: [...keep, ...slots.map(s => ({ id: newId(), x: s.x, y: 100 - s.y, team: "opp" as const, label: s.label, pos: s.label }))] });
+  }
+  function removeToken(id: string) {
+    if (!board || playing) return;
+    apply({ ...board, tokens: board.tokens.filter(t => t.id !== id) });
+  }
+
   const btn = (active: boolean) => `px-2.5 py-1.5 rounded-lg text-xs font-bold border ${active ? "bg-white/15 border-white/25 text-white" : "bg-gray-900 border-white/10 text-gray-400"}`;
 
   return (
@@ -165,7 +206,7 @@ function PresentView({ presenters, onSetTactic, onClose }: { presenters: Present
         <BoardPicker otherPresenter={presenters[0] ?? null} onPick={pick} onCancel={board ? () => setPicking(false) : undefined} />
       ) : (
         <>
-          <div className="px-3 pt-2 flex flex-wrap items-center gap-1.5">
+          <div className={`px-3 pt-2 flex flex-wrap items-center gap-1.5 ${playing ? "opacity-40 pointer-events-none" : ""}`}>
             {(["move", "pass"] as LineType[]).map(t => {
               const active = tool === "draw" && lineType === t;
               return (
@@ -184,11 +225,45 @@ function PresentView({ presenters, onSetTactic, onClose }: { presenters: Present
             <button onClick={() => startRef.current && apply(startRef.current)} className={btn(false)}>처음 배치로</button>
             <button onClick={() => setPicking(true)} className={btn(false)}>판 바꾸기</button>
           </div>
+          <div className={`px-3 pt-1.5 flex flex-wrap items-center gap-1.5 ${playing ? "opacity-40 pointer-events-none" : ""}`}>
+            <button onClick={addOpponent} disabled={!canAddOpp} className={`${btn(false)} disabled:opacity-40`}>+ 상대 추가</button>
+            <select
+              value=""
+              onChange={e => setOpponentFormation(e.target.value)}
+              aria-label="상대 포메이션 추가"
+              className="h-8 rounded-lg bg-gray-900 border border-white/10 text-gray-300 text-base sm:text-xs font-bold px-2 outline-none"
+            >
+              <option value="">상대 포메이션 ▾</option>
+              {oppFormations.map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+            <button onClick={addBall} disabled={!canAddBall} className={`${btn(false)} disabled:opacity-40`}>⚽ 공 추가</button>
+          </div>
+          {board.arrows.length > 0 && (
+            <div className="px-3 pt-1.5 flex flex-wrap items-center gap-1.5">
+              {playing ? (
+                <button onClick={onResetPlay} className="px-3 py-1.5 rounded-lg text-xs font-bold border bg-red-500/15 border-red-500/30 text-red-300">■ 정지</button>
+              ) : (
+                <button onClick={() => onPlay(board)} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 text-black">▶ {positions ? "다시 재생" : "재생"}</button>
+              )}
+              {positions && !playing && <button onClick={onResetPlay} className={btn(false)}>↺ 처음으로</button>}
+              <span className="text-gray-500 text-[11px]">보는 사람 화면에서도 같이 움직여요{hasBall ? "" : " · 패스는 공이 있어야 재생돼요"}</span>
+            </div>
+          )}
           <p className="px-4 pt-1.5 text-gray-500 text-[11px]">
-            {tool === "draw" ? "선을 그을 땐 선수가 그 자리에 고정돼요. 선수를 옮기려면 ✋ 선수 이동을 누르세요." : "선수를 끌어 옮기세요. 선을 그리려면 움직임·패스를 누르세요."} 하는 대로 보는 사람에게 바로 보여요.
+            {tool === "draw" ? "선을 그을 땐 선수가 그 자리에 고정돼요. 선수를 옮기려면 ✋ 선수 이동을 누르세요." : "선수를 끌어 옮기세요. 선을 그리려면 움직임·패스를 누르세요."} 하는 대로 보는 사람에게 바로 보여요. 상대·공은 모서리의 ✕로 지워요.
           </p>
           <PitchFrame>
-            <TacticsPitch tokens={board.tokens} arrows={board.arrows} editable tool={tool} lineType={lineType} lineMode={lineMode} onChange={(tokens, arrows) => apply({ ...board, tokens, arrows })} />
+            <TacticsPitch
+              tokens={board.tokens}
+              arrows={board.arrows}
+              editable={!playing}
+              tool={tool}
+              lineType={lineType}
+              lineMode={lineMode}
+              positions={positions}
+              onRemoveToken={removeToken}
+              onChange={(tokens, arrows) => apply({ ...board, tokens, arrows })}
+            />
           </PitchFrame>
         </>
       )}
@@ -197,9 +272,12 @@ function PresentView({ presenters, onSetTactic, onClose }: { presenters: Present
 }
 
 // ── 보는 사람 화면 ──
-function WatchView({ presenters, onClose }: { presenters: Presenter[]; onClose: () => void }) {
+function WatchView({ presenters, playback, onClose }: { presenters: Presenter[]; playback: PlaybackStore; onClose: () => void }) {
   const [followKey, setFollowKey] = useState<string | null>(null);
   const current = presenters.find(p => p.key === followKey) ?? presenters[0] ?? null;
+  const { positions } = usePlayback(playback);
+  // 같이 보는 재생은 첫 번째 설명하는 사람의 판 기준이다. 다른 사람의 판을 따라 보는 중이면 재생 없이 판 그대로 보여 준다.
+  const livePositions = current && current.key === presenters[0]?.key ? positions : null;
   return (
     <>
       <PanelHeader presenting={false} label={current ? `${current.name}님의 전술판${current.board.title ? ` · ${current.board.title}` : ""}` : "전술판"} closeLabel="나가기" onClose={onClose} />
@@ -218,7 +296,7 @@ function WatchView({ presenters, onClose }: { presenters: Presenter[]; onClose: 
       )}
       {current ? (
         <PitchFrame>
-          <TacticsPitch tokens={current.board.tokens} arrows={current.board.arrows} />
+          <TacticsPitch tokens={current.board.tokens} arrows={current.board.arrows} positions={livePositions} />
         </PitchFrame>
       ) : (
         <EmptyNote>{"지금 전술을 설명하는 사람이 없어요.\n설명이 시작되면 이 화면에 바로 나타나요."}</EmptyNote>
@@ -240,13 +318,19 @@ export default function TacticsSessionPanel({
   mode,
   presenters,
   messages,
+  playback,
   onSetTactic,
+  onPlay,
+  onResetPlay,
   onClose,
 }: {
   mode: TacticsMode;
   presenters: Presenter[];
   messages: ChatMessage[];
+  playback: PlaybackStore;
   onSetTactic: (board: BoardSnapshot | null) => void;
+  onPlay: (board: BoardSnapshot) => void;
+  onResetPlay: () => void;
   onClose: () => void;
 }) {
   const recent = messages.slice(-3);
@@ -259,9 +343,9 @@ export default function TacticsSessionPanel({
       onWheel={e => e.stopPropagation()}
     >
       {mode === "present" ? (
-        <PresentView presenters={presenters} onSetTactic={onSetTactic} onClose={onClose} />
+        <PresentView presenters={presenters} playback={playback} onSetTactic={onSetTactic} onPlay={onPlay} onResetPlay={onResetPlay} onClose={onClose} />
       ) : (
-        <WatchView presenters={presenters} onClose={onClose} />
+        <WatchView presenters={presenters} playback={playback} onClose={onClose} />
       )}
       {recent.length > 0 && (
         <div className="px-4 pb-1.5 pt-1 space-y-0.5 border-t border-white/5 pointer-events-none">
