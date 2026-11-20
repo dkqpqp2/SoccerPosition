@@ -516,9 +516,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* 팀 라운지가 열려 있을 때만 보이는 바로 입장 카드 (라운지를 쓸 수 있는 팀만) */}
-        {team?.lounge_enabled && <LoungeHomeCard key={team.id} />}
-
         {/* 회비 미납 알림 배너 */}
         {myDuesStatus?.paid === false && myDuesStatus.amount > 0 && (
           <button
@@ -905,6 +902,9 @@ export default function Dashboard() {
             </div>
           );
         })()}
+
+        {/* ── 팀 라운지: 열려 있으면 바로 입장, 없으면 없다고 안내 (라운지를 쓸 수 있는 팀만) ── */}
+        {team?.lounge_enabled && <LoungeHomeCard key={team.id} />}
 
         {/* ── 최근 경기 피드백 ── */}
         {feedbackLoaded && (
