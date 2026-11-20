@@ -3,6 +3,7 @@ import "pretendard/dist/web/variable/pretendardvariable.css";
 import "./globals.css";
 import { SessionProvider } from "@/components/SessionProvider";
 import { Analytics } from "@vercel/analytics/next";
+import AppUpdateWatcher from "@/components/AppUpdateWatcher";
 
 // 아이폰 앱(Capacitor)은 화면이 상태 표시줄·홈 표시줄 뒤까지 그려진다. env(safe-area-inset-*)가 제대로 나오려면 cover가 필요하다.
 // 이 값만으로 화면이 바뀌지는 않고, 각 화면이 안전 영역만큼 여백을 직접 둔다(AppLayout의 상단 바·하단 탭).
@@ -80,6 +81,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSON_LD) }} />
         <SessionProvider>{children}</SessionProvider>
+        <AppUpdateWatcher />
         <Analytics />
         <footer className="w-full border-t border-white/5 bg-gray-950 py-4 px-6 mt-auto">
           <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[11px] text-gray-600">

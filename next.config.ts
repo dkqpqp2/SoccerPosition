@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // 이 배포의 식별자. 화면(클라이언트)과 /api/version 이 같은 값을 쓰므로, 새 배포가 올라가면 켜 둔 화면과 서로 달라진다(AppUpdateWatcher).
+  // Vercel이 아닌 곳에서 빌드하면 빈 값이 되어 감지 기능이 꺼진다.
+  env: {
+    NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA ?? "",
+  },
   images: {
     domains: [
       "k.kakaocdn.net",
