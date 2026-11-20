@@ -293,7 +293,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* 상단 바 */}
-        <header className="h-14 bg-gray-900 border-b border-white/5 px-4 flex items-center justify-between shrink-0">
+        <header className="h-[calc(3.5rem+env(safe-area-inset-top,0px))] pt-[env(safe-area-inset-top,0px)] relative z-[41] bg-gray-900 border-b border-white/5 px-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             {/* 모바일 로고 */}
             <div className="md:hidden">
@@ -315,7 +315,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
             )}
             <button
               onClick={() => router.push("/mypage")}
-              className="md:hidden relative"
+              className="md:hidden relative p-2 -m-2"
             >
               {session?.user?.image ? (
                 <img src={session.user.image.replace(/^http:\/\//, 'https://')} alt="" referrerPolicy="no-referrer" className="w-7 h-7 rounded-full ring-1 ring-emerald-400/30" onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
@@ -332,7 +332,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
         </header>
 
         {/* 페이지 콘텐츠 */}
-        <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+        <main className="flex-1 overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
           {children}
         </main>
       </div>
@@ -406,7 +406,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
             )}
 
             {openedGroup && (
-              <div className="md:hidden fixed left-0 right-0 bottom-[60px] z-50 bg-gray-900 border-t border-white/5 rounded-t-2xl px-2 pt-3 pb-2 shadow-2xl">
+              <div className="md:hidden fixed left-0 right-0 bottom-[calc(60px+env(safe-area-inset-bottom,0px))] z-50 bg-gray-900 border-t border-white/5 rounded-t-2xl px-2 pt-3 pb-2 shadow-2xl">
                 <p className="text-[10px] text-gray-600 uppercase tracking-widest px-2 mb-2">{openedGroup.name}</p>
                 <div className="grid grid-cols-4 gap-1">
                   {openedGroup.items.map(item => {
@@ -440,7 +440,7 @@ export default function AppLayout({ children, title, helpContent }: { children: 
               </div>
             )}
 
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[60px] bg-gray-900 border-t border-white/5 z-50">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[calc(60px+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)] bg-gray-900 border-t border-white/5 z-50">
               <div className="flex h-full">
                 {groups.map(g => {
                   const isOpen = openGroup === g.name;

@@ -1,8 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "pretendard/dist/web/variable/pretendardvariable.css";
 import "./globals.css";
 import { SessionProvider } from "@/components/SessionProvider";
 import { Analytics } from "@vercel/analytics/next";
+
+// 아이폰 앱(Capacitor)은 화면이 상태 표시줄·홈 표시줄 뒤까지 그려진다. env(safe-area-inset-*)가 제대로 나오려면 cover가 필요하다.
+// 이 값만으로 화면이 바뀌지는 않고, 각 화면이 안전 영역만큼 여백을 직접 둔다(AppLayout의 상단 바·하단 탭).
+export const viewport: Viewport = {
+  viewportFit: "cover",
+};
 
 const SITE_TITLE = "스포츠팀매니저(SPM) - 풋살·축구 팀 관리 앱 | 포지션 배정·회비·전술판";
 const SITE_DESCRIPTION = "풋살·축구 등 스포츠팀의 포지션 배정, 전술판, 경기 기록, 회비 관리를 한곳에서 해결하는 무료 팀 관리 서비스. 카카오 계정으로 바로 시작하세요.";
