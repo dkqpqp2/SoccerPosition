@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
     .select("id, name, jersey_number, left_at")
     .eq("team_id", teamId)
     .eq("is_mercenary", false)
+    .eq("stats_excluded", false) // 부상 등으로 통계에서 잠시 뺀 팀원 (기록은 그대로 남아 있다)
     .order("name");
 
   if (!members || members.length === 0) return NextResponse.json([]);
