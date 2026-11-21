@@ -21,6 +21,9 @@ import type { BoardSnapshot } from "@/lib/tacticsBoard";
 import { useLeaderboard } from "./useLeaderboard";
 import HallOfFameBoard from "./HallOfFameBoard";
 import LeaderboardModal from "./LeaderboardModal";
+import { useLoungeInfo } from "./useLoungeInfo";
+import BalanceWall from "./BalanceWall";
+import { BalanceModal, RulesModal } from "./InfoModals";
 
 // ── 방 크기(미터 느낌의 단위) ──
 const ROOM_W = 24;
@@ -32,6 +35,10 @@ const LIMIT_Z_MAX = ROOM_D / 2 - 0.7;
 const LOCKER_COUNT = 30; // 팀원 최대 인원만큼 (나중에는 실제 팀원 수에 맞춘다)
 // 전술 구역: 방 한가운데 전술판과 그 앞 의자가 있는 바닥. 이 안에 들어가면 "전술판 함께 보기 / 전술 설명하기" 버튼이 뜬다.
 const ZONE = { x: 0, z: 0.9, w: 7, d: 4.8 };
+// 규칙 게시판 자리(왼쪽 앞)와 "가까이 가야 볼 수 있는" 거리, 멀 때 걸어가서 서는 자리
+const RULES_BOARD = { x: -8.5, z: 2.2 };
+const RULES_NEAR = 4.5;
+const RULES_STAND = { x: -7.6, z: 4.6 };
 const ZOOM_DEFAULT = 1.4;
 const ZOOM_MIN = 0.7;
 const ZOOM_MAX = 2.2;
@@ -260,10 +267,12 @@ function Room({
   onFloorTap,
   onBenchTap,
   onInfo,
+  onRulesTap,
 }: {
   onFloorTap: (x: number, z: number) => void;
   onBenchTap: (benchIndex: number, pointX: number) => void;
   onInfo: (msg: string) => void;
+  onRulesTap: () => void;
 }) {
   return (
     <group>
@@ -320,13 +329,13 @@ function Room({
         </mesh>
       </group>
 
-      {/* 왼쪽 앞: 게시판 (세워 둔 보드) */}
+      {/* 왼쪽 앞: 팀 규칙 게시판 (세워 둔 보드). 가까이 가서 탭하면 규칙 창이 열린다 */}
       <group
-        position={[-8.5, 0, 2.2]}
+        position={[RULES_BOARD.x, 0, RULES_BOARD.z]}
         onClick={(e) => {
           if (e.delta > 8) return;
           e.stopPropagation();
-          onInfo("게시판 — 곧 일정과 공지가 연결돼요");
+          onRulesTap();
         }}
       >
         <mesh position={[-0.9, 0.7, 0]}>
@@ -341,7 +350,7 @@ function Room({
           <boxGeometry args={[2.4, 1.5, 0.1]} />
           <meshStandardMaterial color="#a16207" roughness={0.9} />
         </mesh>
-        <Label text="게시판" position={[0, 2.55, 0.1]} height={0.32} bg="#fbbf24" fg="#1c1203" />
+        <Label text="📜 팀 규칙" position={[0, 2.55, 0.1]} height={0.32} bg="#fbbf24" fg="#1c1203" />
       </group>
 
       {/* 벤치 두 개: 탭하면 가까운 빈 자리로 가서 앉는다 */}
@@ -403,6 +412,9 @@ export default function LoungeScene({
   );
   const leaderboard = useLeaderboard(); // 득점왕·도움왕·참석왕 (명예의 전당 보드)
   const [showBoard, setShowBoard] = useState(false);
+  const loungeInfo = useLoungeInfo(); // 팀 회비 잔액(뒷벽)·팀 규칙(게시판)
+  const [showBalance, setShowBalance] = useState(false);
+  const [showRules, setShowRules] = useState(false);
   // 관리자급(감독·코치·관리자 등)이면 "전술 설명하기"가 보인다. 개발 중에는 아래 칩으로 관리자/팀원을 바꿔 볼 수 있다.
   const [asManager, setAsManager] = useState(canManage);
   const [marker, setMarker] = useState<{ x: number; z: number; id: number } | null>(null);
@@ -657,6 +669,17 @@ export default function LoungeScene({
     toastTimer.current = setTimeout(() => setToast(null), 2200);
   }
 
+  // 규칙 게시판: 가까이 있을 때만 열린다. 멀면 게시판 앞까지 걸어가고, 도착해서 다시 누르라고 알려 준다.
+  function handleRulesTap() {
+    if (Math.hypot(posRef.current.x - RULES_BOARD.x, posRef.current.z - RULES_BOARD.z) <= RULES_NEAR) {
+      loungeInfo.refreshIfStale();
+      setShowRules(true);
+      return;
+    }
+    walkTo(RULES_STAND.x, RULES_STAND.z);
+    handleInfo("게시판 앞으로 걸어가요. 도착하면 다시 눌러 보세요");
+  }
+
   return (
     <div
       className="fixed inset-0 bg-gray-950 overflow-hidden"
@@ -692,7 +715,13 @@ export default function LoungeScene({
         <directionalLight position={[4, 9, 6]} intensity={1.4} />
         <pointLight position={[-6, 3.2, -2]} intensity={14} distance={16} color="#fde68a" />
         <pointLight position={[6, 3.2, -2]} intensity={14} distance={16} color="#fde68a" />
-        <Room onFloorTap={handleFloorTap} onBenchTap={handleBenchTap} onInfo={handleInfo} />
+        <Room onFloorTap={handleFloorTap} onBenchTap={handleBenchTap} onInfo={handleInfo} onRulesTap={handleRulesTap} />
+        <BalanceWall
+          position={[-8.4, 0, -3.6]}
+          balance={loungeInfo.data?.balance ?? null}
+          status={loungeInfo.status}
+          onTap={() => { loungeInfo.refreshIfStale(); setShowBalance(true); }}
+        />
         <HallOfFameBoard
           position={[8.4, 0, 1.2]}
           data={leaderboard.data}
@@ -765,6 +794,16 @@ export default function LoungeScene({
       {showChat && <ChatPanel messages={messages} onClose={() => setShowChat(false)} />}
       {panel && <TacticsSessionPanel mode={panel} presenters={room.presenters} messages={messages} playback={playback} onSetTactic={setTactic} onPlay={startPlay} onResetPlay={resetPlay} onClose={() => setPanel(null)} />}
       {showBoard && <LeaderboardModal data={leaderboard.data} status={leaderboard.status} onClose={() => setShowBoard(false)} />}
+      {showBalance && <BalanceModal balance={loungeInfo.data?.balance ?? null} status={loungeInfo.status} onClose={() => setShowBalance(false)} />}
+      {showRules && (
+        <RulesModal
+          info={loungeInfo.data}
+          status={loungeInfo.status}
+          canEdit={(loungeInfo.data?.canEditRules ?? false) && asManager}
+          onSave={loungeInfo.saveRules}
+          onClose={() => setShowRules(false)}
+        />
+      )}
 
       {toast && (
         <div className="absolute left-1/2 -translate-x-1/2 top-24 px-4 py-2 rounded-xl bg-black/75 text-white text-sm font-medium max-w-[80%] text-center">{toast}</div>
