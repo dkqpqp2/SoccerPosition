@@ -87,6 +87,7 @@ export async function GET() {
     .select("id, name, jersey_number")
     .eq("team_id", teamId)
     .eq("is_mercenary", false)
+    .eq("stats_excluded", false) // 부상 등으로 통계에서 잠시 뺀 팀원
     .is("left_at", null);
   if (!members?.length) return respond(year, [], 0);
 

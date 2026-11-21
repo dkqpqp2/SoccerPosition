@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
     .select("id, name")
     .eq("team_id", teamId)
     .eq("is_mercenary", false)
+    .eq("stats_excluded", false) // 부상 등으로 통계에서 잠시 뺀 팀원은 입력 목록에서도 뺀다
     .is("left_at", null)
     .order("name");
 

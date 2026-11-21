@@ -22,6 +22,7 @@ interface Member {
   referrer: string | null;
   birth_year: number | null;
   jersey_number: number | null;
+  stats_excluded?: boolean;
 }
 
 interface FormData {
@@ -135,6 +136,22 @@ export default function MembersPage() {
     fetchMembers();
   }
 
+  // 부상 등으로 쉬는 팀원을 통계에서 잠시 빼거나 다시 넣는다 (기록은 그대로)
+  async function toggleStatsExcluded(member: Member) {
+    const next = !member.stats_excluded;
+    setMembers(prev => prev.map(m => m.id === member.id ? { ...m, stats_excluded: next } : m)); // 낙관적 반영
+    const res = await fetch(`/api/members/${member.id}/stats-exclusion`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ excluded: next }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error ?? "변경하지 못했어요. 다시 시도해주세요.");
+      fetchMembers();
+    }
+  }
+
   async function handleLink() {
     if (!linkTarget || !linkingId) return;
     setLinking(true);
@@ -246,7 +263,7 @@ export default function MembersPage() {
                 <MemberRow key={member.id} member={member} isLast={idx === displayedMembers.length - 1}
                   onEdit={handleEdit} onDelete={handleDelete} isMercenary={member.is_mercenary}
                   canManage={canManage} onDetail={id => router.push(`/members/${id}`)}
-                  onLink={m => setLinkTarget(m)} />
+                  onLink={m => setLinkTarget(m)} onToggleExcluded={toggleStatsExcluded} />
               ))}
             </div>
 
@@ -524,9 +541,10 @@ function EvalCard({ ev, canEdit, onEdit }: {
 }
 
 /* ── 팀원 행 ── */
-function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canManage = false, onDetail, onLink }: {
+function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canManage = false, onDetail, onLink, onToggleExcluded }: {
   member: Member; isLast: boolean; onEdit: (m: Member) => void; onDelete: (m: Member) => void;
   canManage?: boolean; isMercenary?: boolean; onDetail?: (id: string) => void; onLink?: (m: Member) => void;
+  onToggleExcluded?: (m: Member) => void;
 }) {
   const age = member.birth_year ? new Date().getFullYear() - member.birth_year : null;
   const isManual = !member.user_id; // 임의 추가된 팀원 (계정 없음)
@@ -553,6 +571,9 @@ function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canM
               ? <span className="text-xs text-gray-500 bg-white/5 px-1.5 py-0.5 rounded-full">만 {age}세</span>
               : <span className="text-xs text-gray-700">나이 미설정</span>
           )}
+          {!isMercenary && member.stats_excluded && (
+            <span className="text-[10px] text-red-400 bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 rounded-full font-medium">🩹 통계 제외 중</span>
+          )}
           {isMercenary && member.is_cafe_mercenary && (
             <span className="text-xs text-sky-400 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded-full flex items-center gap-1"><Coffee size={11} /> 카페용병</span>
           )}
@@ -573,6 +594,17 @@ function MemberRow({ member, isLast, onEdit, onDelete, isMercenary = false, canM
                 <button onClick={() => onLink(member)}
                   className="text-xs text-sky-400 hover:text-sky-300 px-2 py-1 rounded-lg hover:bg-sky-500/10 transition-colors font-semibold">
                   연결
+                </button>
+              )}
+              {!isMercenary && onToggleExcluded && (
+                <button onClick={() => onToggleExcluded(member)}
+                  title={member.stats_excluded ? "다시 골·어시 통계에 포함해요" : "부상 등으로 쉬는 동안 골·어시 통계에서 빼요 (기록은 그대로 남아요)"}
+                  className={`text-xs px-2 py-1 rounded-lg transition-colors font-semibold ${
+                    member.stats_excluded
+                      ? "text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                      : "text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+                  }`}>
+                  {member.stats_excluded ? "통계 복귀" : "통계 제외"}
                 </button>
               )}
               <button onClick={() => onEdit(member)} className="text-xs text-gray-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10 transition-colors">수정</button>
