@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   Check, X, Settings, AlertTriangle, CreditCard, Receipt, Wallet,
-  Users, MessageCircle, User, Trash2,
+  Users, MessageCircle, User, Trash2, Camera,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
+import DuesPhotoCheckModal from "@/components/DuesPhotoCheckModal";
 
 interface DueMember {
   user_id: string | null;
@@ -206,6 +207,9 @@ export default function DuesPage() {
   // 납부 선택 (항상 체크박스 모드)
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkPaying, setBulkPaying] = useState(false);
+
+  // 입금 내역 사진으로 확인
+  const [showPhotoCheck, setShowPhotoCheck] = useState(false);
 
   // 납부 요청 알림
   const [notifying, setNotifying] = useState(false);
@@ -602,6 +606,14 @@ export default function DuesPage() {
                   <p className="text-xs text-amber-400/70 mt-0.5">{getMonthLabel(month)} 회비를 납부해주세요.</p>
                 </div>
               </div>
+            )}
+            {canManage && (
+              <button
+                onClick={() => setShowPhotoCheck(true)}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 text-sm font-bold transition-colors"
+              >
+                <Camera size={15} strokeWidth={2} /> 입금 내역 사진으로 한꺼번에 확인
+              </button>
             )}
             {/* 전체 선택/해제 버튼 */}
             {canManage && unpaid.length > 0 && (
@@ -1067,6 +1079,18 @@ export default function DuesPage() {
           </div>
           </div>
         </div>
+      )}
+
+      {/* 입금 내역 사진으로 납부 확인 */}
+      {showPhotoCheck && (
+        <DuesPhotoCheckModal
+          month={month}
+          members={members
+            .filter(m => !m.is_former)
+            .map(m => ({ member_id: m.member_id, user_id: m.user_id, name: m.name, effective_amount: m.effective_amount, paid: m.paid }))}
+          onClose={() => setShowPhotoCheck(false)}
+          onApplied={load}
+        />
       )}
     </AppLayout>
   );
