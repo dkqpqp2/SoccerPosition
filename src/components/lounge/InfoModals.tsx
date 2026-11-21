@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { POSITION_MAP } from "@/lib/positions";
 import type { LoungeInfo, LoungeInfoStatus } from "./useLoungeInfo";
+import type { LockerMember } from "./useLockers";
 
 export const MAX_RULES_LENGTH = 3000;
 
@@ -144,6 +146,63 @@ export function RulesModal({
               </button>
             </div>
           </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** 락커를 탭했을 때 뜨는 창: 그 팀원의 이름·포지션과 장단점(읽기 전용) */
+export function LockerModal({
+  member,
+  lockerNo,
+  onClose,
+}: {
+  member: LockerMember;
+  lockerNo: number;
+  onClose: () => void;
+}) {
+  const hasAny = !!(member.strengths.trim() || member.weaknesses.trim());
+  return (
+    <div className="absolute inset-0 z-50 bg-black/65 flex items-center justify-center px-5" {...shield}>
+      <div role="dialog" aria-modal="true" aria-label={`${member.name} 락커`} className="bg-gray-900 border border-white/10 rounded-2xl p-5 w-full max-w-sm max-h-[85%] overflow-y-auto">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <p className="text-[11px] text-gray-500 mb-0.5">{lockerNo}번 락커{member.is_me ? " · 내 락커" : ""}</p>
+            <h2 className="text-white font-black text-lg">
+              {member.jersey_number != null && <span className="text-gray-500 font-bold mr-1.5">{member.jersey_number}</span>}
+              {member.name}
+            </h2>
+          </div>
+          <button onClick={onClose} aria-label="닫기" className="w-8 h-8 rounded-full bg-white/10 text-white text-sm font-bold shrink-0">✕</button>
+        </div>
+        <div className="flex gap-1.5 flex-wrap mb-4">
+          {member.position_1st ? (
+            <span className="text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+              {member.position_1st} · {POSITION_MAP[member.position_1st]?.description ?? member.position_1st}
+            </span>
+          ) : (
+            <span className="text-xs text-gray-600">포지션 미설정</span>
+          )}
+          {member.position_2nd && (
+            <span className="text-xs bg-sky-500/15 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded-full">
+              {member.position_2nd} · {POSITION_MAP[member.position_2nd]?.description ?? member.position_2nd}
+            </span>
+          )}
+        </div>
+        {hasAny ? (
+          <div className="space-y-2">
+            <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl px-3 py-2.5">
+              <p className="text-[11px] font-bold text-emerald-400 mb-1">✓ 장점</p>
+              <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{member.strengths.trim() || "아직 없어요"}</p>
+            </div>
+            <div className="bg-red-500/5 border border-red-500/10 rounded-xl px-3 py-2.5">
+              <p className="text-[11px] font-bold text-red-400 mb-1">⚠ 단점 / 개선점</p>
+              <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{member.weaknesses.trim() || "아직 없어요"}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-center text-xs text-gray-600 py-3">아직 작성된 장단점이 없어요</p>
         )}
       </div>
     </div>

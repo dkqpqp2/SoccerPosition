@@ -63,6 +63,8 @@ export default function MembersPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const canManage = userRole === "owner" || userRole === "manager" || userRole === "coach" || userRole === "president";
+  const [evalReadable, setEvalReadable] = useState(false); // 일반 팀원도 장단점을 볼 수 있는 팀인지(서버가 허용하면 true)
+  const showEvalTab = canManage || evalReadable;
   const isOwnerRole = userRole === "owner";
 
   // 계정 연결 모달
@@ -85,6 +87,17 @@ export default function MembersPage() {
     const data = await res.json();
     setUserRole(data.role ?? null);
   }
+
+  // 일반 팀원: 서버가 장단점 공개를 허용하는 팀이면 평가 탭을 보여 준다 (허용 안 하면 403 → 탭 숨김)
+  useEffect(() => {
+    if (status !== "authenticated" || !userRole || canManage) return;
+    fetch("/api/members/evaluations").then(async res => {
+      if (!res.ok) return;
+      const data = await res.json();
+      setEvals(Array.isArray(data) ? data : []);
+      setEvalReadable(true);
+    }).catch(() => {});
+  }, [status, userRole, canManage]);
 
   async function fetchMembers() {
     const res = await fetch("/api/members");
@@ -211,7 +224,7 @@ export default function MembersPage() {
           className={`flex-1 py-3 text-sm font-bold transition-colors flex items-center justify-center gap-1 ${tab === "mercenary" ? "text-amber-400 border-b-2 border-amber-400" : "text-gray-600 hover:text-gray-400"}`}>
           <Zap size={14} strokeWidth={2} /> 용병 <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${tab === "mercenary" ? "bg-amber-500/20 text-amber-400" : "bg-white/5 text-gray-600"}`}>{mercenaryMembers.length}</span>
         </button>
-        {canManage && (
+        {showEvalTab && (
           <button onClick={() => setTab("eval")}
             className={`flex-1 py-3 text-sm font-bold transition-colors flex items-center justify-center gap-1 ${tab === "eval" ? "text-sky-400 border-b-2 border-sky-400" : "text-gray-600 hover:text-gray-400"}`}>
             <FileText size={14} strokeWidth={2} /> 평가

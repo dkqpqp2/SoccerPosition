@@ -23,7 +23,8 @@ import HallOfFameBoard from "./HallOfFameBoard";
 import LeaderboardModal from "./LeaderboardModal";
 import { useLoungeInfo } from "./useLoungeInfo";
 import BalanceWall from "./BalanceWall";
-import { BalanceModal, RulesModal } from "./InfoModals";
+import { BalanceModal, RulesModal, LockerModal } from "./InfoModals";
+import { useLockers, type LockerMember } from "./useLockers";
 
 // ── 방 크기(미터 느낌의 단위) ──
 const ROOM_W = 24;
@@ -32,7 +33,7 @@ const WALL_H = 3.6;
 const LIMIT_X = ROOM_W / 2 - 1.4; // 양옆 벽 락커 앞까지
 const LIMIT_Z_MIN = -ROOM_D / 2 + 1.4; // 뒷벽 락커 앞까지
 const LIMIT_Z_MAX = ROOM_D / 2 - 0.7;
-const LOCKER_COUNT = 30; // 팀원 최대 인원만큼 (나중에는 실제 팀원 수에 맞춘다)
+const LOCKER_COUNT = 30; // 락커 칸 수. 팀원이 이보다 많으면 등번호 순으로 앞 30명까지만 락커가 있다
 // 전술 구역: 방 한가운데 전술판과 그 앞 의자가 있는 바닥. 이 안에 들어가면 "전술판 함께 보기 / 전술 설명하기" 버튼이 뜬다.
 const ZONE = { x: 0, z: 0.9, w: 7, d: 4.8 };
 // 규칙 게시판 자리(왼쪽 앞)와 "가까이 가야 볼 수 있는" 거리, 멀 때 걸어가서 서는 자리
@@ -232,9 +233,9 @@ function CameraRig({ posRef, zoomRef, seatRef }: { posRef: MutableRefObject<THRE
 }
 
 // ── 락커룸 ──
-function Locker({ index, onInfo }: { index: number; onInfo: (msg: string) => void }) {
+function Locker({ index, member, onTap }: { index: number; member: LockerMember | null; onTap: () => void }) {
   const slot = lockerSlot(index);
-  const body = index % 2 === 0 ? "#3d7a5b" : "#336a4e";
+  const body = member ? (index % 2 === 0 ? "#3d7a5b" : "#336a4e") : "#2b3f37"; // 주인 없는 락커는 더 어둡게
   return (
     <group
       position={slot.position}
@@ -242,7 +243,7 @@ function Locker({ index, onInfo }: { index: number; onInfo: (msg: string) => voi
       onClick={(e) => {
         if (e.delta > 8) return;
         e.stopPropagation();
-        onInfo(`${index + 1}번 락커 — 곧 팀원 정보가 연결돼요`);
+        onTap();
       }}
     >
       <mesh>
@@ -258,7 +259,13 @@ function Locker({ index, onInfo }: { index: number; onInfo: (msg: string) => voi
         <boxGeometry args={[0.05, 0.3, 0.04]} />
         <meshStandardMaterial color="#d1d5db" metalness={0.6} roughness={0.3} />
       </mesh>
-      <Label text={String(index + 1)} position={[0, 0.82, 0.42]} height={0.34} bg="rgba(255,255,255,0.92)" fg="#111827" />
+      {member && (
+        <>
+          {/* 위: 등번호(없으면 이름 첫 글자), 아래: 이름. 내 락커는 노란 번호판 */}
+          <Label text={member.jersey_number != null ? String(member.jersey_number) : member.name.charAt(0)} position={[0, 0.82, 0.42]} height={0.34} bg={member.is_me ? "#fbbf24" : "rgba(255,255,255,0.92)"} fg="#111827" />
+          <Label text={member.name} position={[0, 0.5, 0.42]} height={0.24} bg="rgba(0,0,0,0.6)" />
+        </>
+      )}
     </group>
   );
 }
@@ -268,11 +275,15 @@ function Room({
   onBenchTap,
   onInfo,
   onRulesTap,
+  lockerMembers,
+  onLockerTap,
 }: {
   onFloorTap: (x: number, z: number) => void;
   onBenchTap: (benchIndex: number, pointX: number) => void;
   onInfo: (msg: string) => void;
   onRulesTap: () => void;
+  lockerMembers: LockerMember[];
+  onLockerTap: (index: number) => void;
 }) {
   return (
     <group>
@@ -318,7 +329,7 @@ function Room({
 
       {/* 락커: 팀원 최대 인원만큼 */}
       {Array.from({ length: LOCKER_COUNT }, (_, i) => (
-        <Locker key={i} index={i} onInfo={onInfo} />
+        <Locker key={i} index={i} member={lockerMembers[i] ?? null} onTap={() => onLockerTap(i)} />
       ))}
 
       {/* 뒷벽 가운데: 빈 벽 판 (전술판은 방 한가운데로 옮겼다) */}
@@ -415,6 +426,8 @@ export default function LoungeScene({
   const loungeInfo = useLoungeInfo(); // 팀 회비 잔액(뒷벽)·팀 규칙(게시판)
   const [showBalance, setShowBalance] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const lockers = useLockers(); // 락커 한 칸 = 팀원 한 명 (탭하면 장단점)
+  const [openLocker, setOpenLocker] = useState<number | null>(null);
   // 관리자급(감독·코치·관리자 등)이면 "전술 설명하기"가 보인다. 개발 중에는 아래 칩으로 관리자/팀원을 바꿔 볼 수 있다.
   const [asManager, setAsManager] = useState(canManage);
   const [marker, setMarker] = useState<{ x: number; z: number; id: number } | null>(null);
@@ -669,6 +682,13 @@ export default function LoungeScene({
     toastTimer.current = setTimeout(() => setToast(null), 2200);
   }
 
+  function handleLockerTap(index: number) {
+    const m = lockers.members[index];
+    if (!m) { handleInfo("비어 있는 락커예요"); return; }
+    lockers.refreshIfStale();
+    setOpenLocker(index);
+  }
+
   // 규칙 게시판: 가까이 있을 때만 열린다. 멀면 게시판 앞까지 걸어가고, 도착해서 다시 누르라고 알려 준다.
   function handleRulesTap() {
     if (Math.hypot(posRef.current.x - RULES_BOARD.x, posRef.current.z - RULES_BOARD.z) <= RULES_NEAR) {
@@ -715,7 +735,7 @@ export default function LoungeScene({
         <directionalLight position={[4, 9, 6]} intensity={1.4} />
         <pointLight position={[-6, 3.2, -2]} intensity={14} distance={16} color="#fde68a" />
         <pointLight position={[6, 3.2, -2]} intensity={14} distance={16} color="#fde68a" />
-        <Room onFloorTap={handleFloorTap} onBenchTap={handleBenchTap} onInfo={handleInfo} onRulesTap={handleRulesTap} />
+        <Room onFloorTap={handleFloorTap} onBenchTap={handleBenchTap} onInfo={handleInfo} onRulesTap={handleRulesTap} lockerMembers={lockers.members} onLockerTap={handleLockerTap} />
         <BalanceWall
           position={[-8.4, 0, -3.6]}
           balance={loungeInfo.data?.balance ?? null}
@@ -795,6 +815,9 @@ export default function LoungeScene({
       {panel && <TacticsSessionPanel mode={panel} presenters={room.presenters} messages={messages} playback={playback} onSetTactic={setTactic} onPlay={startPlay} onResetPlay={resetPlay} onClose={() => setPanel(null)} />}
       {showBoard && <LeaderboardModal data={leaderboard.data} status={leaderboard.status} onClose={() => setShowBoard(false)} />}
       {showBalance && <BalanceModal balance={loungeInfo.data?.balance ?? null} status={loungeInfo.status} onClose={() => setShowBalance(false)} />}
+      {openLocker !== null && lockers.members[openLocker] && (
+        <LockerModal member={lockers.members[openLocker]} lockerNo={openLocker + 1} onClose={() => setOpenLocker(null)} />
+      )}
       {showRules && (
         <RulesModal
           info={loungeInfo.data}
