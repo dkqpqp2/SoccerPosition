@@ -33,6 +33,8 @@ const WALL_H = 3.6;
 const LIMIT_X = ROOM_W / 2 - 1.4; // 양옆 벽 락커 앞까지
 const LIMIT_Z_MIN = -ROOM_D / 2 + 1.4; // 뒷벽 락커 앞까지
 const LIMIT_Z_MAX = ROOM_D / 2 - 0.7;
+const LOCKER_LABELS_PER_STEP = 3; // 이름표를 한 번에 켜는 락커 칸 수
+const LOCKER_LABEL_STEP_MS = 50; // 켜는 간격
 const LOCKER_COUNT = 30; // 락커 칸 수. 팀원이 이보다 많으면 등번호 순으로 앞 30명까지만 락커가 있다
 // 전술 구역: 방 한가운데 전술판과 그 앞 의자가 있는 바닥. 이 안에 들어가면 "전술판 함께 보기 / 전술 설명하기" 버튼이 뜬다.
 const ZONE = { x: 0, z: 0.9, w: 7, d: 4.8 };
@@ -233,7 +235,8 @@ function CameraRig({ posRef, zoomRef, seatRef }: { posRef: MutableRefObject<THRE
 }
 
 // ── 락커룸 ──
-function Locker({ index, member, onTap }: { index: number; member: LockerMember | null; onTap: () => void }) {
+// memo: 락커 30칸이 화면의 다른 상태 변화(채팅·접속 변동 등)마다 다시 계산되지 않게 한다. 이름표(캔버스 그림)는 showLabels가 켜진 칸부터 만든다.
+const Locker = memo(function Locker({ index, member, showLabels, onTap }: { index: number; member: LockerMember | null; showLabels: boolean; onTap: (index: number) => void }) {
   const slot = lockerSlot(index);
   const body = member ? (index % 2 === 0 ? "#3d7a5b" : "#336a4e") : "#2b3f37"; // 주인 없는 락커는 더 어둡게
   return (
@@ -243,7 +246,7 @@ function Locker({ index, member, onTap }: { index: number; member: LockerMember 
       onClick={(e) => {
         if (e.delta > 8) return;
         e.stopPropagation();
-        onTap();
+        onTap(index);
       }}
     >
       <mesh>
@@ -259,7 +262,7 @@ function Locker({ index, member, onTap }: { index: number; member: LockerMember 
         <boxGeometry args={[0.05, 0.3, 0.04]} />
         <meshStandardMaterial color="#d1d5db" metalness={0.6} roughness={0.3} />
       </mesh>
-      {member && (
+      {member && showLabels && (
         <>
           {/* 위: 등번호(없으면 이름 첫 글자), 아래: 이름. 내 락커는 노란 번호판 */}
           <Label text={member.jersey_number != null ? String(member.jersey_number) : member.name.charAt(0)} position={[0, 0.82, 0.42]} height={0.34} bg={member.is_me ? "#fbbf24" : "rgba(255,255,255,0.92)"} fg="#111827" />
@@ -268,7 +271,7 @@ function Locker({ index, member, onTap }: { index: number; member: LockerMember 
       )}
     </group>
   );
-}
+});
 
 function Room({
   onFloorTap,
@@ -285,6 +288,14 @@ function Room({
   lockerMembers: LockerMember[];
   onLockerTap: (index: number) => void;
 }) {
+  // 락커 이름표는 캔버스 그림 60장이라 한꺼번에 만들면 입장 직후 화면이 멈칫한다 → 몇 칸씩 나눠서 차례로 켠다(한 번 켠 칸은 그대로 둔다)
+  const hasMembers = lockerMembers.length > 0;
+  const [labelCount, setLabelCount] = useState(0);
+  useEffect(() => {
+    if (!hasMembers || labelCount >= LOCKER_COUNT) return;
+    const t = setTimeout(() => setLabelCount(c => Math.min(LOCKER_COUNT, c + LOCKER_LABELS_PER_STEP)), LOCKER_LABEL_STEP_MS);
+    return () => clearTimeout(t);
+  }, [hasMembers, labelCount]);
   return (
     <group>
       {/* 바닥 */}
@@ -329,7 +340,7 @@ function Room({
 
       {/* 락커: 팀원 최대 인원만큼 */}
       {Array.from({ length: LOCKER_COUNT }, (_, i) => (
-        <Locker key={i} index={i} member={lockerMembers[i] ?? null} onTap={() => onLockerTap(i)} />
+        <Locker key={i} index={i} member={lockerMembers[i] ?? null} showLabels={i < labelCount} onTap={onLockerTap} />
       ))}
 
       {/* 뒷벽 가운데: 빈 벽 판 (전술판은 방 한가운데로 옮겼다) */}
@@ -412,6 +423,8 @@ export default function LoungeScene({
   onClosed: () => void; // 내가 방을 닫았을 때 종료 화면으로
   onRoomSignal: () => void; // 누가 방을 닫았다고 알렸을 때 서버에 방 상태 확인
 }) {
+  // 화면 해상도 상한: 터치 기기(폰·태블릿)는 1.5배, 그 밖에는 2배. 폰은 화면 점이 많아 2배로 그리면 조명 계산이 4배라 끊기기 쉽다
+  const [maxDpr] = useState(() => (typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches ? 1.5 : 2));
   const [color, setColor] = useState(HEAD_COLORS[0]);
   const [inZone, setInZone] = useState(false);
   const [panel, setPanel] = useState<TacticsMode | null>(null);
@@ -688,6 +701,10 @@ export default function LoungeScene({
     lockers.refreshIfStale();
     setOpenLocker(index);
   }
+  // 락커 칸(memo)에 넘기는 함수는 매번 새로 만들어지면 안 되므로, 항상 최신 handleLockerTap을 부르는 고정 함수를 쓴다
+  const lockerTapRef = useRef(handleLockerTap);
+  lockerTapRef.current = handleLockerTap;
+  const lockerTap = useCallback((index: number) => lockerTapRef.current(index), []);
 
   // 규칙 게시판: 가까이 있을 때만 열린다. 멀면 게시판 앞까지 걸어가고, 도착해서 다시 누르라고 알려 준다.
   function handleRulesTap() {
@@ -725,7 +742,7 @@ export default function LoungeScene({
       onPointerCancel={(e) => { pointers.current.delete(e.pointerId); if (pointers.current.size < 2) pinch.current = null; }}
     >
       <Canvas
-        dpr={[1, 2]}
+        dpr={[1, maxDpr]}
         camera={{ position: [0, 6.2 * ZOOM_DEFAULT, SPAWN_Z + 7.2 * ZOOM_DEFAULT], fov: 52, near: 0.1, far: 80 }}
         style={{ touchAction: "none" }}
       >
@@ -735,7 +752,7 @@ export default function LoungeScene({
         <directionalLight position={[4, 9, 6]} intensity={1.4} />
         <pointLight position={[-6, 3.2, -2]} intensity={14} distance={16} color="#fde68a" />
         <pointLight position={[6, 3.2, -2]} intensity={14} distance={16} color="#fde68a" />
-        <Room onFloorTap={handleFloorTap} onBenchTap={handleBenchTap} onInfo={handleInfo} onRulesTap={handleRulesTap} lockerMembers={lockers.members} onLockerTap={handleLockerTap} />
+        <Room onFloorTap={handleFloorTap} onBenchTap={handleBenchTap} onInfo={handleInfo} onRulesTap={handleRulesTap} lockerMembers={lockers.members} onLockerTap={lockerTap} />
         <BalanceWall
           position={[-8.4, 0, -3.6]}
           balance={loungeInfo.data?.balance ?? null}
