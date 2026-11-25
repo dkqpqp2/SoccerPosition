@@ -4,12 +4,13 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import {
-  Rocket, Wallet, Home, Handshake, Users, Link2, Calendar, Check,
+  Wallet, Home, Handshake, Users, Link2, Calendar, Check,
   X, HelpCircle, Target, FileText, MessageCircle, User, Zap,
   type LucideIcon,
 } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
 import LoungeHomeCard from "@/components/lounge/LoungeHomeCard";
+import OnboardingChecklist from "@/components/OnboardingChecklist";
 
 type TeamRole = "owner" | "manager" | "coach" | "president" | "member" | "treasurer";
 
@@ -121,6 +122,8 @@ export default function Dashboard() {
   const [trackIdx, setTrackIdx] = useState(1);
   const [isJumping, setIsJumping] = useState(false);
   const [mercenaryIds, setMercenaryIds] = useState<Set<string>>(new Set());
+  // "시작하기" 체크리스트용: 등록된 경기 수와 포지션 배정 수 (경기 목록을 받기 전에는 null → 카드를 숨겨서 미완료로 깜빡이지 않게)
+  const [matchStats, setMatchStats] = useState<{ matchCount: number; assignmentCount: number } | null>(null);
 
   const [recentFeedbackMatch, setRecentFeedbackMatch] = useState<Match | null>(null);
   const [recentFeedback, setRecentFeedback] = useState<FeedbackData | null>(null);
@@ -225,6 +228,10 @@ export default function Dashboard() {
     const res = await fetch("/api/matches");
     if (!res.ok) return;
     const matches: (Match & { position_assignments: Assignment[] })[] = await res.json();
+    setMatchStats({
+      matchCount: matches.length,
+      assignmentCount: matches.reduce((sum, m) => sum + (m.position_assignments?.length ?? 0), 0),
+    });
     if (!matches.length) { setFeedbackLoaded(true); return; }
 
     const now = new Date();
@@ -336,6 +343,7 @@ export default function Dashboard() {
     // 이전 팀 데이터 즉시 초기화
     setUpcomingMatch(null);
     setAssignments([]);
+    setMatchStats(null);
     setRecentFeedbackMatch(null);
     setRecentFeedback(null);
     setFeedbackLoaded(false);
@@ -496,24 +504,19 @@ export default function Dashboard() {
     <AppLayout title="홈">
       <div className="px-4 py-6 max-w-2xl mx-auto space-y-5">
 
-        {/* 신규 가입 온보딩 배너: 팀 이름이 기본값인 경우 */}
-        {team?.name === "우리팀" && (
-          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 flex items-start gap-3">
-            <Rocket size={22} className="text-emerald-400 shrink-0" strokeWidth={1.75} />
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-emerald-300 text-sm">가입을 환영해요!</p>
-              <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
-                아직 팀 이름이 <span className="text-white font-semibold">"우리팀"</span>으로 되어 있어요.
-                마이페이지에서 팀 이름을 변경해주세요!
-              </p>
-            </div>
-            <button
-              onClick={() => router.push("/mypage")}
-              className="shrink-0 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs px-3 py-2 rounded-xl transition-colors whitespace-nowrap"
-            >
-              팀 이름 설정 →
-            </button>
-          </div>
+        {/* 신규 팀장 온보딩: 팀 이름 → 팀원 초대 → 첫 경기 → 포지션 배정 (모두 끝내거나 닫으면 사라짐) */}
+        {team?.is_owner && matchStats && (
+          <OnboardingChecklist
+            teamId={team.id}
+            teamName={team.name}
+            inviteCode={team.invite_code}
+            memberCount={team.members.length}
+            matchCount={matchStats.matchCount}
+            assignmentCount={matchStats.assignmentCount}
+            onGoMatches={() => router.push("/matches")}
+            onGoAssign={() => router.push("/assign")}
+            onGoMyPage={() => router.push("/mypage")}
+          />
         )}
 
         {/* 회비 미납 알림 배너 */}
