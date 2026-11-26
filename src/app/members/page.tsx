@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Zap, FileText, Users, AlertTriangle, Coffee, User, Check,
-  StickyNote,
+  StickyNote, Sparkles,
 } from "lucide-react";
 import { POSITION_MAP } from "@/lib/positions";
 import AppLayout from "@/components/AppLayout";
 import PositionSelect from "@/components/PositionSelect";
+import CoachingTab from "@/components/members/CoachingTab";
 
 interface Member {
   id: string;
@@ -56,7 +57,7 @@ export default function MembersPage() {
   const [showForm,  setShowForm]  = useState(false);
   const [editId,    setEditId]    = useState<string | null>(null);
   const [form, setForm] = useState<FormData>({ name: "", position_1st: "", position_2nd: "", jersey_number: "", is_mercenary: false, is_cafe_mercenary: false, referrer: "" });
-  const [tab,  setTab]  = useState<"regular" | "mercenary" | "eval">("regular");
+  const [tab,  setTab]  = useState<"regular" | "mercenary" | "eval" | "coaching">("regular");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -205,7 +206,7 @@ export default function MembersPage() {
     ]}}>
       {/* 상단 버튼 */}
       <div className="flex justify-end gap-2 px-4 pt-4">
-        {canManage && tab !== "eval" && (
+        {canManage && tab !== "eval" && tab !== "coaching" && (
           <button
             onClick={() => { setForm({ name: "", position_1st: "", position_2nd: "", jersey_number: "", is_mercenary: true, is_cafe_mercenary: false, referrer: "" }); setEditId(null); setShowForm(true); }}
             className="bg-amber-500 hover:bg-amber-400 text-black font-bold px-3 py-1.5 rounded-xl text-sm transition-colors">
@@ -230,12 +231,20 @@ export default function MembersPage() {
             <FileText size={14} strokeWidth={2} /> 평가
           </button>
         )}
+        {canManage && (
+          <button onClick={() => setTab("coaching")}
+            className={`flex-1 py-3 text-sm font-bold transition-colors flex items-center justify-center gap-1 ${tab === "coaching" ? "text-violet-400 border-b-2 border-violet-400" : "text-gray-600 hover:text-gray-400"}`}>
+            <Sparkles size={14} strokeWidth={2} /> 코칭
+          </button>
+        )}
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-4 flex flex-col" style={{ minHeight: "calc(100vh - 140px)" }}>
 
         {/* ── 평가 탭 ── */}
-        {tab === "eval" ? (
+        {tab === "coaching" && canManage ? (
+          <CoachingTab />
+        ) : tab === "eval" ? (
           evalLoading ? (
             <div className="flex items-center justify-center py-16">
               <div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
