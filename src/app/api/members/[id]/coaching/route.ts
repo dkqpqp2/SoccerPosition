@@ -9,6 +9,9 @@ import { AI_DAILY_LIMIT, releaseAiUsage, reserveAiUsage } from "@/lib/aiQuota";
 
 type Params = { params: Promise<{ id: string }> };
 
+// AI 응답을 기다리는 시간(선수 한 명당 10~20초)이 기본 제한에 걸리지 않게 넉넉히 둔다
+export const maxDuration = 60;
+
 /** 요청한 사람이 관리자급인지, 대상이 이 팀의 정규 활동 팀원인지 확인한다 */
 async function authorize(id: string) {
   const session = await getServerSession(authOptions);
